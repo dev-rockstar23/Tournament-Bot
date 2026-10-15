@@ -1,0 +1,25 @@
+Step 7 — Next.js Web App Landing Page and Design System: COMPLETE
+
+Files created:
+- apps/web/src/app/globals.css              — CSS design tokens, glass-card utility, animations
+- apps/web/src/app/layout.tsx               — Root layout (Server Component), next/font/google, Providers wrapper
+- apps/web/src/app/page.tsx                 — Landing page entry (imports LandingPage client component)
+- apps/web/src/app/servers/page.tsx         — Servers stub page
+- apps/web/src/lib/utils.ts                 — cn() utility (clsx + tailwind-merge)
+- apps/web/src/lib/motion.ts                — Framer Motion variant presets
+- apps/web/src/components/Providers.tsx     — Client wrapper for Sonner <Toaster />
+- apps/web/src/components/LandingPage.tsx   — Full landing page (5 sections, framer-motion, client)
+- apps/web/src/components/ui/GlassCard.tsx  — Glassmorphism card component
+- apps/web/src/components/ui/GlowButton.tsx — Button with variant/size system (no @radix-ui/react-slot needed)
+- apps/web/src/components/ui/Badge.tsx      — Status badge with live pulsing dot
+- apps/web/src/components/ui/AnimatedCounter.tsx — Viewport-triggered counter (framer-motion)
+- apps/web/src/components/ui/StatusPulse.tsx     — Colored status indicator circle
+- apps/web/src/components/ui/Skeleton.tsx        — Skeleton loader
+- apps/web/src/components/ui/Navigation.tsx      — Sticky nav with auth-aware Discord login
+- apps/web/src/components/three/HeroScene.tsx    — R3F scene (icosahedron + rings + particles + bloom)
+- apps/web/src/components/three/HeroSceneWrapper.tsx — Dynamic import wrapper (no SSR, respects prefers-reduced-motion)
+
+Config updated:
+- apps/web/tailwind.config.ts — fontFamily extended to include --font-orbitron/--font-inter/--font-jetbrains vars
+
+TypeScript: pnpm --filter web type-check exits 0 (no errors).

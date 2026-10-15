@@ -101,9 +101,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
-        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        display: ['var(--font-orbitron)', 'var(--font-display)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-inter)', 'var(--font-body)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-jetbrains)', 'var(--font-mono)', 'monospace'],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
