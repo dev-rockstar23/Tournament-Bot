@@ -1,0 +1,29 @@
+{
+  "name": "discord-bot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "@sapphire/framework": "^5.1.2",
+    "@sapphire/plugin-logger": "^4.1.0",
+    "@sapphire/plugin-i18next": "^8.0.0",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5",
+    "@esports/permissions": "workspace:*",
+    "@esports/database": "workspace:*",
+    "@esports/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.12",
+    "tsx": "^4.11.0",
+    "eslint": "^8.57.0"
+  }
+}

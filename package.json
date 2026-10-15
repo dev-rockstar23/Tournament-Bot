@@ -1,0 +1,24 @@
+{
+  "name": "esports-platform",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --recursive build",
+    "lint": "pnpm --recursive lint",
+    "test": "pnpm --recursive test",
+    "type-check": "pnpm --recursive type-check",
+    "bot:dev": "pnpm --filter discord-bot dev",
+    "worker:dev": "pnpm --filter worker dev",
+    "db:generate": "pnpm --filter @esports/database db:generate",
+    "db:migrate": "pnpm --filter @esports/database db:migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1"
+  }
+}
