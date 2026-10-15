@@ -1,0 +1,37 @@
+Step 6 — Discord Bot Sapphire Scaffold — COMPLETE
+
+Files created under apps/discord-bot/src/:
+
+  utils/
+    emojis.ts         — EMOJIS const + e() helper with text fallbacks
+    responses.ts      — Branded EmbedBuilder helpers (success/error/warning/info/loading/etc.)
+    embeds.ts         — Domain embeds: welcome, tournament, match, standings, health,
+                        timezone prompt + ActionRow select menu (17 timezones)
+
+  preconditions/
+    GuildOnly.ts      — Rejects commands run in DMs
+    HasPermission.ts  — Resolves user AppRole via @esports/permissions, enforces minimum role
+
+  listeners/
+    ready.ts          — Logs bot username/id and guild count on startup
+    guild-create.ts   — Upserts discordServer + serverSettings, posts welcome + timezone embeds
+    guild-delete.ts   — Marks discordServer.isActive = false
+
+  commands/server/
+    setup.ts          — Full 3-step wizard: timezone → channel config → role binding
+    status.ts         — Health embed with outbox backlog count (requires TOURNAMENT_MANAGER)
+    roles.ts          — list / add / remove / members subcommands via string option
+
+  commands/tournament/
+    create / edit / publish / cancel / list / info / participants / standings  (stubs)
+
+  commands/match/
+    schedule / checkin / room / result / approve / dispute  (stubs)
+
+  commands/
+    register.ts / winners.ts / analytics.ts  (stubs)
+
+  index.ts            — SapphireClient boot with Guilds/GuildMembers/GuildMessages/MessageContent intents
+
+Type-check: pnpm --filter discord-bot type-check → 0 errors
+@esports/permissions built to dist/ to satisfy workspace resolution.
