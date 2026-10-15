@@ -1,2 +1,7 @@
-// Package stub — implementation in Phase 1 tasks
-export {}
+export {
+  TOURNAMENT_TRANSITIONS,
+  MATCH_TRANSITIONS,
+  assertTournamentTransition,
+  assertMatchTransition,
+  InvalidTransitionError,
+} from './state-machine';
