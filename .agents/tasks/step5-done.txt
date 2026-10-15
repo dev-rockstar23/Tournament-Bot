@@ -1,0 +1,16 @@
+Step 5 — @esports/permissions package — COMPLETE
+
+Files created:
+  packages/permissions/src/errors.ts         — PermissionError class
+  packages/permissions/src/roles.ts          — AppRole numeric enum + helpers
+  packages/permissions/src/guild-membership.ts — Discord API member fetch
+  packages/permissions/src/role-resolver.ts  — resolveUserRole (Prisma + Discord)
+  packages/permissions/src/brute-force.ts    — Redis attempt tracking
+  packages/permissions/src/withPermission.ts — Next.js App Router HOC
+  packages/permissions/src/index.ts          — barrel export
+
+Files updated:
+  packages/permissions/package.json          — added @supabase/ssr, @supabase/supabase-js, next deps
+  packages/database/dist/generated/          — copied Prisma generated client into dist for type resolution
+
+Type-check result: PASS (pnpm --filter @esports/permissions type-check exits 0)

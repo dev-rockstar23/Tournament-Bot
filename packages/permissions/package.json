@@ -10,11 +10,15 @@
   },
   "dependencies": {
     "@esports/database": "workspace:*",
-    "@esports/shared-types": "workspace:*"
+    "@esports/shared-types": "workspace:*",
+    "@supabase/ssr": "^0.3.0",
+    "@supabase/supabase-js": "^2.43.4",
+    "@upstash/redis": "^1.31.5",
+    "next": "^14.2.3"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
     "@types/node": "^20.12.12",
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
   }
 }
