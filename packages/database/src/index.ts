@@ -1,2 +1,2 @@
-// Package stub — implementation in Phase 1 tasks
-export {}
+export * from './client'
+export { default } from './client'
