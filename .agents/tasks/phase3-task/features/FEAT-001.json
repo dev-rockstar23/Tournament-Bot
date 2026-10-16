@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Create packages/tournament-engine/src/state-machine.ts with TOURNAMENT_TRANSITIONS and MATCH_TRANSITIONS maps, assertTournamentTransition and assertMatchTransition helpers, and InvalidTransitionError class. Export everything from index.ts. This package is a dependency of FEAT-003, FEAT-004, FEAT-005, and FEAT-006.",
+  "status": "completed",
+  "steps": [
+    "Create packages/tournament-engine/src/state-machine.ts. Define TOURNAMENT_TRANSITIONS as Record<TournamentStatus, TournamentStatus[]> matching the ALLOWED_TRANSITIONS already in packages/shared-types/src/tournament.ts: DRAFT→[REGISTRATION_OPEN], REGISTRATION_OPEN→[REGISTRATION_CLOSED, CANCELLED], REGISTRATION_CLOSED→[CHECK_IN, CANCELLED], CHECK_IN→[LIVE, CANCELLED], LIVE→[COMPLETED, CANCELLED], COMPLETED→[ARCHIVED], CANCELLED→[], ARCHIVED→[]. Define MATCH_TRANSITIONS as Record<MatchStatus, MatchStatus[]>: SCHEDULED→[CHECK_IN, POSTPONED, CANCELLED], CHECK_IN→[READY, CANCELLED], READY→[LIVE, CANCELLED], LIVE→[AWAITING_RESULT, CANCELLED], AWAITING_RESULT→[UNDER_REVIEW, DISPUTED, COMPLETED], UNDER_REVIEW→[COMPLETED, DISPUTED], DISPUTED→[UNDER_REVIEW, COMPLETED], COMPLETED→[], POSTPONED→[SCHEDULED, CANCELLED], CANCELLED→[], FORFEIT→[]. Add InvalidTransitionError class extending Error with fields { from: string, to: string, allowed: string[], httpStatus: 409 }. Add assertTournamentTransition(from: TournamentStatus, to: TournamentStatus): void — throws InvalidTransitionError if to is not in TOURNAMENT_TRANSITIONS[from]. Add assertMatchTransition(from: MatchStatus, to: MatchStatus): void — same pattern for matches. Import TournamentStatus and MatchStatus type aliases from @esports/shared-types (they are exported from packages/shared-types/src/tournament.ts).",
+    "Replace the stub in packages/tournament-engine/src/index.ts with: export { TOURNAMENT_TRANSITIONS, MATCH_TRANSITIONS, assertTournamentTransition, assertMatchTransition, InvalidTransitionError } from './state-machine'.",
+    "Run 'pnpm --filter @esports/tournament-engine build' and confirm 0 TypeScript errors and dist/ directory is populated."
+  ],
+  "acceptance_criteria": [
+    "pnpm --filter @esports/tournament-engine build exits with code 0",
+    "dist/index.js and dist/state-machine.js exist under packages/tournament-engine/",
+    "InvalidTransitionError has httpStatus property equal to 409",
+    "assertTournamentTransition('DRAFT', 'LIVE') throws InvalidTransitionError",
+    "assertTournamentTransition('DRAFT', 'REGISTRATION_OPEN') does not throw"
+  ],
+  "verification": [
+    "pnpm --filter @esports/tournament-engine build"
+  ],
+  "blocked_reason": null,
+  "findings": "TournamentStatus imported from @esports/shared-types (Zod-inferred string union). MatchStatus imported from @esports/database (re-exported from Prisma generated client) — it is NOT in @esports/shared-types. Both types are structurally identical string unions. Exports: TOURNAMENT_TRANSITIONS, MATCH_TRANSITIONS, assertTournamentTransition, assertMatchTransition, InvalidTransitionError (httpStatus=409). Build verified: dist/index.js and dist/state-machine.js generated, tsc exit 0. Commit: 369e557. Later steps (FEAT-003, FEAT-004, FEAT-005, FEAT-006) should import from @esports/tournament-engine."
+}

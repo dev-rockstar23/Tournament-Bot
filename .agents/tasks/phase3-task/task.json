@@ -1,0 +1,7 @@
+{
+  "task_id": "task-phase3-tournament-engine",
+  "task_description": "Implement Phase 3 of the esports platform: Registration System (Task 13), Multi-Match Scheduler (Task 14), Game-Specific Scoring Engines (Task 15), Result Submission and Approval Workflow (Task 16), and Winner Finalization and Award System (Task 17).",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005", "FEAT-006"],
+  "blocked_reason": null
+}

@@ -1,0 +1,64 @@
+FEAT-005: Result Submission and Approval — COMPLETED
+======================================================
+
+Commit: feat(phase3): FEAT-005 result submission and approval
+
+Files created:
+--------------
+
+1. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/results/route.ts
+   POST — withPermission(PLAYER). Validates body with ResultSubmitSchema (zod).
+   In $transaction: fetches match (guildId-scoped), assertMatchTransition(→UNDER_REVIEW),
+   validates captain-of-participant OR REFEREE+ authorization, validates all scorecardJson
+   teamIds are match participants, creates ResultSubmission(status:PENDING_REVIEW), updates
+   match to UNDER_REVIEW, creates OutboxEvent(RESULT_SUBMITTED), writes AuditLog.
+
+2. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/approve/route.ts
+   POST — withPermission(REFEREE). Body: { action: 'approve'|'reject', reason?: string }.
+   Approve path ($transaction): fetches match+tournament+ruleVersion, validates UNDER_REVIEW,
+   gets PENDING_REVIEW submission, parses scorecardJson, builds ScoringConfig (ruleVersion or
+   game default), calls calculateBgmiMatchScore (generic signature across all games), creates
+   ScoreEvent records (Decimal points/penalties), sets submission APPROVED+reviewedBy+reviewedAt,
+   assertMatchTransition(→COMPLETED), creates OutboxEvent(RESULT_APPROVED), writes AuditLog.
+   Reject path: validates UNDER_REVIEW, sets submission REJECTED+reason, assertMatchTransition
+   (→AWAITING_RESULT), creates OutboxEvent(RESULT_REJECTED), writes AuditLog.
+
+3. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/dispute/route.ts
+   POST — withPermission(PLAYER). Validates { reason (min10/max1000), evidenceUrl? }.
+   In $transaction: fetches match (guildId-scoped), creates Dispute(status:OPEN),
+   assertMatchTransition(→DISPUTED), updates match, creates OutboxEvent(DISPUTE_OPENED),
+   writes AuditLog.
+
+4. apps/web/src/app/servers/[guildId]/admin/results/page.tsx
+   Server component with REFEREE+ guard (redirects if lower role). Fetches:
+   - Matches AWAITING_RESULT (pending submission) scoped by guildId
+   - Matches UNDER_REVIEW with PENDING_REVIEW ResultSubmissions (status field excluded from
+     client serialization — PENDING_REVIEW never returned to any public route)
+   - Open Disputes (via match.guildId filter)
+   Serializes Dates to ISO strings; renders ResultsQueue client component.
+
+5. apps/web/src/components/admin/ResultsQueue.tsx
+   'use client'. Radix Tabs with three tabs:
+   - Pending Submission: lists AWAITING_RESULT matches as GlassCard summaries with Badge
+   - Under Review: renders ResultReviewCard per submission; fallback card if no submission
+   - Disputes: renders DisputeCard per open dispute with Resolve/Dismiss buttons
+   Uses data-[state=active] CSS selectors on Tabs.Trigger (no asChild render-prop).
+
+6. apps/web/src/components/admin/ResultReviewCard.tsx
+   'use client'. GlassCard wrapper. Shows match header, scorecard table (dark alternating rows,
+   placement/kills/penalties columns), evidence URL link, submission meta. Approve button
+   (green GlowButton) calls /approve with action:'approve'. Reject opens Radix Dialog with
+   textarea for reason, calls /approve with action:'reject'+reason. Both buttons refresh router
+   on success via useRouter().refresh().
+
+Dependencies added to apps/web/package.json:
+   @esports/game-rules: workspace:*
+   @esports/scoring: workspace:*
+
+Security invariants enforced:
+   - All DB queries include guildId scope
+   - State machine transitions enforced via assertMatchTransition (never bypassed)
+   - PENDING_REVIEW ResultSubmissions: fetched server-side only, status field excluded
+     from client serialization, never returned on any public route
+   - Decimal fields (points, penalties): stored as Decimal in DB; Number() only for scoring
+     engine params and frontend serialization
