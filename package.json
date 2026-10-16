@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "postinstall": "pnpm --filter @esports/database exec prisma generate",
+    "build:web": "pnpm --filter web... build",
     "dev": "pnpm --filter web dev",
     "build": "pnpm --recursive build",
     "lint": "pnpm --recursive lint",
