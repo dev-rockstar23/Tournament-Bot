@@ -6,6 +6,7 @@ import { processScheduledJob } from './processors/scheduler'
 import { sendDm } from './processors/dm'
 import { reconcile } from './processors/reconciliation'
 import { discordClient } from './discord-client'
+import { reportHealth } from './reporters/health-reporter'
 
 export { discordClient }
 discordClient.login(process.env.DISCORD_BOT_TOKEN!)
@@ -14,6 +15,12 @@ discordClient.login(process.env.DISCORD_BOT_TOKEN!)
 async function outboxProcessor(job: Job): Promise<void> {
   if (job.name === 'reconcile') {
     await reconcile()
+    
+    // Report health for a sentinel 'global' guildId after reconciliation
+    // In a production setup, this would iterate over active guilds
+    const sentinelGuildId = process.env.HEALTH_CHECK_GUILD_ID ?? 'global'
+    await reportHealth(sentinelGuildId)
+    
     return
   }
   await processOutboxEvent(job)
