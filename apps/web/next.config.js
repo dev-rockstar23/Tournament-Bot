@@ -1,26 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static optimization completely - this is a fully dynamic app
+  // CRITICAL: Disable ALL static generation
   output: 'standalone',
   
-  // Disable static page generation
-  generateBuildId: async () => {
-    return 'build-' + Date.now()
-  },
+  // Disable static page generation completely
+  generateStaticParams: undefined,
   
   images: {
     domains: ['cdn.discordapp.com', 'avatars.githubusercontent.com'],
+    unoptimized: true, // Disable image optimization for faster builds
   },
   
   experimental: {
     serverComponentsExternalPackages: ['three'],
   },
   
-  // Skip build-time static generation
+  // Disable static optimization
   skipTrailingSlashRedirect: true,
-  
-  // Disable static exports completely
   trailingSlash: false,
+  
+  // Force runtime rendering
+  reactStrictMode: false,
   
   webpack: (config, { isServer }) => {
     // Exclude system directories that cause permission issues
@@ -33,8 +33,20 @@ const nextConfig = {
         '**/C:/Users/*/AppData/**',
       ],
     };
+    
+    // Disable static page optimization
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    
     return config;
   },
+  
+  // Disable static export completely
+  distDir: '.next',
 }
 
 module.exports = nextConfig
