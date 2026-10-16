@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto'
-import { prisma } from '@esports/database'
+import { prisma, Prisma } from '@esports/database'
 import { assertPaymentsEnabled } from './errors'
 import { PaymentStatus, assertPaymentTransition } from './state-machine'
 
@@ -82,7 +82,7 @@ export async function processWebhookEvent({
   const newStatus = mapEventTypeToStatus(eventType)
   assertPaymentTransition(order.status as PaymentStatus, newStatus)
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Record the payment event; store amount and currency in payloadJson
     await tx.paymentEvent.create({
       data: {

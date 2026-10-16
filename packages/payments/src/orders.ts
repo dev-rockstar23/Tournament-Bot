@@ -1,4 +1,4 @@
-import { prisma } from '@esports/database'
+import { prisma, Prisma } from '@esports/database'
 import { assertPaymentsEnabled } from './errors'
 
 export async function createOrder({
@@ -14,7 +14,7 @@ export async function createOrder({
 }) {
   assertPaymentsEnabled()
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Lock the registration row for update to prevent race conditions
     const registrations = await tx.$queryRaw<
       Array<{ id: string; tournament_id: string }>
