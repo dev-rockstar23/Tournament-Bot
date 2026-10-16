@@ -1,0 +1,44 @@
+services:
+  - type: worker
+    name: discord-bot
+    buildCommand: pnpm install && pnpm --filter discord-bot build
+    startCommand: node apps/discord-bot/dist/index.js
+    region: singapore
+    plan: free
+    envVars:
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: PAYMENTS_ENABLED
+        value: "false"
+
+  - type: worker
+    name: bullmq-worker
+    buildCommand: pnpm install && pnpm --filter worker build
+    startCommand: node apps/worker/dist/index.js
+    region: singapore
+    plan: free
+    envVars:
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: PAYMENTS_ENABLED
+        value: "false"

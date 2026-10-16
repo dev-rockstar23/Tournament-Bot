@@ -87,6 +87,9 @@ importers:
       '@esports/game-rules':
         specifier: workspace:*
         version: link:../../packages/game-rules
+      '@esports/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@esports/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
@@ -156,6 +159,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.5.0
         version: 3.14.20(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@upstash/redis':
+        specifier: ^1.31.5
+        version: 1.39.0
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
