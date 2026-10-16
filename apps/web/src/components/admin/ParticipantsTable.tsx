@@ -12,7 +12,6 @@ import {
 } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { Badge } from '@/components/ui/Badge'
 import { CheckCircle, XCircle, AlertCircle, Users } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

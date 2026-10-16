@@ -134,7 +134,7 @@ export default function RegistrationFormatsPage() {
         Registration Formats
       </h1>
       <p className="mb-10 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-        Choose the format that matches your tournament's requirements. Copy the template and paste it into your Discord registration channel configuration.
+        Choose the format that matches your tournament&apos;s requirements. Copy the template and paste it into your Discord registration channel configuration.
       </p>
 
       <div className="flex flex-col gap-8">

@@ -10,7 +10,7 @@ const createOrderSchema = z.object({
   expiresInMinutes: z.number().int().positive(),
 })
 
-export const POST = withPermission(AppRole.PLAYER, async (req, { guildId }) => {
+export const POST = withPermission(AppRole.PLAYER, async (req, { guildId: _guildId }) => {
   // Gate: payments must be enabled
   if (process.env.PAYMENTS_ENABLED !== 'true') {
     return NextResponse.json(

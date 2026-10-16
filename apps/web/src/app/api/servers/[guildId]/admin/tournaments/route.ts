@@ -1,6 +1,6 @@
 import { withPermission, AppRole } from '@esports/permissions';
 import { prisma } from '@esports/database';
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 export const GET = withPermission(

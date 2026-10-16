@@ -161,7 +161,7 @@ export async function POST(
         })
         const memberMap = new Map(dbMembers.map((u) => [u.discordId, u.id]))
         const memberRows = memberDiscordIds
-          .map((did, idx) => {
+          .map((did, _idx) => {
             const uid = memberMap.get(did)
             if (!uid) return null
             return {

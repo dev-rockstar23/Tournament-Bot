@@ -131,7 +131,7 @@ function BRScoring({ state, onChange }: Step4Props) {
         <label className="block text-sm font-medium text-white/80">Tie-Breaker Order</label>
         <p className="text-xs text-white/40">Drag to reorder priority</p>
         <div className="space-y-1">
-          {TIE_BREAKER_OPTIONS.map((tb, idx) => {
+          {TIE_BREAKER_OPTIONS.map((tb, _idx) => {
             const activeIdx = tieBreakers.indexOf(tb)
             const isActive = activeIdx !== -1
             return (
