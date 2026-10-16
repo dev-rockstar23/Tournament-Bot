@@ -78,12 +78,21 @@ importers:
       '@esports/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@esports/game-rules':
+        specifier: workspace:*
+        version: link:../../packages/game-rules
       '@esports/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
+      '@esports/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       '@esports/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@esports/tournament-engine':
+        specifier: workspace:*
+        version: link:../../packages/tournament-engine
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.10.0(react-hook-form@7.90.0(@types/react@18.3.31)(react@18.3.1))

@@ -43,7 +43,10 @@
     "date-fns": "^3.6.0",
     "@esports/shared-types": "workspace:*",
     "@esports/permissions": "workspace:*",
-    "@esports/database": "workspace:*"
+    "@esports/database": "workspace:*",
+    "@esports/tournament-engine": "workspace:*",
+    "@esports/game-rules": "workspace:*",
+    "@esports/scoring": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
