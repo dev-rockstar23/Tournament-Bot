@@ -16,8 +16,32 @@ function getEncryptionKey(): Buffer {
       `ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes), got ${key.length}`,
     )
   }
+  // Validate hex format
+  if (!/^[0-9a-f]{64}$/i.test(key)) {
+    throw new Error(
+      'ENCRYPTION_KEY must be a valid 64-character hex string (only 0-9, a-f characters)',
+    )
+  }
   return Buffer.from(key, 'hex')
 }
+
+/**
+ * Validate ENCRYPTION_KEY at module load time to fail fast if misconfigured.
+ * Only runs if PAYMENTS_ENABLED is true.
+ */
+export function validateEncryptionKey(): void {
+  if (process.env.PAYMENTS_ENABLED === 'true') {
+    try {
+      getEncryptionKey()
+    } catch (error) {
+      console.error('ENCRYPTION_KEY validation failed:', error)
+      throw error
+    }
+  }
+}
+
+// Run validation at module load time
+validateEncryptionKey()
 
 /**
  * Encrypt a plaintext string using AES-256-GCM.

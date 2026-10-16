@@ -14,6 +14,11 @@ export function verifyRazorpaySignature(
   signature: string,
   secret: string,
 ): boolean {
+  // Validate that signature is hex-encoded before parsing
+  if (!/^[0-9a-f]+$/i.test(signature)) {
+    return false
+  }
+
   const digest = createHmac('sha256', secret).update(body).digest()
   const signatureBuffer = Buffer.from(signature, 'hex')
 

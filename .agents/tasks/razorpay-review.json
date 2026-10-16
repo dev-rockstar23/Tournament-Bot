@@ -1,0 +1,48 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "title": "Missing razorpay dependency",
+      "description": "`razorpay` is declared in `package.json` but not installed. Run `pnpm install` in the workspace root to install it.",
+      "confidence": "confirmed"
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Webhook signature comparison accepts non-hex input",
+      "description": "`verifyRazorpaySignature` converts the signature string to a Buffer using `'hex'` encoding but doesn't validate that the signature is actually hex. If Razorpay sends a different encoding or an attacker provides malformed input, the comparison may fail silently. Add a hex regex check before calling `Buffer.from(signature, 'hex')`.",
+      "confidence": "confirmed"
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "No admin UI for credential configuration",
+      "description": "The `POST /api/servers/:guildId/payment-config` endpoint is implemented, but no frontend page exists for organizers to input credentials. Add a page under `/servers/:guildId/admin/payment-config` or document that organizers must use curl/Postman.",
+      "confidence": "confirmed"
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Amount unit ambiguity in createOrder API",
+      "description": "The `/orders` API route accepts an `amount` parameter without specifying units (paise or rupees). `createRazorpayOrder` multiplies by 100, assuming the input is in major currency units. If the caller passes paise, the order will be 100x the intended amount. Document the expected unit and add a validation check (e.g., reject amounts > 10000 INR to catch paise-unit mistakes).",
+      "confidence": "likely"
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Decryption failure handling in webhook route",
+      "description": "The webhook route calls `decryptCredential` but doesn't catch decryption errors (malformed ciphertext, wrong key, corrupted data). If decryption fails, the webhook returns 500 instead of 400. Wrap decryption in a try-catch and return 400 with a clear error message.",
+      "confidence": "confirmed"
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "ENCRYPTION_KEY validation happens at runtime, not startup",
+      "description": "`getEncryptionKey()` throws if `ENCRYPTION_KEY` is missing or invalid, but this only happens when a credential is encrypted or decrypted. Add a startup check (e.g., in the web app's `middleware.ts` or a health check) to fail fast if the key is misconfigured.",
+      "confidence": "confirmed"
+    },
+    {
+      "severity": "LOW",
+      "title": "No test coverage for payment flow",
+      "description": "The review scope excluded running tests, but the payments package has no test files. Add tests for: encryption round-trip, HMAC verification with valid/invalid signatures, state machine transitions, webhook idempotency, and the full order creation + webhook flow.",
+      "confidence": "confirmed"
+    }
+  ],
+  "reviewDoc": "d:\\Discord Projects\\Tournament-Bot\\esports-platform\\.agents\\tasks\\2026-10-16-234618-review.md"
+}

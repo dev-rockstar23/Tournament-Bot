@@ -3,7 +3,8 @@ import { createHmac, timingSafeEqual } from 'crypto'
 
 /**
  * Create a Razorpay order using the organizer's credentials.
- * Amount is in the smallest currency unit (paise for INR).
+ * @param amount Amount in major currency units (e.g., INR, not paise). Will be converted to paise internally.
+ *               Maximum allowed: 10000 INR (to catch paise-unit mistakes).
  */
 export async function createRazorpayOrder({
   keyId,
@@ -18,6 +19,13 @@ export async function createRazorpayOrder({
   currency: string
   receiptId: string
 }): Promise<{ id: string; amount: number; currency: string }> {
+  // Validate amount to catch paise-unit mistakes (amounts > 10000 likely indicate paise)
+  if (amount > 10000) {
+    throw new Error(
+      `Amount ${amount} exceeds maximum of 10000 INR. If you intended to pass paise, divide by 100 first.`,
+    )
+  }
+
   const instance = new Razorpay({
     key_id: keyId,
     key_secret: keySecret,
@@ -55,6 +63,11 @@ export function verifyPaymentSignature({
   signature: string
   secret: string
 }): boolean {
+  // Validate signature is hex format
+  if (!/^[0-9a-fA-F]+$/.test(signature)) {
+    throw new Error('Invalid signature format: must be hexadecimal')
+  }
+
   const text = `${orderId}|${paymentId}`
   const expectedSignature = createHmac('sha256', secret).update(text).digest('hex')
   const signatureBuffer = Buffer.from(signature, 'hex')

@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 const createOrderSchema = z.object({
   registrationId: z.string().min(1),
-  amount: z.number().positive(),
+  amount: z.number().positive(), // Amount in major currency units (INR, not paise)
   currency: z.string().min(3).max(3),
   expiresInMinutes: z.number().int().positive(),
 })

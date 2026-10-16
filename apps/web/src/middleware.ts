@@ -2,6 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { createServerClient } from '@supabase/ssr'
 
+// Validate ENCRYPTION_KEY at startup if payments are enabled
+if (process.env.PAYMENTS_ENABLED === 'true') {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key) {
+    throw new Error('ENCRYPTION_KEY is required when PAYMENTS_ENABLED=true')
+  }
+  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+    throw new Error('ENCRYPTION_KEY must be a 64-character hexadecimal string (32 bytes)')
+  }
+}
+
 export async function middleware(request: NextRequest) {
   // Refresh session cookies
   const response = await updateSession(request)

@@ -68,9 +68,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Decrypt webhook secret and verify signature
-  const webhookSecret = decryptCredential(
-    order.registration.tournament.paymentConfig.razorpayWebhookSecret,
-  )
+  let webhookSecret: string
+  try {
+    webhookSecret = decryptCredential(
+      order.registration.tournament.paymentConfig.razorpayWebhookSecret,
+    )
+  } catch (error) {
+    console.error('Failed to decrypt webhook secret:', error)
+    return NextResponse.json(
+      { error: 'Invalid payment configuration - decryption failed' },
+      { status: 400 },
+    )
+  }
 
   const isValid = verifyRazorpaySignature(body, signature, webhookSecret)
 
