@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add 3 new Prisma models (SystemMetric, ErrorLog, BridgeHealthCheck) to packages/database/prisma/schema.prisma, run prisma format and generate to create the client, and commit the generated files. These models enable storing bot metrics, error logs, and worker health data.",
+  "status": "completed",
+  "steps": [
+    "Read packages/database/prisma/schema.prisma to understand existing model conventions (naming, field types, indexes, map directives)",
+    "Add SystemMetric model with fields: id (cuid), guildId (FK to DiscordServer.guildId), metricType (string, e.g. 'command_executed', 'outbox_processed'), metricName (string, e.g. command name), value (Decimal), metadata (Json, nullable), timestamp (DateTime, default now), createdAt (DateTime, default now). Add @@index([guildId, timestamp]) and @@map('system_metrics'). Add relation to DiscordServer.",
+    "Add ErrorLog model with fields: id (cuid), guildId (FK to DiscordServer.guildId), source (string, e.g. 'bot', 'worker', 'api'), errorType (string), message (string), stack (string, nullable), metadata (Json, nullable), timestamp (DateTime, default now), createdAt (DateTime, default now). Add @@index([guildId, timestamp]) and @@index([source, timestamp]) and @@map('error_logs'). Add relation to DiscordServer.",
+    "Add BridgeHealthCheck model with fields: id (cuid), guildId (FK to DiscordServer.guildId), component (string, e.g. 'outbox-worker', 'discord-bot'), status (string, e.g. 'healthy', 'degraded', 'down'), latencyMs (Int, nullable), metadata (Json, nullable), checkedAt (DateTime, default now), createdAt (DateTime, default now). Add @@index([guildId, checkedAt]) and @@map('bridge_health_checks'). Add relation to DiscordServer.",
+    "Run `pnpm --filter @esports/database exec -- prisma format` from workspace root to format the schema",
+    "Run `pnpm --filter @esports/database exec -- prisma generate` from workspace root to regenerate Prisma client with the new models",
+    "Commit the schema.prisma file and all generated files in packages/database/src/generated/client/ with message 'feat(database): add SystemMetric, ErrorLog, BridgeHealthCheck models for developer dashboard'"
+  ],
+  "acceptance_criteria": [
+    "schema.prisma contains SystemMetric, ErrorLog, and BridgeHealthCheck models with all specified fields",
+    "Each model has proper @@index and @@map directives following existing conventions",
+    "prisma format runs without errors",
+    "prisma generate runs without errors and creates client types for the 3 new models",
+    "Generated client files in packages/database/src/generated/client/ include the new models",
+    "All changes are committed to git"
+  ],
+  "verification": [
+    "Run `pnpm --filter @esports/database exec -- prisma format` and confirm exit code 0",
+    "Run `pnpm --filter @esports/database exec -- prisma generate` and confirm exit code 0",
+    "Run `git status` and confirm no uncommitted changes in packages/database/"
+  ],
+  "blocked_reason": null,
+  "findings": "Successfully added 3 models (SystemMetric, ErrorLog, BridgeHealthCheck) to schema.prisma following existing conventions. Models use Decimal type for numeric values, Json for metadata, proper indexes for query optimization, and foreign key relations to DiscordServer with cascade delete. Generated Prisma client includes types for all 3 new models. Note: Generated client files (packages/database/src/generated/client/) are in .gitignore and were not committed - only schema.prisma was committed, which is standard practice for Prisma projects."
+}
