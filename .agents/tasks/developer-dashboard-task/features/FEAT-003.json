@@ -1,0 +1,37 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Build the developer dashboard page at apps/web/src/app/servers/[guildId]/developer/page.tsx with 4 tabs (Bridge Analytics, Bot Analytics, Bot Errors, Website Errors). Use recharts for visualization, @radix-ui/react-tabs for tabs, and existing UI components (GlassCard, AnimatedCounter). Fetch data from the 5 API routes created in FEAT-002.",
+  "status": "pending",
+  "steps": [
+    "Create apps/web/src/app/servers/[guildId]/developer/page.tsx: async Server Component. Fetch initial data from all 5 API routes using guildId from params. Pass initialData to a client component. The page should be wrapped with SERVER_ADMIN permission check (fetch user session and role via withPermission pattern or redirect if not authorized).",
+    "Create apps/web/src/components/developer/DeveloperDashboard.tsx: 'use client' component. Accept initialData as props. Use @radix-ui/react-tabs to create 4 tabs: 'Bridge Analytics', 'Bot Analytics', 'Bot Errors', 'Website Errors'. Each tab renders a separate component.",
+    "Create apps/web/src/components/developer/BridgeAnalyticsTab.tsx: display BridgeHealthCheck data. Show status for each component (outbox-worker, discord-bot) with StatusPulse component. Show latency, last checked time, and metadata. Use GlassCard for layout. Add a recharts LineChart showing health checks over time (x=checkedAt, y=status as numeric: healthy=1, degraded=0.5, down=0).",
+    "Create apps/web/src/components/developer/BotAnalyticsTab.tsx: display bot command metrics. Show KPIs: total commands (AnimatedCounter), unique command types, top 10 commands (recharts BarChart with metricName on Y, count on X). Show avg response time if available. Use GlassCard for KPI cards.",
+    "Create apps/web/src/components/developer/BotErrorsTab.tsx: display ErrorLog data where source='bot'. Use @tanstack/react-table (already installed) to render a table with columns: timestamp, errorType, message, commandName (from metadata), actions (expand to see stack trace). Use GlassCard wrapper. Add pagination controls.",
+    "Create apps/web/src/components/developer/WebsiteErrorsTab.tsx: display ErrorLog data where source='api'. Same table structure as BotErrorsTab. Columns: timestamp, errorType, message, endpoint (from metadata), actions (expand for stack).",
+    "Style all components using Tailwind classes matching the existing dashboard pattern (see apps/web/src/app/servers/[guildId]/dashboard/page.tsx and apps/web/src/components/analytics/AnalyticsDashboard.tsx). Use VIOLET (#7c3aed) and CYAN (#06b6d4) for charts, GRID_COLOR rgba(255,255,255,0.05), AXIS_COLOR #94a3b8.",
+    "Add navigation link to the developer dashboard in apps/web/src/components/ui/Navigation.tsx: only visible to SERVER_ADMIN users. Link text: 'Developer', href: `/servers/[guildId]/developer`, icon: Code or Terminal from lucide-react.",
+    "Commit all dashboard page and components with message 'feat(web): add developer dashboard page with 4 tabs for bridge/bot/error analytics'"
+  ],
+  "acceptance_criteria": [
+    "The /servers/[guildId]/developer page loads and displays 4 tabs",
+    "Bridge Analytics tab shows health status for worker and bot with a status chart",
+    "Bot Analytics tab shows command metrics with KPI cards and a top commands bar chart",
+    "Bot Errors tab shows a paginated table of bot error logs with expandable stack traces",
+    "Website Errors tab shows a paginated table of API error logs",
+    "Navigation includes a 'Developer' link visible only to SERVER_ADMIN users",
+    "All styles match the existing dashboard aesthetic (glass cards, accent colors, etc.)",
+    "All changes are committed to git"
+  ],
+  "verification": [
+    "Run `pnpm --filter web dev`, navigate to /servers/<testGuildId>/developer as a SERVER_ADMIN user, confirm the page loads without errors",
+    "Click each tab and confirm data is rendered correctly",
+    "Execute a bot command to generate SystemMetric entries, refresh the Bot Analytics tab, confirm the new command appears in the top commands chart",
+    "Trigger a bot error, refresh the Bot Errors tab, confirm the error appears in the table",
+    "Check the navigation sidebar, confirm the 'Developer' link is present and navigates correctly",
+    "Run `git status` and confirm no uncommitted changes"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

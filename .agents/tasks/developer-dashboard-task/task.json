@@ -1,0 +1,7 @@
+{
+  "task_id": "task-developer-dashboard",
+  "task_description": "Build a comprehensive developer dashboard at /servers/[guildId]/developer showing bridge analytics, bot command metrics, error logs, and worker health for SERVER_ADMIN users",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

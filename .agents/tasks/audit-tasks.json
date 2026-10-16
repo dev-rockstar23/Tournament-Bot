@@ -1,0 +1,432 @@
+{
+  "audit_date": "2025-01-27",
+  "total_issues": 70,
+  "critical": [
+    {
+      "id": "C001",
+      "file": "Multiple files (packages/payments/src/webhooks.ts, packages/permissions/src/withPermission.ts, apps/discord-bot/src/commands/match/room.ts, apps/worker/src/processors/outbox.ts, apps/worker/src/processors/scheduler.ts, apps/web/src/app/api/servers/[guildId]/route.ts)",
+      "issue": "Missing null checks on Prisma findUnique calls - will cause runtime crashes",
+      "fix": "Add null checks after each findUnique call: if (!record) throw new NotFoundError()"
+    },
+    {
+      "id": "C002",
+      "file": "apps/worker/src/processors/scheduler.ts (not implemented)",
+      "issue": "Missing DM notification system specified in PLAN.md Section 20",
+      "fix": "Implement handlePlayerDMNotification function with configurable timing (24h, 30min, 5min before match)"
+    },
+    {
+      "id": "C003",
+      "file": "packages/payments/src/state-machine.ts (does not exist)",
+      "issue": "Missing state machine enforcement for payment transitions",
+      "fix": "Create payment state machine with PAYMENT_TRANSITIONS map and assertPaymentTransition guard"
+    },
+    {
+      "id": "C004",
+      "file": "apps/web/src/components/ui/ErrorBoundary.tsx (does not exist)",
+      "issue": "No React error boundaries - unhandled errors will crash entire page",
+      "fix": "Create ErrorBoundary component and wrap route segments in layouts"
+    },
+    {
+      "id": "C005",
+      "file": "packages/tournament-engine/src/delay.ts (does not exist)",
+      "issue": "Missing tournament delay & re-registration logic from PLAN.md Section 19",
+      "fix": "Implement delayTournament function with registration_phase tracking and extension_count validation"
+    },
+    {
+      "id": "C006",
+      "file": "packages/tournament-engine/src/registration.ts (incomplete)",
+      "issue": "Missing slot system & force-fill logic from PLAN.md Section 24",
+      "fix": "Implement slot assignment on approval and forceFillSlot function for manual admin fills"
+    },
+    {
+      "id": "C007",
+      "file": "apps/web/src/app/servers/[guildId]/admin/tournaments/new/page.tsx (Step 4 incomplete)",
+      "issue": "Missing map pool configuration UI in tournament wizard",
+      "fix": "Add map pool selector with game-specific options and rotation type in Step 4"
+    },
+    {
+      "id": "C008",
+      "file": "apps/worker/src/processors/cleanup.ts (does not exist)",
+      "issue": "Missing draft auto-expiry logic from PLAN.md Section 26 - drafts older than 30 days should auto-archive",
+      "fix": "Create cleanup processor with archiveOldDrafts function, schedule as daily job"
+    },
+    {
+      "id": "C009",
+      "file": "packages/permissions/src/brute-force.ts (incomplete)",
+      "issue": "Missing admin panel brute-force protection from PLAN.md Section 27",
+      "fix": "Complete trackAdminAccessAttempt function with attempt counting and temporary bans after 5 failures"
+    },
+    {
+      "id": "C010",
+      "file": "apps/discord-bot/src/commands/server/setup.ts (incomplete)",
+      "issue": "Missing timezone-first setup from PLAN.md Section 22",
+      "fix": "Force timezone selection on first setup before any other configuration"
+    },
+    {
+      "id": "C011",
+      "file": "apps/web/src/app/servers/[guildId]/admin/tournaments/new/page.tsx (Step 2 incomplete)",
+      "issue": "Missing registration format templates from PLAN.md Section 23",
+      "fix": "Add template selector in Step 2 with 6 options (SIMPLE_MENTIONS, CAPTAIN_BASED, etc.)"
+    },
+    {
+      "id": "C012",
+      "file": "packages/payments/src/webhooks.ts (incomplete)",
+      "issue": "Missing revised payment rules from PLAN.md Section 29 - refunds only on failure/chargeback",
+      "fix": "Remove admin refund endpoints, enforce refund_on_cancel flag, implement chargeback handling"
+    }
+  ],
+  "high": [
+    {
+      "id": "H001",
+      "file": "apps/worker/src/processors/cleanup.ts (not implemented)",
+      "issue": "Missing tournament auto-archive after 90 days (PLAN.md Section 21)",
+      "fix": "Add archiveCompletedTournaments scheduled job"
+    },
+    {
+      "id": "H002",
+      "file": "apps/worker/src/processors/scheduler.ts (incomplete)",
+      "issue": "Missing room credential release scheduler",
+      "fix": "Complete handleRoomCredentialRelease with DM delivery and fallback"
+    },
+    {
+      "id": "H003",
+      "file": "apps/worker/src/processors/scheduler.ts (logic missing)",
+      "issue": "Missing result deadline enforcement",
+      "fix": "Add scheduled check for matches past result_deadline, create admin alerts"
+    },
+    {
+      "id": "H004",
+      "file": "apps/web/src/app/servers/[guildId]/admin/disputes/page.tsx (does not exist)",
+      "issue": "No admin UI for dispute resolution",
+      "fix": "Create disputes page with assignment, evidence viewer, and resolution form"
+    },
+    {
+      "id": "H005",
+      "file": "apps/web/src/app/api/servers/[guildId]/tournaments/[id]/winners/correct (does not exist)",
+      "issue": "Missing winner record versioning/correction endpoint",
+      "fix": "Add endpoint to supersede winner records with version tracking"
+    },
+    {
+      "id": "H006",
+      "file": "apps/web/src/app/servers/[guildId]/admin/awards (does not exist)",
+      "issue": "Missing award fulfillment tracking UI",
+      "fix": "Create awards management page with fulfillment status toggles"
+    },
+    {
+      "id": "H007",
+      "file": "packages/tournament-engine/src/registration.ts (incomplete)",
+      "issue": "Missing waitlist promotion logic",
+      "fix": "Add promoteFromWaitlist function that auto-promotes next waitlisted team when slot opens"
+    },
+    {
+      "id": "H008",
+      "file": "apps/worker/src/processors/scheduler.ts (incomplete)",
+      "issue": "Missing check-in reminder 15min before window closes",
+      "fix": "Add scheduled job for check-in reminders to captains who haven't checked in"
+    },
+    {
+      "id": "H009",
+      "file": "apps/web/src/app/api/servers/[guildId]/matches/[id]/reschedule (does not exist)",
+      "issue": "No API endpoint to reschedule postponed matches",
+      "fix": "Create reschedule endpoint with job cancellation and recreation"
+    },
+    {
+      "id": "H010",
+      "file": "apps/web/src/app/servers/[guildId]/admin/results (UI incomplete)",
+      "issue": "Missing score event corrections UI",
+      "fix": "Add correction form in result review page"
+    },
+    {
+      "id": "H011",
+      "file": "apps/web/src/app/overlay/[guildId]/[tournamentId]/page.tsx (incomplete)",
+      "issue": "OBS overlay route incomplete - minimal content",
+      "fix": "Complete overlay with real-time standings, transparent background, token auth"
+    },
+    {
+      "id": "H012",
+      "file": "apps/web/src/app/api/servers/[guildId]/analytics/export/route.ts (incomplete)",
+      "issue": "CSV export endpoint returns placeholder",
+      "fix": "Implement CSV generation for tournaments, registrations, results, audit logs"
+    },
+    {
+      "id": "H013",
+      "file": "apps/web/src/components/three/HeroScene.tsx (does not exist)",
+      "issue": "Missing Three.js 3D hero scene on landing page (PLAN.md Section 7)",
+      "fix": "Create HeroScene with rotating icosahedron, particles, lights, bloom post-processing"
+    },
+    {
+      "id": "H014",
+      "file": "packages/game-rules/src/ (all game modules incomplete)",
+      "issue": "Game engine implementations are stubs - no actual scoring logic",
+      "fix": "Implement GameRuleModule interface for BGMI BR, FF BR, FF Clash Squad, CODM MP, CODM BR"
+    },
+    {
+      "id": "H015",
+      "file": "packages/scoring/src/tiebreakers.ts (incomplete)",
+      "issue": "Tiebreaker logic not fully implemented",
+      "fix": "Implement full tie-breaker chain: points → kills → best placement → match wins → head-to-head"
+    },
+    {
+      "id": "H016",
+      "file": "packages/notifications/src/templates/ (incomplete)",
+      "issue": "Notification templates are basic, missing branding and emojis",
+      "fix": "Create comprehensive templates for all outbox event types with proper branding"
+    },
+    {
+      "id": "H017",
+      "file": "apps/web/src/app/docs/page.tsx (content placeholder)",
+      "issue": "Docs page incomplete - PLAN.md Section 28",
+      "fix": "Write comprehensive documentation: Getting Started, Commands Reference, API Docs, FAQ"
+    },
+    {
+      "id": "H018",
+      "file": "apps/web/src/app/servers/[guildId]/tournaments/[id]/bracket/page.tsx (incomplete)",
+      "issue": "Missing interactive multi-tournament bracket system (user request)",
+      "fix": "Create interactive bracket UI with React Flow, support for multiple formats, real-time updates"
+    }
+  ],
+  "medium": [
+    {
+      "id": "M001",
+      "file": "tests/ (mostly empty)",
+      "issue": "Missing comprehensive test coverage",
+      "fix": "Add unit tests for state machines, permissions; integration tests for workflows; e2e tests for critical paths"
+    },
+    {
+      "id": "M002",
+      "file": "apps/*/src/instrumentation.ts (not configured)",
+      "issue": "Sentry integration not initialized despite env vars in .env.example",
+      "fix": "Add Sentry SDK initialization in all three apps"
+    },
+    {
+      "id": "M003",
+      "file": "packages/database/prisma/schema.prisma",
+      "issue": "Missing recommended database indexes for performance",
+      "fix": "Add indexes on audit_logs(guildId,createdAt), registrations(tournamentId,status), result_submissions(matchId,status)"
+    },
+    {
+      "id": "M004",
+      "file": "apps/web/src/middleware.ts (no rate limiting)",
+      "issue": "No rate limiting on sensitive endpoints",
+      "fix": "Add Upstash Rate Limit middleware for registration, order, result submission routes"
+    },
+    {
+      "id": "M005",
+      "file": "Multiple API routes",
+      "issue": "Inconsistent input validation - some use Zod, others don't",
+      "fix": "Ensure all POST/PATCH/PUT routes validate with Zod schemas"
+    },
+    {
+      "id": "M006",
+      "file": "apps/web/src/middleware.ts",
+      "issue": "Missing CORS configuration for API routes",
+      "fix": "Add CORS headers for /api/* routes to allow OBS overlay and other cross-origin requests"
+    },
+    {
+      "id": "M007",
+      "file": "packages/payments/src/webhooks.ts (no tests)",
+      "issue": "Webhook signature verification has no unit test",
+      "fix": "Add unit test with known Razorpay signature to verify HMAC logic"
+    },
+    {
+      "id": "M008",
+      "file": "apps/web/src/app/servers/[guildId]/tournaments/page.tsx (incomplete)",
+      "issue": "Tournament search is placeholder - no backend implementation",
+      "fix": "Implement full-text search on tournament name/description using Prisma contains or PostgreSQL tsvector"
+    },
+    {
+      "id": "M009",
+      "file": "apps/web/src/app/servers/[guildId]/players/[playerId]/page.tsx (incomplete)",
+      "issue": "Player profile pages incomplete",
+      "fix": "Implement player detail page with game profiles, teams, tournament history, stats"
+    },
+    {
+      "id": "M010",
+      "file": "apps/web/src/app/servers/[guildId]/teams/page.tsx (incomplete)",
+      "issue": "Team directory incomplete",
+      "fix": "Implement team list and detail pages with roster, captain, tournament history"
+    },
+    {
+      "id": "M011",
+      "file": "apps/web/src/app/servers/[guildId]/leaderboards/page.tsx (incomplete)",
+      "issue": "Leaderboards page incomplete",
+      "fix": "Implement leaderboard queries for top teams, top players by kills, MVP awards"
+    },
+    {
+      "id": "M012",
+      "file": "apps/web/src/app/servers/[guildId]/winners/page.tsx (incomplete)",
+      "issue": "Winners gallery incomplete",
+      "fix": "Implement winners gallery with filtering by game and time period"
+    },
+    {
+      "id": "M013",
+      "file": "apps/web/src/app/servers/[guildId]/admin/page.tsx (static)",
+      "issue": "Admin dashboard KPIs don't update in real-time",
+      "fix": "Add Supabase Realtime subscriptions to update KPI cards as events occur"
+    },
+    {
+      "id": "M014",
+      "file": "Match list components",
+      "issue": "Match schedules show static timestamps instead of live countdown timers",
+      "fix": "Add React hook for countdown timers updating every second for matches within 24h"
+    },
+    {
+      "id": "M015",
+      "file": "Tournament detail page capacity bar",
+      "issue": "Registration capacity bar is static, should animate",
+      "fix": "Add Framer Motion width transition animation on capacity fill"
+    },
+    {
+      "id": "M016",
+      "file": "apps/worker/src/processors/outbox.ts (incomplete)",
+      "issue": "Discord messages are always created new instead of editing existing",
+      "fix": "Check discord_message_bindings for existing messages and edit instead of creating duplicates"
+    },
+    {
+      "id": "M017",
+      "file": "apps/discord-bot/src/services/control-panel.ts (stub)",
+      "issue": "Persistent control panel in admin channel is incomplete",
+      "fix": "Complete control panel with action buttons and live count updates"
+    },
+    {
+      "id": "M018",
+      "file": "apps/discord-bot/src/utils/responses.ts (minimal)",
+      "issue": "Bot personality templates are generic, missing custom emojis and warm tone",
+      "fix": "Expand response templates with greeting variations, success messages, error messages with emojis"
+    },
+    {
+      "id": "M019",
+      "file": "Multiple React components",
+      "issue": "Many interactive elements lack ARIA labels for accessibility",
+      "fix": "Audit all buttons, inputs, interactive divs - add aria-label, aria-labelledby, role attributes"
+    },
+    {
+      "id": "M020",
+      "file": "apps/web/src/app/layout.tsx (no theme switcher)",
+      "issue": "Dark color tokens defined but no theme switcher exists",
+      "fix": "Add theme toggle in user menu with localStorage persistence"
+    },
+    {
+      "id": "M021",
+      "file": "Admin panel layout",
+      "issue": "Sidebar collapses on mobile but no bottom navigation as specified in PLAN.md",
+      "fix": "Add mobile bottom nav with icons for key sections"
+    },
+    {
+      "id": "M022",
+      "file": "Public pages using time-based ISR",
+      "issue": "Next.js on-demand revalidation by tag would be more efficient than 60s intervals",
+      "fix": "Add revalidation tags and call revalidateTag on updates"
+    },
+    {
+      "id": "M023",
+      "file": "apps/web/src/app/api/og/route.ts (placeholder)",
+      "issue": "Dynamic OG image generation incomplete",
+      "fix": "Implement OG image generation for tournaments using @vercel/og"
+    },
+    {
+      "id": "M024",
+      "file": "apps/worker/src/processors/outbox.ts (no admin notification)",
+      "issue": "Failed outbox events after 5 retries don't notify admin in user-facing channel",
+      "fix": "Post alert to admin channel directly when outbox event fails permanently"
+    },
+    {
+      "id": "M025",
+      "file": "All app index.ts files",
+      "issue": "No environment variable validation on startup",
+      "fix": "Add Zod schema validation for required env vars at app startup"
+    }
+  ],
+  "low": [
+    {
+      "id": "L001",
+      "file": "Multiple files with complex logic",
+      "issue": "Missing code comments on complex logic",
+      "fix": "Add JSDoc comments to exported functions explaining purpose, params, edge cases"
+    },
+    {
+      "id": "L002",
+      "file": "packages/shared-types/src/api-responses.ts (does not exist)",
+      "issue": "No shared response types for type-safe API consumption",
+      "fix": "Create Zod schemas for all API responses"
+    },
+    {
+      "id": "L003",
+      "file": "React components showing 'Loading...' text",
+      "issue": "Missing loading skeletons - generic text instead of shimmer components",
+      "fix": "Replace loading text with Skeleton components matching card layouts"
+    },
+    {
+      "id": "L004",
+      "file": "lib/motion.ts (incomplete)",
+      "issue": "Only basic animations exist - missing fadeUp, slideInLeft, scaleIn, glowPulse variants",
+      "fix": "Complete motion variants as specified in PLAN.md Section 7"
+    },
+    {
+      "id": "L005",
+      "file": "No toast system",
+      "issue": "User actions have no visual feedback",
+      "fix": "Add toast notification system using Sonner or similar"
+    },
+    {
+      "id": "L006",
+      "file": "Destructive action handlers",
+      "issue": "No confirmation dialogs on destructive actions",
+      "fix": "Add confirmation dialog component for cancel, delete, reject actions"
+    },
+    {
+      "id": "L007",
+      "file": "Admin panel layout",
+      "issue": "No breadcrumbs on deep navigation paths",
+      "fix": "Add breadcrumb component showing navigation hierarchy"
+    },
+    {
+      "id": "L008",
+      "file": "Tournament list, registration list, audit log",
+      "issue": "Lists load all records at once - no pagination",
+      "fix": "Add cursor-based pagination using Prisma cursor and take"
+    },
+    {
+      "id": "L009",
+      "file": "Tournament catalogue search input",
+      "issue": "Search triggers query on every keystroke without debounce",
+      "fix": "Add 300ms debounce using useDebouncedValue hook"
+    },
+    {
+      "id": "L010",
+      "file": "Room credentials display, tournament links",
+      "issue": "No copy-to-clipboard buttons",
+      "fix": "Add copy button with clipboard API and toast confirmation"
+    },
+    {
+      "id": "L011",
+      "file": "No keyboard navigation",
+      "issue": "Power users cannot use keyboard shortcuts",
+      "fix": "Add keyboard shortcuts: Ctrl+K command palette, N for new, E for edit, Delete"
+    },
+    {
+      "id": "L012",
+      "file": "Audit log page",
+      "issue": "No filters by action type, date range, or actor",
+      "fix": "Add filter UI with dropdowns and date picker"
+    },
+    {
+      "id": "L013",
+      "file": "User settings page does not exist",
+      "issue": "Users cannot customize notifications, timezone, date format",
+      "fix": "Create user settings page with preferences stored in user_preferences table"
+    },
+    {
+      "id": "L014",
+      "file": "No onboarding for new admins",
+      "issue": "New server admins see empty dashboard with no guidance",
+      "fix": "Add onboarding checklist overlay: setup bot, create tournament, invite players"
+    },
+    {
+      "id": "L015",
+      "file": "Server selector bot badge",
+      "issue": "Bot online/offline status not updated in real-time",
+      "fix": "Add polling or WebSocket to check bot presence and update badge"
+    }
+  ]
+}

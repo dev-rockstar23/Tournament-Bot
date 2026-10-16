@@ -5,3 +5,17 @@ export {
   assertMatchTransition,
   InvalidTransitionError,
 } from './state-machine';
+
+export {
+  delayTournament,
+  MaxDelayExceededError,
+  InvalidDelayError,
+} from './delay';
+
+export {
+  approveRegistration,
+  forceFillSlot,
+  promoteFromWaitlist,
+  SlotUnavailableError,
+  TournamentFullError,
+} from './registration';

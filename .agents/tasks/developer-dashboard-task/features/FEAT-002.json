@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Create 5 API routes under apps/web/src/app/api/developer/ for fetching metrics, errors, bridge health, bot analytics, and website error logs. All routes require SERVER_ADMIN role. Create 2 bot listeners (command metrics + error logging) in apps/discord-bot/src/listeners/ and 1 worker health reporter that writes to BridgeHealthCheck every 60s.",
+  "status": "pending",
+  "steps": [
+    "Create apps/web/src/app/api/developer/metrics/route.ts: GET handler with withPermission(AppRole.SERVER_ADMIN). Accept query params: guildId (required), metricType (optional), startDate (ISO string, optional), endDate (ISO string, optional), limit (default 100, max 500). Query SystemMetric table filtered by guildId and optional params, order by timestamp desc. Return JSON array of metrics.",
+    "Create apps/web/src/app/api/developer/errors/route.ts: GET handler with withPermission(AppRole.SERVER_ADMIN). Accept query params: guildId (required), source (optional: 'bot'|'worker'|'api'), startDate, endDate, limit (default 100, max 500). Query ErrorLog table, return JSON array.",
+    "Create apps/web/src/app/api/developer/bridge-health/route.ts: GET handler with withPermission(AppRole.SERVER_ADMIN). Accept query params: guildId (required), component (optional). Query BridgeHealthCheck for the latest status of each component (use distinct on component + latest checkedAt). Return JSON array.",
+    "Create apps/web/src/app/api/developer/bot-analytics/route.ts: GET handler with withPermission(AppRole.SERVER_ADMIN). Accept query params: guildId (required), days (default 7). Aggregate SystemMetric where metricType='command_executed' grouped by metricName, sum value, order by sum desc. Also return total commands, unique command types, and avg response time from metadata if available. Return JSON with {totalCommands, uniqueCommands, topCommands: [{name, count}], avgResponseTimeMs}.",
+    "Create apps/web/src/app/api/developer/website-errors/route.ts: GET handler with withPermission(AppRole.SERVER_ADMIN). Accept query params: guildId (required), startDate, endDate, limit (default 100, max 500). Query ErrorLog where source='api', return JSON array.",
+    "Create apps/discord-bot/src/listeners/command-metrics.ts: extend Listener from @sapphire/framework, listen to Events.ChatInputCommandSuccess. In run(), extract guildId, commandName from interaction. Write to SystemMetric: metricType='command_executed', metricName=commandName, value=1, metadata={userId, timestamp}. Use prisma.systemMetric.create().",
+    "Create apps/discord-bot/src/listeners/command-error.ts: extend Listener from @sapphire/framework, listen to Events.ChatInputCommandError. In run(), extract guildId, commandName, error from interaction. Write to ErrorLog: source='bot', errorType=error.name, message=error.message, stack=error.stack, metadata={commandName, userId}. Use prisma.errorLog.create().",
+    "Create apps/worker/src/reporters/health-reporter.ts: export async function reportHealth(guildId: string). Query outboxQueue for pending count, check discordClient.isReady(). Write to BridgeHealthCheck: component='outbox-worker', status=(pendingCount > 10 ? 'degraded' : 'healthy'), latencyMs=null, metadata={pendingCount, botReady: discordClient.isReady()}. Use prisma.bridgeHealthCheck.create().",
+    "Modify apps/worker/src/index.ts: import reportHealth. Inside the reconcile job handler (after await reconcile()), call await reportHealth(guildId) for each unique guildId found in the last batch of outbox events (or all active guilds if no events). If this is complex, report for a hardcoded guildId or skip per-guild reporting and use a sentinel 'global' guildId value.",
+    "Commit all API routes, bot listeners, and worker health reporter with message 'feat(api,bot,worker): add developer dashboard API routes and telemetry collectors'"
+  ],
+  "acceptance_criteria": [
+    "All 5 API routes exist and use withPermission(AppRole.SERVER_ADMIN)",
+    "API routes validate query params and enforce limit/max constraints",
+    "Bot command-metrics listener writes to SystemMetric on every command execution",
+    "Bot command-error listener writes to ErrorLog on command errors",
+    "Worker health reporter writes to BridgeHealthCheck every reconciliation cycle (60s)",
+    "All changes are committed to git"
+  ],
+  "verification": [
+    "Start the web app with `pnpm --filter web dev`, make a request to GET /api/developer/metrics?guildId=<testGuildId> with a valid SERVER_ADMIN session cookie, confirm 200 response with JSON array",
+    "Start the bot with `pnpm --filter discord-bot dev`, execute a slash command in Discord, query SystemMetric table and confirm a new row was created",
+    "Trigger a command error in the bot, query ErrorLog table and confirm a new row was created",
+    "Start the worker with `pnpm --filter worker dev`, wait 60s, query BridgeHealthCheck table and confirm a new row was created",
+    "Run `git status` and confirm no uncommitted changes"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
