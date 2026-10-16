@@ -1,4 +1,5 @@
-import { prisma, RegistrationStatus } from '@esports/database'
+import { prisma } from '@esports/database'
+import type { Prisma, RegistrationStatus } from '@esports/database/src/generated/client'
 
 export class SlotUnavailableError extends Error {
   readonly httpStatus = 409 as const
