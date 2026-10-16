@@ -1,0 +1,58 @@
+FEAT-006: Tournament Finalization and Winner System
+====================================================
+Status: COMPLETE
+Date: 2026
+
+## Files Created
+
+### API Routes
+1. apps/web/src/app/api/servers/[guildId]/tournaments/[tournamentId]/finalize/route.ts
+   - POST, protected with withPermission(AppRole.TOURNAMENT_MANAGER)
+   - Guard checks: all matches in terminal status, no open/under-review disputes
+   - Computes final standings via computeTournamentStandings(prisma, tournamentId, guildId)
+   - $transaction: creates WinnerRecord (top 3), Award records (Champion + Top Fragger),
+     locks results (resultsLocked=true), transitions status to COMPLETED,
+     creates OutboxEvent(TOURNAMENT_COMPLETED)
+   - Writes AuditLog(TOURNAMENT_FINALIZED) outside transaction
+   - Returns { winners, standings }
+
+2. apps/web/src/app/api/servers/[guildId]/tournaments/[tournamentId]/winners/route.ts
+   - GET, public (no auth)
+   - Scoped by guildId AND tournamentId
+   - Returns non-superseded WinnerRecord entries with team info
+   - Never exposes PENDING registrations or private data
+
+### Admin Pages
+3. apps/web/src/app/servers/[guildId]/admin/tournaments/[tournamentId]/finalize/page.tsx
+   - Server component with TOURNAMENT_MANAGER+ guard
+   - Shows tournament name, status, game badge
+   - Finalization checklist (all matches done, no disputes, LIVE status, not yet locked)
+   - Current standings preview (top 10)
+   - Discord announcement preview
+   - FinalizeButton (disabled if any guard fails)
+
+### Public Pages
+4. apps/web/src/app/servers/[guildId]/winners/[tournamentId]/page.tsx
+   - Public winner detail page (ISR revalidate: 3600)
+   - Cinematic podium: 2nd | 1st (violet glow) | 3rd with Framer Motion stagger
+   - Awards section in GlassCard grid
+   - Full standings table with animated rows
+   - Only shows COMPLETED tournaments (404 otherwise)
+
+5. apps/web/src/app/servers/[guildId]/winners/page.tsx (updated)
+   - Added "Tournament Results" section with links to /servers/[guildId]/winners/[tournamentId]
+   - Each completed tournament listed with a hover-animated link card
+
+### Components Created
+- apps/web/src/components/admin/FinalizeButton.tsx (client component)
+- apps/web/src/components/tournament/WinnerDetailPodium.tsx (client component, Framer Motion)
+
+## Rules Enforced
+- All DB queries scoped by guildId
+- State machine transition via assertTournamentTransition(tournament.status, 'COMPLETED')
+- Public routes never return PENDING registrations or PENDING_REVIEW submissions
+- Decimal fields: computeTournamentStandings returns numbers already (totalPoints is number)
+- camelCase Prisma field names used throughout
+
+## Type-check
+pnpm --filter web type-check → passed (0 errors)
