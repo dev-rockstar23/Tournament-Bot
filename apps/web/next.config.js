@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static optimization for dynamic pages
+  // Disable static optimization completely - this is a fully dynamic app
   output: 'standalone',
+  
+  // Disable static page generation
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
   
   images: {
     domains: ['cdn.discordapp.com', 'avatars.githubusercontent.com'],
@@ -9,11 +14,15 @@ const nextConfig = {
   
   experimental: {
     serverComponentsExternalPackages: ['three'],
+    // Disable all static generation
+    isrMemoryCacheSize: 0,
   },
   
-  // Skip build-time static generation for error pages and dynamic routes
-  // These pages require runtime data and authentication
+  // Skip build-time static generation
   skipTrailingSlashRedirect: true,
+  
+  // Disable static exports completely
+  trailingSlash: false,
   
   webpack: (config, { isServer }) => {
     // Exclude system directories that cause permission issues
