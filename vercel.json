@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build",
-  "outputDirectory": ".next",
+  "buildCommand": "pnpm --filter web build",
   "installCommand": "pnpm install",
+  "outputDirectory": "apps/web/.next",
   "ignoreCommand": "bash -c 'if [[ \"$VERCEL_GIT_COMMIT_REF\" == \"main\" ]] ; then exit 1; else git diff --quiet HEAD^ HEAD apps/web packages; fi'",
   "rewrites": [
     {
