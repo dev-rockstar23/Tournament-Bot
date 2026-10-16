@@ -14,8 +14,6 @@ const nextConfig = {
   
   experimental: {
     serverComponentsExternalPackages: ['three'],
-    // Disable all static generation
-    isrMemoryCacheSize: 0,
   },
   
   // Skip build-time static generation
