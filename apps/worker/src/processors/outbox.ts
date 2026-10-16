@@ -135,6 +135,17 @@ async function handleTournamentPublished(payload: Record<string, unknown>, guild
   if (!tournament || !settings?.announcementChannelId) return
 
   const embed = buildTournamentEmbed(tournament as Record<string, unknown>)
+  
+  // Add bracket link if tournament is LIVE
+  const WEB_BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legendary-esports.gg'
+  if (tournament.status === 'LIVE') {
+    embed.addFields({
+      name: '🔗 Bracket',
+      value: `[View Bracket](${WEB_BASE}/servers/${guildId}/tournaments/${tournamentId}/bracket)`,
+      inline: true,
+    })
+  }
+  
   const msg = await postToChannel(settings.announcementChannelId, { embeds: [embed] })
 
   await prisma.discordMessageBinding.create({
@@ -189,6 +200,55 @@ async function handleTournamentCompleted(payload: Record<string, unknown>, guild
       tournamentId,
     },
   })
+
+  await broadcastRealtimeEvent(guildId, 'tournament_status_changed', { tournamentId })
+}
+
+async function handleTournamentStarted(payload: Record<string, unknown>, guildId: string): Promise<void> {
+  const tournamentId = String(payload.tournamentId)
+  const [tournament, settings, existingBinding] = await Promise.all([
+    prisma.tournament.findUnique({ where: { id: tournamentId } }),
+    prisma.serverSettings.findUnique({ where: { guildId } }),
+    prisma.discordMessageBinding.findFirst({ where: { guildId, tournamentId, recordType: 'TOURNAMENT' } }),
+  ])
+  if (!tournament || !settings?.announcementChannelId) return
+
+  const embed = buildTournamentEmbed(tournament as Record<string, unknown>)
+  
+  // Add bracket link when tournament goes LIVE
+  const WEB_BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://legendary-esports.gg'
+  embed.addFields({
+    name: '🔗 Bracket',
+    value: `[View Bracket](${WEB_BASE}/servers/${guildId}/tournaments/${tournamentId}/bracket)`,
+    inline: true,
+  })
+
+  // Edit original announcement if binding exists
+  if (existingBinding) {
+    await editChannelMessage(existingBinding.channelId, existingBinding.messageId, { embeds: [embed] }).catch(() => {
+      // Edit may fail if message was deleted — continue to post new one
+    })
+  }
+
+  // Post new announcement
+  const msg = await postToChannel(settings.announcementChannelId, {
+    content: '🔴 **Tournament is now LIVE!** Check the bracket and match schedules.',
+    embeds: [embed],
+  })
+
+  // Create or update binding
+  if (!existingBinding) {
+    await prisma.discordMessageBinding.create({
+      data: {
+        guildId,
+        channelId: settings.announcementChannelId,
+        messageId: msg.id,
+        recordType: 'TOURNAMENT',
+        recordId: tournamentId,
+        tournamentId,
+      },
+    })
+  }
 
   await broadcastRealtimeEvent(guildId, 'tournament_status_changed', { tournamentId })
 }
@@ -421,6 +481,9 @@ export async function processOutboxEvent(job: Job): Promise<void> {
     switch (event.type) {
       case 'TOURNAMENT_PUBLISHED':
         await handleTournamentPublished(payload, event.guildId)
+        break
+      case 'TOURNAMENT_STARTED':
+        await handleTournamentStarted(payload, event.guildId)
         break
       case 'TOURNAMENT_COMPLETED':
         await handleTournamentCompleted(payload, event.guildId)
