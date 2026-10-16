@@ -315,8 +315,9 @@ function DoubleElimBracket({
   // Assuming positive rounds are winners bracket, and loser bracket follows
   const allRounds = Array.from(new Set(matches.map((m) => m.round))).sort((a, b) => a - b)
   const maxRound = Math.max(...allRounds)
-  // const midRound = Math.ceil(maxRound / 2)
+  const midRound = Math.ceil(maxRound / 2)
 
+  // Keeping these for potential future use
   // const winnerMatches = matches.filter((m) => m.round <= midRound)
   // const loserMatches = matches.filter((m) => m.round > midRound)
 

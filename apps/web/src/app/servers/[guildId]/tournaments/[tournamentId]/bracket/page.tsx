@@ -79,12 +79,12 @@ export default async function BracketPage({ params }: PageProps) {
   // This is a simplified calculation; real bracket generation would be more complex
   const bracketMatches = matches.map((match) => {
     // Extract scores from segments
-    const scores = match.segments.reduce((acc, seg) => {
+    const scores = match.segments.reduce<Record<string, number>>((acc, seg) => {
       if (seg.scoreJson && typeof seg.scoreJson === 'object') {
-        return { ...acc, ...(seg.scoreJson as Record<string, unknown>) }
+        return { ...acc, ...(seg.scoreJson as Record<string, number>) }
       }
       return acc
-    }, {} as Record<string, number>)
+    }, {})
 
     return {
       id: match.id,
