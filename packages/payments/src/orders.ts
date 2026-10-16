@@ -1,4 +1,5 @@
-import { prisma, Prisma } from '@esports/database'
+import { prisma } from '@esports/database'
+import type { Prisma } from '@esports/database/src/generated/client'
 import { assertPaymentsEnabled } from './errors'
 
 export async function createOrder({

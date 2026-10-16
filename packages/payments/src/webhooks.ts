@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto'
-import { prisma, Prisma } from '@esports/database'
+import { prisma } from '@esports/database'
+import type { Prisma } from '@esports/database/src/generated/client'
 import { assertPaymentsEnabled } from './errors'
 import { PaymentStatus, assertPaymentTransition } from './state-machine'
 
