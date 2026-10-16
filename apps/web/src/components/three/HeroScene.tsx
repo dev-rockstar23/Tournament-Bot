@@ -6,6 +6,8 @@ import * as THREE from 'three'
 function RotatingEmblem() {
   const meshRef = useRef<THREE.Mesh>(null)
   const wireRef = useRef<THREE.Mesh>(null)
+  // Second, smaller icosahedron — counter-rotating
+  const smallRef = useRef<THREE.Mesh>(null)
 
   useFrame((_, delta) => {
     if (meshRef.current) {
@@ -15,6 +17,11 @@ function RotatingEmblem() {
     if (wireRef.current) {
       wireRef.current.rotation.y += delta * 0.3
       wireRef.current.rotation.x += delta * 0.1
+    }
+    if (smallRef.current) {
+      // Counter-rotate on both axes for depth
+      smallRef.current.rotation.y -= delta * 0.45
+      smallRef.current.rotation.x -= delta * 0.2
     }
   })
 
@@ -27,6 +34,11 @@ function RotatingEmblem() {
       <mesh ref={wireRef}>
         <icosahedronGeometry args={[1.52, 1]} />
         <meshBasicMaterial color="#9f5bff" wireframe />
+      </mesh>
+      {/* Smaller outer icosahedron, wireframe only, counter-rotating */}
+      <mesh ref={smallRef}>
+        <icosahedronGeometry args={[2.2, 1]} />
+        <meshBasicMaterial color="#06b6d4" wireframe transparent opacity={0.35} />
       </mesh>
     </group>
   )
@@ -66,20 +78,47 @@ function FloatingRings() {
 }
 
 function Particles() {
-  const count = 500
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3)
+  const count = 800
+  const { positions, velocities } = useMemo(() => {
+    const pos = new Float32Array(count * 3)
+    const vel = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 20
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 20
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 20
+      pos[i * 3]     = (Math.random() - 0.5) * 20
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 20
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 20
+      // Small random drift velocities
+      vel[i * 3]     = (Math.random() - 0.5) * 0.004
+      vel[i * 3 + 1] = (Math.random() - 0.5) * 0.004
+      vel[i * 3 + 2] = (Math.random() - 0.5) * 0.004
     }
-    return arr
+    return { positions: pos, velocities: vel }
   }, [])
 
   const particlesRef = useRef<THREE.Points>(null)
+
   useFrame((_, delta) => {
-    if (particlesRef.current) particlesRef.current.rotation.y += delta * 0.02
+    if (!particlesRef.current) return
+    // Slow overall rotation
+    particlesRef.current.rotation.y += delta * 0.02
+
+    // Per-particle drift
+    const geo = particlesRef.current.geometry
+    const pos = geo.attributes.position as THREE.BufferAttribute
+    const arr = pos.array as Float32Array
+    for (let i = 0; i < count; i++) {
+      arr[i * 3]     += velocities[i * 3]
+      arr[i * 3 + 1] += velocities[i * 3 + 1]
+      arr[i * 3 + 2] += velocities[i * 3 + 2]
+
+      // Wrap around bounds so particles don't escape
+      if (arr[i * 3]     >  10) arr[i * 3]     = -10
+      if (arr[i * 3]     < -10) arr[i * 3]     =  10
+      if (arr[i * 3 + 1] >  10) arr[i * 3 + 1] = -10
+      if (arr[i * 3 + 1] < -10) arr[i * 3 + 1] =  10
+      if (arr[i * 3 + 2] >  10) arr[i * 3 + 2] = -10
+      if (arr[i * 3 + 2] < -10) arr[i * 3 + 2] =  10
+    }
+    pos.needsUpdate = true
   })
 
   return (
@@ -106,7 +145,7 @@ export default function HeroScene() {
       <FloatingRings />
       <Particles />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.3} intensity={0.8} radius={0.4} />
+        <Bloom luminanceThreshold={0.2} intensity={1.2} radius={0.5} />
       </EffectComposer>
     </Canvas>
   )

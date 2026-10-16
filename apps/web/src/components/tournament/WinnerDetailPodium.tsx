@@ -43,10 +43,10 @@ export function WinnerDetailPodium({ winners, awards, standings }: WinnerDetailP
   const third = winners.find((w) => w.placement === 3)
 
   // Podium order: 2nd | 1st | 3rd
-  const podiumSlots: { entry: WinnerEntry | undefined; rank: number; height: string; delay: number; highlight?: boolean }[] = [
-    { entry: second, rank: 2, height: 'h-36', delay: STAGGER_DELAY[0] },
-    { entry: first, rank: 1, height: 'h-52', delay: STAGGER_DELAY[1], highlight: true },
-    { entry: third, rank: 3, height: 'h-28', delay: STAGGER_DELAY[2] },
+  const podiumSlots: { entry: WinnerEntry | undefined; rank: number; height: string; delay: number; highlight?: boolean; floatClass: string; slot: number }[] = [
+    { entry: second, rank: 2, height: 'h-36', delay: STAGGER_DELAY[0], floatClass: 'podium-second', slot: 2 },
+    { entry: first,  rank: 1, height: 'h-52', delay: STAGGER_DELAY[1], highlight: true, floatClass: 'podium-first', slot: 1 },
+    { entry: third,  rank: 3, height: 'h-28', delay: STAGGER_DELAY[2], floatClass: 'podium-third', slot: 3 },
   ]
 
   return (
@@ -62,13 +62,14 @@ export function WinnerDetailPodium({ winners, awards, standings }: WinnerDetailP
         </h2>
 
         <div className="flex items-end justify-center gap-4 sm:gap-8">
-          {podiumSlots.map(({ entry, rank, height, delay, highlight }) => (
+          {podiumSlots.map(({ entry, rank, height, delay, highlight, floatClass, slot }) => (
             <motion.div
               key={rank}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay, ease: 'easeOut' }}
-              className="flex flex-col items-center gap-3 w-28 sm:w-40"
+              className={`flex flex-col items-center gap-3 w-28 sm:w-40 ${floatClass}`}
+              data-podium-slot={slot}
             >
               {/* Column card */}
               <div

@@ -9,6 +9,7 @@ import {
   type AwardEntry,
   type StandingRow,
 } from '@/components/tournament/WinnerDetailPodium'
+import { PodiumWrapper } from '@/components/tournament/PodiumWrapper'
 
 interface PageProps {
   params: { guildId: string; tournamentId: string }
@@ -125,6 +126,8 @@ export default async function TournamentWinnersPage({ params }: PageProps) {
     gameBadgeClass[tournament.game as string] ??
     'bg-violet-500/15 border-violet-500/30 text-violet-400'
 
+  const isCompleted = tournament.status === 'COMPLETED'
+
   return (
     <main
       className="min-h-screen"
@@ -158,11 +161,14 @@ export default async function TournamentWinnersPage({ params }: PageProps) {
           )}
         </div>
 
-        <WinnerDetailPodium
-          winners={winners}
-          awards={awards}
-          standings={standingsRows}
-        />
+        {/* Podium section wrapped with framer-motion + CSS confetti */}
+        <PodiumWrapper showConfetti={isCompleted}>
+          <WinnerDetailPodium
+            winners={winners}
+            awards={awards}
+            standings={standingsRows}
+          />
+        </PodiumWrapper>
       </div>
     </main>
   )
