@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@esports/database'
+import { prisma, type RegistrationStatus } from '@esports/database'
 import { createClient } from '@/lib/supabase/server'
-import { z } from 'zod'
+import { withPermission, AppRole } from '@esports/permissions'
+import { RegistrationSubmitSchema } from '@esports/shared-types'
 
-const bodySchema = z.object({
-  teamName: z.string().min(2, 'Team name required'),
-  registrationFormat: z.string(),
-}).passthrough()
+// ─── POST /api/servers/[guildId]/tournaments/[tournamentId]/registrations ─────
+// Public: any authenticated user may register their team.
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { guildId: string; tournamentId: string } }
 ) {
-  // Require authentication
+  const { guildId, tournamentId } = params
+
+  // 1. Require Supabase auth
   const supabase = createClient()
   const {
     data: { user },
@@ -22,42 +23,12 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Validate tournament belongs to guildId
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: params.tournamentId, guildId: params.guildId },
-    select: { id: true, status: true, teamCapacity: true, acceptedCount: true },
-  })
+  // 2. Look up DB user via discordId
+  const discordId: string =
+    user.user_metadata?.provider_id ?? user.user_metadata?.sub ?? user.id
 
-  if (!tournament) {
-    return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
-  }
-
-  if (tournament.status !== 'REGISTRATION_OPEN') {
-    return NextResponse.json(
-      { error: 'Registration is not currently open for this tournament' },
-      { status: 409 }
-    )
-  }
-
-  // Parse body
-  let body: Record<string, unknown>
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const parsed = bodySchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', details: parsed.error.flatten() },
-      { status: 422 }
-    )
-  }
-
-  // Look up the user's discord id to find or create a team
   const dbUser = await prisma.user.findFirst({
-    where: { discordId: user.user_metadata?.['provider_id'] ?? user.id },
+    where: { discordId },
     select: { id: true },
   })
 
@@ -68,47 +39,251 @@ export async function POST(
     )
   }
 
-  // Find or create team for this user in this guild
+  // 3. Parse body with RegistrationSubmitSchema (discriminated union on format)
+  let rawBody: unknown
+  try {
+    rawBody = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const parsed = RegistrationSubmitSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.flatten() },
+      { status: 422 }
+    )
+  }
+
+  const body = parsed.data
+
+  // 4. Find or create Team (captain-scoped per guild)
+  const teamName =
+    'teamName' in body && body.teamName ? body.teamName : 'My Team'
+
   let team = await prisma.team.findFirst({
-    where: { guildId: params.guildId, captainId: dbUser.id },
+    where: { guildId, captainId: dbUser.id },
     select: { id: true },
   })
 
   if (!team) {
     team = await prisma.team.create({
       data: {
-        guildId: params.guildId,
-        name: parsed.data.teamName as string,
+        guildId,
+        name: teamName,
         captainId: dbUser.id,
       },
       select: { id: true },
     })
   }
 
-  // Check for existing registration
+  // 5. Check for duplicate registration
   const existing = await prisma.registration.findFirst({
-    where: { tournamentId: params.tournamentId, teamId: team.id },
+    where: { tournamentId, teamId: team.id },
     select: { id: true },
   })
 
   if (existing) {
-    return NextResponse.json(
-      { error: 'Your team is already registered for this tournament' },
-      { status: 409 }
-    )
+    return NextResponse.json({ error: 'already_registered' }, { status: 409 })
   }
 
-  // Create registration
-  const registration = await prisma.registration.create({
-    data: {
-      tournamentId: params.tournamentId,
-      guildId: params.guildId,
-      teamId: team.id,
-      status: 'PENDING',
-      submittedRaw: JSON.stringify(body),
-    },
-    select: { id: true, status: true },
-  })
+  // 6. Atomic slot reservation inside $transaction with SELECT FOR UPDATE
+  try {
+    const registration = await prisma.$transaction(async (tx) => {
+      // Lock the tournament row to prevent concurrent registrations
+      const rows = await tx.$queryRaw<
+        Array<{
+          id: string
+          team_capacity: number
+          accepted_count: number
+          auto_approve: boolean
+          waitlist_enabled: boolean
+          status: string
+        }>
+      >`SELECT id, team_capacity, accepted_count, auto_approve, waitlist_enabled, status FROM tournaments WHERE id = ${tournamentId} AND guild_id = ${guildId} FOR UPDATE`
 
-  return NextResponse.json({ registration }, { status: 201 })
+      const row = rows[0]
+      if (!row) {
+        throw Object.assign(new Error('Tournament not found'), { httpStatus: 404, code: 'not_found' })
+      }
+
+      if (row.status !== 'REGISTRATION_OPEN') {
+        throw Object.assign(new Error('not_open'), { httpStatus: 409, code: 'not_open' })
+      }
+
+      const { team_capacity, accepted_count, auto_approve, waitlist_enabled } = row
+
+      let regStatus: 'APPROVED' | 'PENDING' | 'WAITLISTED'
+      let slotNumber: number | null = null
+      let outboxType: string
+
+      if (accepted_count < team_capacity) {
+        // Slot available
+        if (auto_approve) {
+          regStatus = 'APPROVED'
+          slotNumber = accepted_count + 1
+          outboxType = 'REGISTRATION_AUTO_APPROVED'
+          // Increment acceptedCount inside the same tx
+          await tx.tournament.update({
+            where: { id: tournamentId },
+            data: { acceptedCount: { increment: 1 } },
+          })
+        } else {
+          regStatus = 'PENDING'
+          outboxType = 'REGISTRATION_SUBMITTED'
+        }
+      } else if (waitlist_enabled) {
+        regStatus = 'WAITLISTED'
+        outboxType = 'REGISTRATION_WAITLISTED'
+      } else {
+        throw Object.assign(new Error('slots_full'), { httpStatus: 409, code: 'slots_full' })
+      }
+
+      // Create the Registration
+      const reg = await tx.registration.create({
+        data: {
+          tournamentId,
+          guildId,
+          teamId: team!.id,
+          status: regStatus,
+          slotNumber,
+          submittedRaw: JSON.stringify(rawBody),
+        },
+        select: { id: true, status: true, slotNumber: true },
+      })
+
+      // Create RegistrationMember rows from body player list (best-effort, format-dependent)
+      const memberDiscordIds = extractMemberIds(body, discordId)
+      if (memberDiscordIds.length > 0) {
+        const dbMembers = await tx.user.findMany({
+          where: { discordId: { in: memberDiscordIds } },
+          select: { id: true, discordId: true },
+        })
+        const memberMap = new Map(dbMembers.map((u) => [u.discordId, u.id]))
+        const memberRows = memberDiscordIds
+          .map((did, idx) => {
+            const uid = memberMap.get(did)
+            if (!uid) return null
+            return {
+              registrationId: reg.id,
+              userId: uid,
+              isCaptain: did === discordId,
+              isSubstitute: false,
+              status: 'active',
+            }
+          })
+          .filter((r): r is NonNullable<typeof r> => r !== null)
+
+        if (memberRows.length > 0) {
+          await tx.registrationMember.createMany({ data: memberRows })
+        }
+      }
+
+      // Outbox event
+      await tx.outboxEvent.create({
+        data: {
+          guildId,
+          type: outboxType,
+          payloadJson: { tournamentId, registrationId: reg.id, teamId: team!.id },
+          status: 'PENDING',
+        },
+      })
+
+      return reg
+    })
+
+    return NextResponse.json({ registration }, { status: 201 })
+  } catch (err: unknown) {
+    const e = err as { httpStatus?: number; code?: string; message?: string }
+    if (e.httpStatus) {
+      return NextResponse.json({ error: e.code ?? e.message }, { status: e.httpStatus })
+    }
+    console.error('[registrations POST]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// ─── GET /api/servers/[guildId]/tournaments/[tournamentId]/registrations ──────
+// Admin only: returns registrations with optional ?status filter.
+// PENDING registrations are NEVER returned from non-admin routes.
+
+export const GET = withPermission(
+  AppRole.TOURNAMENT_MANAGER,
+  async (req, { guildId, params }) => {
+    const tournamentId = params['tournamentId']
+    if (!tournamentId) {
+      return NextResponse.json({ error: 'Missing tournamentId' }, { status: 400 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const statusFilter = searchParams.get('status') as RegistrationStatus | null
+
+    // Build where clause — always scope to guildId + tournamentId
+    const where: {
+      tournamentId: string
+      guildId: string
+      status?: RegistrationStatus
+    } = { tournamentId, guildId }
+
+    if (statusFilter) {
+      where.status = statusFilter
+    }
+
+    const registrations = await prisma.registration.findMany({
+      where,
+      select: {
+        id: true,
+        status: true,
+        slotNumber: true,
+        createdAt: true,
+        approvedAt: true,
+        rejectionReason: true,
+        team: { select: { name: true, tag: true } },
+        _count: { select: { members: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Serialize dates
+    const serialized = registrations.map((r) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      approvedAt: r.approvedAt?.toISOString() ?? null,
+    }))
+
+    return NextResponse.json({ registrations: serialized })
+  }
+)
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function extractMemberIds(
+  body: { format: string; [key: string]: unknown },
+  captainDiscordId: string
+): string[] {
+  const ids: string[] = [captainDiscordId]
+  switch (body.format) {
+    case 'SIMPLE_MENTIONS': {
+      const b = body as { mentions?: string[] }
+      if (Array.isArray(b.mentions)) ids.push(...b.mentions)
+      break
+    }
+    case 'CAPTAIN_BASED': {
+      const b = body as { captainId?: string; teammates?: string[] }
+      if (b.captainId) ids.push(b.captainId)
+      if (Array.isArray(b.teammates)) ids.push(...b.teammates)
+      break
+    }
+    case 'FULL_PLAYER_DETAILS':
+    case 'TEAM_WITH_SUBSTITUTE':
+    case 'CODM_FIVE_PLAYER':
+    case 'FULL_WITH_SUBSTITUTE': {
+      const b = body as { players?: Array<{ discordId?: string }> }
+      if (Array.isArray(b.players)) {
+        b.players.forEach((p) => { if (p.discordId) ids.push(p.discordId) })
+      }
+      break
+    }
+  }
+  return [...new Set(ids)]
 }

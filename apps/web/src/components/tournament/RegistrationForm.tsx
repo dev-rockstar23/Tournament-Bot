@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Clock } from 'lucide-react'
 
 type RegistrationFormat =
   | 'SIMPLE_MENTIONS'
@@ -13,6 +13,8 @@ type RegistrationFormat =
   | 'TEAM_WITH_SUBSTITUTE'
   | 'CODM_FIVE_PLAYER'
   | 'FULL_WITH_SUBSTITUTE'
+
+type SuccessState = 'approved' | 'pending' | 'waitlisted'
 
 interface TournamentInfo {
   id: string
@@ -163,7 +165,10 @@ function FullDetailsForm({
   })
   const { fields } = useFieldArray({ control, name: 'players' })
 
-  const formErrors = errors as { players?: Array<{ ign?: { message?: string }; uid?: { message?: string } }>; teamName?: { message?: string } }
+  const formErrors = errors as {
+    players?: Array<{ ign?: { message?: string }; uid?: { message?: string } }>
+    teamName?: { message?: string }
+  }
 
   return (
     <form onSubmit={handleSubmit((d) => onSubmit(d))} className="flex flex-col gap-4">
@@ -173,13 +178,25 @@ function FullDetailsForm({
       {fields.map((field, idx) => (
         <div key={field.id} className="glass-card p-4 flex flex-col gap-3">
           <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
-            {idx === 0 ? 'Captain' : withSubstitute && idx === fields.length - 1 ? `Substitute` : `Player ${idx + 1}`}
+            {idx === 0
+              ? 'Captain'
+              : withSubstitute && idx === fields.length - 1
+              ? 'Substitute'
+              : `Player ${idx + 1}`}
           </p>
           <Field label="In-Game Name (IGN)" error={formErrors.players?.[idx]?.ign?.message}>
-            <input {...register(`players.${idx}.ign`)} className={inputClass} placeholder="IGN" />
+            <input
+              {...register(`players.${idx}.ign`)}
+              className={inputClass}
+              placeholder="IGN"
+            />
           </Field>
           <Field label="UID" error={formErrors.players?.[idx]?.uid?.message}>
-            <input {...register(`players.${idx}.uid`)} className={inputClass} placeholder="Game UID" />
+            <input
+              {...register(`players.${idx}.uid`)}
+              className={inputClass}
+              placeholder="Game UID"
+            />
           </Field>
         </div>
       ))}
@@ -223,10 +240,75 @@ function SubmitBtn({ disabled }: { disabled: boolean }) {
   )
 }
 
+// ── Success cards ─────────────────────────────────────────────────────────────
+
+function SuccessCard({
+  successState,
+  tournamentName,
+}: {
+  successState: SuccessState
+  tournamentName: string
+}) {
+  if (successState === 'waitlisted') {
+    return (
+      <GlassCard className="p-8 flex flex-col items-center text-center gap-4">
+        <Clock size={48} className="text-amber-400" aria-hidden="true" />
+        <h2
+          className="font-display text-xl font-bold text-white"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Added to Waitlist
+        </h2>
+        <p className="text-[var(--color-text-secondary)]">
+          All slots for <strong className="text-white">{tournamentName}</strong> are currently
+          filled. Your team has been added to the waitlist. You will be notified if a slot
+          opens up.
+        </p>
+      </GlassCard>
+    )
+  }
+
+  if (successState === 'approved') {
+    return (
+      <GlassCard className="p-8 flex flex-col items-center text-center gap-4">
+        <CheckCircle size={48} className="text-green-400" aria-hidden="true" />
+        <h2
+          className="font-display text-xl font-bold text-white"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Registration Approved!
+        </h2>
+        <p className="text-[var(--color-text-secondary)]">
+          Your team has been automatically approved for{' '}
+          <strong className="text-white">{tournamentName}</strong>. Check the tournament
+          page for your slot number.
+        </p>
+      </GlassCard>
+    )
+  }
+
+  // pending
+  return (
+    <GlassCard className="p-8 flex flex-col items-center text-center gap-4">
+      <CheckCircle size={48} className="text-green-400" aria-hidden="true" />
+      <h2
+        className="font-display text-xl font-bold text-white"
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        Registration Submitted!
+      </h2>
+      <p className="text-[var(--color-text-secondary)]">
+        Your team registration for <strong className="text-white">{tournamentName}</strong> has
+        been received. Please wait for approval from the tournament organizer.
+      </p>
+    </GlassCard>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function RegistrationForm({ tournament, guildId }: RegistrationFormProps) {
-  const [success, setSuccess] = useState(false)
+  const [successState, setSuccessState] = useState<SuccessState | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const format = tournament.registrationFormat as RegistrationFormat
@@ -239,32 +321,57 @@ export function RegistrationForm({ tournament, guildId }: RegistrationFormProps)
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, registrationFormat: format }),
+          body: JSON.stringify({ ...data, format }),
         }
       )
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        setServerError((body as { error?: string }).error ?? 'Registration failed. Please try again.')
+
+      if (res.status === 201) {
+        const body = (await res.json().catch(() => ({}))) as {
+          registration?: { status?: string }
+        }
+        const status = body.registration?.status
+        if (status === 'WAITLISTED') {
+          setSuccessState('waitlisted')
+        } else if (status === 'APPROVED') {
+          setSuccessState('approved')
+        } else {
+          setSuccessState('pending')
+        }
         return
       }
-      setSuccess(true)
+
+      // Error cases
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string
+        details?: unknown
+      }
+
+      if (res.status === 409) {
+        switch (body.error) {
+          case 'already_registered':
+            setServerError('Your team is already registered.')
+            break
+          case 'not_open':
+            setServerError('Registration is not open.')
+            break
+          case 'slots_full':
+            setServerError('Tournament is full and no waitlist is available.')
+            break
+          default:
+            setServerError(body.error ?? 'Registration failed. Please try again.')
+        }
+        return
+      }
+
+      setServerError(body.error ?? 'Registration failed. Please try again.')
     } catch {
       setServerError('Network error. Please check your connection.')
     }
   }
 
-  if (success) {
+  if (successState) {
     return (
-      <GlassCard className="p-8 flex flex-col items-center text-center gap-4">
-        <CheckCircle size={48} className="text-green-400" aria-hidden="true" />
-        <h2 className="font-display text-xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>
-          Registration Submitted!
-        </h2>
-        <p className="text-[var(--color-text-secondary)]">
-          Your team registration for <strong className="text-white">{tournament.name}</strong> has been received.
-          Please wait for approval from the tournament organizer.
-        </p>
-      </GlassCard>
+      <SuccessCard successState={successState} tournamentName={tournament.name} />
     )
   }
 
@@ -279,7 +386,7 @@ export function RegistrationForm({ tournament, guildId }: RegistrationFormProps)
         </div>
       )}
 
-      {(format === 'SIMPLE_MENTIONS') && (
+      {format === 'SIMPLE_MENTIONS' && (
         <SimpleMentionsForm onSubmit={handleSubmit} />
       )}
 
