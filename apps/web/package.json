@@ -12,6 +12,7 @@
   "dependencies": {
     "@esports/database": "workspace:*",
     "@esports/game-rules": "workspace:*",
+    "@esports/payments": "workspace:*",
     "@esports/permissions": "workspace:*",
     "@esports/scoring": "workspace:*",
     "@esports/shared-types": "workspace:*",
