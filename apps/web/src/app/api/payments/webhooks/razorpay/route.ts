@@ -1,79 +1,99 @@
-export const runtime = 'nodejs'
+import { NextRequest, NextResponse } from 'next/server'
+import { processWebhookEvent, verifyRazorpaySignature } from '@esports/payments'
+import { prisma } from '@esports/database'
+import { decryptCredential } from '@esports/payments'
+
 export const dynamic = 'force-dynamic'
 
-import { NextResponse } from 'next/server'
-import { verifyRazorpaySignature, processWebhookEvent } from '@esports/payments'
-
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   // Gate: payments must be enabled
   if (process.env.PAYMENTS_ENABLED !== 'true') {
-    return NextResponse.json(
-      {
-        error: 'PAYMENTS_DISABLED',
-        message: 'Payment module is disabled pending legal review.',
+    return NextResponse.json({ error: 'Payments disabled' }, { status: 503 })
+  }
+
+  // Read raw body for signature verification
+  const body = await req.text()
+  const signature = req.headers.get('x-razorpay-signature')
+
+  if (!signature) {
+    return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
+  }
+
+  let event: any
+  try {
+    event = JSON.parse(body)
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const { event: eventType, payload } = event
+
+  if (!payload?.payment?.entity || !payload?.order?.entity) {
+    return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 })
+  }
+
+  const razorpayOrderId = payload.order.entity.id
+  const paymentId = payload.payment.entity.id
+  const amountInPaise = payload.payment.entity.amount
+  const currency = payload.payment.entity.currency
+
+  // Look up order to get webhook secret from payment config
+  const order = await prisma.order.findFirst({
+    where: { providerRef: razorpayOrderId },
+    include: {
+      registration: {
+        include: {
+          tournament: {
+            include: {
+              paymentConfig: true,
+            },
+          },
+        },
       },
-      { status: 503 }
+    },
+  })
+
+  if (!order) {
+    return NextResponse.json(
+      { error: 'Order not found for Razorpay order_id' },
+      { status: 404 },
     )
   }
 
-  // Read raw body as text for signature verification
-  const rawBody = await request.text()
-  const signature = request.headers.get('x-razorpay-signature') ?? ''
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? ''
-
-  // Verify HMAC signature
-  if (!verifyRazorpaySignature(rawBody, signature, secret)) {
-    return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 400 })
+  if (!order.registration.tournament.paymentConfig) {
+    return NextResponse.json(
+      { error: 'Tournament has no payment configuration' },
+      { status: 400 },
+    )
   }
 
-  let payload: Record<string, unknown>
-  try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>
-  } catch {
-    return NextResponse.json({ error: 'INVALID_JSON' }, { status: 400 })
+  // Decrypt webhook secret and verify signature
+  const webhookSecret = decryptCredential(
+    order.registration.tournament.paymentConfig.razorpayWebhookSecret,
+  )
+
+  const isValid = verifyRazorpaySignature(body, signature, webhookSecret)
+
+  if (!isValid) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  // Extract fields from Razorpay webhook payload shape
-  // Razorpay sends: { event: 'payment.captured', payload: { payment: { entity: { id, order_id, amount, currency } } } }
-  const eventType = payload['event'] as string
-  const paymentEntity = (
-    (payload['payload'] as Record<string, unknown>)?.['payment'] as Record<string, unknown>
-  )?.['entity'] as Record<string, unknown> | undefined
-
-  const providerEventId = (paymentEntity?.['id'] as string) ?? ''
-  const orderId = (paymentEntity?.['order_id'] as string) ?? ''
-  const amount = Number(paymentEntity?.['amount'] ?? 0) / 100 // Razorpay sends paise
-  const currency = (paymentEntity?.['currency'] as string) ?? 'INR'
-
   try {
+    // Process the webhook event
     await processWebhookEvent({
-      providerEventId,
-      orderId,
+      providerEventId: paymentId,
+      razorpayOrderId,
       eventType,
-      amount,
+      amount: amountInPaise / 100, // Convert paise to major currency unit
       currency,
     })
-    return NextResponse.json({ received: true }, { status: 200 })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
 
-    // Idempotency: already processed — return 200 so Razorpay stops retrying
-    if (message.toLowerCase().includes('already') || message.toLowerCase().includes('idempotent')) {
-      return NextResponse.json({ received: true }, { status: 200 })
-    }
-
-    // Validation / state-machine errors
-    if (
-      message.toLowerCase().includes('mismatch') ||
-      message.toLowerCase().includes('not found') ||
-      message.toLowerCase().includes('invalid') ||
-      message.toLowerCase().includes('transition')
-    ) {
-      console.error('[razorpay webhook] Validation error:', message)
-      return NextResponse.json({ error: message }, { status: 400 })
-    }
-
-    console.error('[razorpay webhook] Unexpected error:', err)
-    return NextResponse.json({ error: 'INTERNAL_ERROR' }, { status: 500 })
+    return NextResponse.json({ received: true })
+  } catch (error) {
+    console.error('Webhook processing error:', error)
+    return NextResponse.json(
+      { error: 'Failed to process webhook' },
+      { status: 500 },
+    )
   }
 }

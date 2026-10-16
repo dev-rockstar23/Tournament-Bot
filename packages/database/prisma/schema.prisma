@@ -79,6 +79,10 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PaymentProvider {
+  RAZORPAY
+}
+
 enum AwardType {
   CHAMPION
   RUNNER_UP
@@ -177,6 +181,7 @@ model DiscordServer {
   systemMetrics      SystemMetric[]
   errorLogs          ErrorLog[]
   bridgeHealthChecks BridgeHealthCheck[]
+  paymentConfigs     OrganizerPaymentConfig[]
 
   @@map("discord_servers")
 }
@@ -357,10 +362,12 @@ model Tournament {
   archivedAt          DateTime?          @map("archived_at")
   resultsLocked       Boolean            @default(false) @map("results_locked")
   extensionCount      Int                @default(0) @map("extension_count")
+  paymentConfigId     String?            @map("payment_config_id")
   createdAt           DateTime           @default(now()) @map("created_at")
   updatedAt           DateTime           @updatedAt @map("updated_at")
 
   server          DiscordServer           @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  paymentConfig   OrganizerPaymentConfig? @relation(fields: [paymentConfigId], references: [id])
   ruleVersions    TournamentRuleVersion[]
   stages          Stage[]
   registrations   Registration[]
@@ -648,6 +655,26 @@ model Award {
 // ============================================================
 // PAYMENTS
 // ============================================================
+
+model OrganizerPaymentConfig {
+  id                    String          @id @default(cuid())
+  guildId               String          @map("guild_id")
+  userId                String          @map("user_id")
+  provider              PaymentProvider @default(RAZORPAY)
+  razorpayKeyId         String          @map("razorpay_key_id")
+  razorpayKeySecret     String          @map("razorpay_key_secret")
+  razorpayWebhookSecret String          @map("razorpay_webhook_secret")
+  isActive              Boolean         @default(true) @map("is_active")
+  isVerified            Boolean         @default(false) @map("is_verified")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  server      DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  tournaments Tournament[]
+
+  @@unique([guildId, userId])
+  @@map("organizer_payment_configs")
+}
 
 model Order {
   id             String        @id @default(cuid())

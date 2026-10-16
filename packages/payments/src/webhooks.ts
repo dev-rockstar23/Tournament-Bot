@@ -3,6 +3,7 @@ import { prisma } from '@esports/database'
 import type { Prisma } from '@esports/database/src/generated/client'
 import { assertPaymentsEnabled } from './errors'
 import { PaymentStatus, assertPaymentTransition } from './state-machine'
+import { decryptCredential } from './encryption'
 
 /**
  * Verify a Razorpay webhook signature using HMAC-SHA256.
@@ -39,13 +40,13 @@ function mapEventTypeToStatus(eventType: string): PaymentStatus {
 
 export async function processWebhookEvent({
   providerEventId,
-  orderId,
+  razorpayOrderId,
   eventType,
   amount,
   currency,
 }: {
   providerEventId: string
-  orderId: string
+  razorpayOrderId: string
   eventType: string
   amount: number
   currency: string
@@ -58,24 +59,42 @@ export async function processWebhookEvent({
   })
   if (existing) return
 
-  // Load the order
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
+  // Load the order by providerRef (Razorpay order_id)
+  const order = await prisma.order.findFirst({
+    where: { providerRef: razorpayOrderId },
+    include: {
+      registration: {
+        include: {
+          tournament: {
+            include: {
+              paymentConfig: true,
+            },
+          },
+        },
+      },
+    },
   })
+
   if (!order) {
-    throw new Error(`Order not found: ${orderId}`)
+    throw new Error(`Order not found for Razorpay order_id: ${razorpayOrderId}`)
+  }
+
+  if (!order.registration.tournament.paymentConfig) {
+    throw new Error(
+      `Tournament ${order.registration.tournament.id} has no payment configuration.`,
+    )
   }
 
   // Verify amount and currency match
   const orderAmount = Number(order.amount)
   if (orderAmount !== amount) {
     throw new Error(
-      `Amount mismatch for order ${orderId}: expected ${orderAmount}, got ${amount}`,
+      `Amount mismatch for order ${order.id}: expected ${orderAmount}, got ${amount}`,
     )
   }
   if (order.currency !== currency) {
     throw new Error(
-      `Currency mismatch for order ${orderId}: expected ${order.currency}, got ${currency}`,
+      `Currency mismatch for order ${order.id}: expected ${order.currency}, got ${currency}`,
     )
   }
 
@@ -83,11 +102,11 @@ export async function processWebhookEvent({
   const newStatus = mapEventTypeToStatus(eventType)
   assertPaymentTransition(order.status as PaymentStatus, newStatus)
 
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  await prisma.$transaction(async (tx) => {
     // Record the payment event; store amount and currency in payloadJson
     await tx.paymentEvent.create({
       data: {
-        orderId,
+        orderId: order.id,
         providerEventId,
         type: eventType,
         payloadJson: { amount, currency },
@@ -96,16 +115,20 @@ export async function processWebhookEvent({
 
     // Update the order status
     await tx.order.update({
-      where: { id: orderId },
+      where: { id: order.id },
       data: { status: newStatus },
     })
 
-    // If the payment succeeded, activate the registration
+    // If the payment succeeded, potentially activate the registration
     if (newStatus === PaymentStatus.PAID) {
-      await tx.registration.update({
-        where: { id: order.registrationId },
-        data: { status: 'APPROVED' },
-      })
+      // Only auto-approve if tournament has autoApprove enabled
+      if (order.registration.tournament.autoApprove) {
+        await tx.registration.update({
+          where: { id: order.registrationId },
+          data: { status: 'APPROVED' },
+        })
+      }
+      // Otherwise leave as PENDING for manual approval
     }
   })
 }

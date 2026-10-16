@@ -10,7 +10,7 @@ const createOrderSchema = z.object({
   expiresInMinutes: z.number().int().positive(),
 })
 
-export const POST = withPermission(AppRole.PLAYER, async (req, { guildId: _guildId }) => {
+export const POST = withPermission(AppRole.PLAYER, async (req, { guildId }) => {
   // Gate: payments must be enabled
   if (process.env.PAYMENTS_ENABLED !== 'true') {
     return NextResponse.json(
@@ -44,12 +44,13 @@ export const POST = withPermission(AppRole.PLAYER, async (req, { guildId: _guild
 
   // createOrder validates that the registration belongs to the tournament;
   // guildId scoping is enforced at the DB level through the registration relation.
-  const order = await createOrder({
+  const { order, razorpayCheckout } = await createOrder({
     registrationId,
     amount,
     currency,
     expiresInMinutes,
+    guildId,
   })
 
-  return NextResponse.json({ order }, { status: 201 })
+  return NextResponse.json({ order, razorpayCheckout }, { status: 201 })
 })

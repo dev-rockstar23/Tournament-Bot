@@ -1,21 +1,25 @@
 import { prisma } from '@esports/database'
 import type { Prisma } from '@esports/database/src/generated/client'
 import { assertPaymentsEnabled } from './errors'
+import { decryptCredential } from './encryption'
+import { createRazorpayOrder } from './razorpay'
 
 export async function createOrder({
   registrationId,
   amount,
   currency,
   expiresInMinutes,
+  guildId,
 }: {
   registrationId: string
   amount: number
   currency: string
   expiresInMinutes: number
+  guildId?: string
 }) {
   assertPaymentsEnabled()
 
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx) => {
     // Lock the registration row for update to prevent race conditions
     const registrations = await tx.$queryRaw<
       Array<{ id: string; tournament_id: string }>
@@ -27,10 +31,15 @@ export async function createOrder({
 
     const registration = registrations[0]
 
-    // Load the tournament to check capacity
+    // Load the tournament to check capacity and payment config
     const tournament = await tx.tournament.findUnique({
       where: { id: registration.tournament_id },
-      select: { id: true, teamCapacity: true },
+      select: {
+        id: true,
+        teamCapacity: true,
+        entryType: true,
+        paymentConfig: true,
+      },
     })
 
     if (!tournament) {
@@ -64,6 +73,51 @@ export async function createOrder({
       },
     })
 
-    return order
+    // If tournament requires payment, create Razorpay order
+    let razorpayCheckout: {
+      orderId: string
+      amount: number
+      currency: string
+      keyId: string
+    } | undefined
+
+    if (tournament.entryType === 'PAID') {
+      if (!tournament.paymentConfig) {
+        throw new Error(
+          `Tournament ${tournament.id} has no payment configuration. Organizer must configure Razorpay credentials.`,
+        )
+      }
+
+      // Decrypt credentials
+      const keyId = decryptCredential(tournament.paymentConfig.razorpayKeyId)
+      const keySecret = decryptCredential(tournament.paymentConfig.razorpayKeySecret)
+
+      // Create Razorpay order
+      const razorpayOrder = await createRazorpayOrder({
+        keyId,
+        keySecret,
+        amount,
+        currency,
+        receiptId: order.id,
+      })
+
+      // Update order with Razorpay order ID
+      await tx.order.update({
+        where: { id: order.id },
+        data: { providerRef: razorpayOrder.id },
+      })
+
+      razorpayCheckout = {
+        orderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        keyId, // Public key ID (safe to send to client)
+      }
+    }
+
+    return {
+      order,
+      razorpayCheckout,
+    }
   })
 }

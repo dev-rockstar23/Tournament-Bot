@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@esports/database": "workspace:*",
-    "@esports/shared-types": "workspace:*"
+    "@esports/shared-types": "workspace:*",
+    "razorpay": "^2.9.4"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
