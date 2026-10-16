@@ -1,0 +1,51 @@
+FEAT-004: Multi-Match Scheduler — COMPLETE
+==========================================
+
+Files created/updated:
+
+1. apps/web/src/app/api/servers/[guildId]/tournaments/[tournamentId]/matches/bulk/route.ts
+   - POST endpoint with TOURNAMENT_MANAGER permission
+   - Zod-validated BulkMatchSchema (count, firstMatchStart, durationMinutes, gapMinutes, defaultMap, defaultMode, stageId, resultDeadlineMinutes)
+   - Single $transaction: validates stage→tournament→guild ownership, gets highest match number,
+     creates each match with sequential time slots, 4 ScheduledJob rows per match (24h, 30min,
+     5min reminders + result deadline), and one OutboxEvent(MATCH_SCHEDULED) per match
+
+2. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/schedule/route.ts
+   - PATCH endpoint with TOURNAMENT_MANAGER permission
+   - RescheduleSchema with cascadeSubsequent, map, mode
+   - Computes timeDelta, cascades to all subsequent matches in stage if requested
+   - Cancels PENDING jobs, creates new versioned job keys, writes OutboxEvent + AuditLog
+   - Non-blocking overlap detection: returns warnings: ['OVERLAP_DETECTED'] if any two
+     matches in the tournament have overlapping windows
+
+3. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/checkin/route.ts  (NEW)
+   - POST endpoint with PLAYER permission
+   - Validates match is in CHECK_IN or READY status
+   - Finds MatchParticipant for a team captained by the requesting user
+   - Sets checkedIn=true, checkedInAt=now()
+
+4. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/room/route.ts  (NEW)
+   - GET endpoint with PLAYER permission
+   - Returns {roomId, password} ONLY to captains of checked-in teams
+   - Validates: match LIVE/READY, RoomCredential exists, releaseAt <= now(), user is checked-in captain
+   - Credentials never exposed in any other route
+
+5. apps/web/src/app/servers/[guildId]/admin/matches/page.tsx  (NEW)
+   - Server component with REFEREE+ auth guard
+   - Fetches all tournaments with stages→matches scoped by guildId
+   - Serializes Dates to ISO strings, renders MatchSchedulerPanel
+
+6. apps/web/src/components/admin/MatchSchedulerPanel.tsx  (NEW)
+   - 'use client' component
+   - Tournament selector dropdown at top
+   - Match list table with number, datetime, map, mode, status badge
+   - Collapsible bulk generation form with:
+     - Count button group (1/2/3/4/6/8/10)
+     - Stage selector, first match datetime
+     - Duration/gap/deadline number inputs
+     - Default map (select from mapPool if available, else text input) + mode input
+     - "Generate Preview" button (calculates timeline without saving)
+     - "Create Matches" button (calls bulk API, shows toast)
+   - Preview timeline rendered as GlassCards with match number, time, map/mode
+
+TypeScript: pnpm --filter web type-check → Exit 0 (no errors)
