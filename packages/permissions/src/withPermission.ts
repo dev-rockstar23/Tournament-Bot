@@ -5,7 +5,7 @@ import { AppRole, roleAtLeast } from './roles'
 import { resolveUserRole } from './role-resolver'
 import { recordFailedAttempt, isUserBanned } from './brute-force'
 import { PermissionError } from './errors'
-import { prisma } from '@esports/database'
+import { prisma } from '@esports/database/src/client'
 
 type Handler = (
   req: NextRequest,
