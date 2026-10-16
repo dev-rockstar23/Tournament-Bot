@@ -1,4 +1,5 @@
-import type { PrismaClient } from '@esports/database';
+import type { PrismaClient } from '@esports/database/src/generated/client';
+import type { Decimal } from '@esports/database/src/generated/client/runtime/library';
 import type { ApprovedMatchScore, TeamStanding } from '@esports/game-rules';
 import { calculateStandings } from '@esports/game-rules';
 
@@ -26,12 +27,18 @@ export async function computeTournamentStandings(
     },
   });
 
-  const scores: ApprovedMatchScore[] = rows.map((row) => ({
+  const scores: ApprovedMatchScore[] = rows.map((row: {
+    matchId: string;
+    teamId: string;
+    points: Decimal;
+    kills: number;
+    placement: number | null;
+  }) => ({
     matchId: row.matchId,
     teamId: row.teamId,
     points: Number(row.points),
     kills: row.kills,
-    placement: row.placement,
+    placement: row.placement ?? 0,
   }));
 
   return calculateStandings(scores);
