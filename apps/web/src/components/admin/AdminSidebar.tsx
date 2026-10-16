@@ -144,7 +144,7 @@ export function AdminSidebar({
       <nav className="flex-1 overflow-y-auto py-3" aria-label="Admin navigation">
         <ul className="space-y-0.5 px-2">
           {visibleItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isActive = pathname === item.href || (pathname?.startsWith(item.href + '/') ?? false)
             const Icon = item.icon
             return (
               <li key={item.href}>

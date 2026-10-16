@@ -3,9 +3,6 @@ const nextConfig = {
   // CRITICAL: Disable ALL static generation
   output: 'standalone',
   
-  // Disable static page generation completely
-  generateStaticParams: undefined,
-  
   images: {
     domains: ['cdn.discordapp.com', 'avatars.githubusercontent.com'],
     unoptimized: true, // Disable image optimization for faster builds
