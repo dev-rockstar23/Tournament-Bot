@@ -3,6 +3,10 @@ import { Orbitron, Inter, JetBrains_Mono } from 'next/font/google'
 import { Providers } from '@/components/Providers'
 import './globals.css'
 
+// Force dynamic rendering for all pages - this app uses authentication and real-time data
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+
 const orbitron = Orbitron({
   variable: '--font-orbitron',
   subsets: ['latin'],
