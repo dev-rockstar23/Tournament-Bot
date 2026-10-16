@@ -1,5 +1,6 @@
 import { prisma } from '@esports/database'
-import type { Prisma, RegistrationStatus } from '@esports/database/src/generated/client'
+import type { Prisma } from '@esports/database/src/generated/client'
+import { RegistrationStatus } from '@esports/database/src/generated/client'
 
 export class SlotUnavailableError extends Error {
   readonly httpStatus = 409 as const
@@ -26,7 +27,7 @@ export class TournamentFullError extends Error {
  */
 async function findNextAvailableSlot(
   tournamentId: string,
-  tx: any,
+  tx: Prisma.TransactionClient,
 ): Promise<number | null> {
   const tournament = await tx.tournament.findUnique({
     where: { id: tournamentId },
@@ -46,7 +47,7 @@ async function findNextAvailableSlot(
     select: { slotNumber: true },
   })
 
-  const occupiedSet = new Set(occupiedSlots.map((r: any) => r.slotNumber))
+  const occupiedSet = new Set(occupiedSlots.map((r) => r.slotNumber))
 
   // Find first unoccupied slot from 1 to teamCapacity
   for (let slot = 1; slot <= tournament.teamCapacity; slot++) {

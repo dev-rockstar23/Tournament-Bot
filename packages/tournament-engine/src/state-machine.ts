@@ -1,5 +1,5 @@
-import { TournamentStatus } from '@esports/shared-types';
-import { MatchStatus } from '@esports/database';
+import type { TournamentStatus } from '@esports/shared-types';
+import { MatchStatus } from '@esports/database/src/generated/client';
 
 // ─── Tournament transition map ────────────────────────────────────────────────
 

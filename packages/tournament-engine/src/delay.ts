@@ -1,4 +1,5 @@
 import { prisma } from '@esports/database'
+import type { Prisma } from '@esports/database/src/generated/client'
 import { assertTournamentTransition } from './state-machine'
 
 export class MaxDelayExceededError extends Error {
@@ -39,7 +40,7 @@ export async function delayTournament(
     throw new InvalidDelayError('Delay days must be a positive integer')
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // 1. Load tournament and server settings
     const tournament = await tx.tournament.findUnique({
       where: { id: tournamentId },
