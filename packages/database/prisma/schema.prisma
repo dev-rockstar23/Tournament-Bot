@@ -165,15 +165,18 @@ model DiscordServer {
   installedAt DateTime @default(now()) @map("installed_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  settings         ServerSettings?
-  roleBindings     ServerRoleBinding[]
-  tournaments      Tournament[]
-  teams            Team[]
-  users            ServerMembership[]
-  auditLogs        AuditLog[]
-  outboxEvents     OutboxEvent[]
-  messageBindings  DiscordMessageBinding[]
-  adminBans        AdminBan[]
+  settings           ServerSettings?
+  roleBindings       ServerRoleBinding[]
+  tournaments        Tournament[]
+  teams              Team[]
+  users              ServerMembership[]
+  auditLogs          AuditLog[]
+  outboxEvents       OutboxEvent[]
+  messageBindings    DiscordMessageBinding[]
+  adminBans          AdminBan[]
+  systemMetrics      SystemMetric[]
+  errorLogs          ErrorLog[]
+  bridgeHealthChecks BridgeHealthCheck[]
 
   @@map("discord_servers")
 }
@@ -267,7 +270,7 @@ model GameProfile {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   registrationMembers RegistrationMember[]
 
   @@unique([userId, game])
@@ -327,7 +330,7 @@ model Tournament {
   status              TournamentStatus   @default(DRAFT)
   registrationPhase   RegistrationPhase  @default(FIRST_OPEN) @map("registration_phase")
   entryType           EntryType          @default(FREE) @map("entry_type")
-  entryPrice          Decimal?           @db.Decimal(10, 2) @map("entry_price")
+  entryPrice          Decimal?           @map("entry_price") @db.Decimal(10, 2)
   currency            String             @default("INR")
   teamCapacity        Int                @map("team_capacity")
   acceptedCount       Int                @default(0) @map("accepted_count")
@@ -423,7 +426,7 @@ model Match {
   createdAt          DateTime    @default(now()) @map("created_at")
   updatedAt          DateTime    @updatedAt @map("updated_at")
 
-  stage             Stage                  @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  stage             Stage                   @relation(fields: [stageId], references: [id], onDelete: Cascade)
   segments          MatchSegment[]
   participants      MatchParticipant[]
   roomCredentials   RoomCredential?
@@ -712,8 +715,8 @@ model DiscordMessageBinding {
   createdAt    DateTime @default(now()) @map("created_at")
 
   server     DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
-  tournament Tournament?  @relation(fields: [tournamentId], references: [id])
-  match      Match?       @relation(fields: [matchId], references: [id])
+  tournament Tournament?   @relation(fields: [tournamentId], references: [id])
+  match      Match?        @relation(fields: [matchId], references: [id])
 
   @@unique([channelId, messageId])
   @@map("discord_message_bindings")
@@ -798,4 +801,58 @@ model AdminBan {
 
   @@unique([guildId, userId])
   @@map("admin_bans")
+}
+
+// ============================================================
+// DEVELOPER DASHBOARD MODELS
+// ============================================================
+
+model SystemMetric {
+  id         String   @id @default(cuid())
+  guildId    String   @map("guild_id")
+  metricType String   @map("metric_type")
+  metricName String   @map("metric_name")
+  value      Decimal  @db.Decimal(20, 4)
+  metadata   Json?
+  timestamp  DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, timestamp])
+  @@map("system_metrics")
+}
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  guildId   String   @map("guild_id")
+  source    String
+  errorType String   @map("error_type")
+  message   String
+  stack     String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, timestamp])
+  @@index([source, timestamp])
+  @@map("error_logs")
+}
+
+model BridgeHealthCheck {
+  id        String   @id @default(cuid())
+  guildId   String   @map("guild_id")
+  component String
+  status    String
+  latencyMs Int?     @map("latency_ms")
+  metadata  Json?
+  checkedAt DateTime @default(now()) @map("checked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, checkedAt])
+  @@map("bridge_health_checks")
 }
