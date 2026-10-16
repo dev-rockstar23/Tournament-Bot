@@ -1,6 +1,6 @@
 'use client'
 
-import { GlassCard } from '@/components/ui/GlassCard';
+// import { GlassCard } from '@/components/ui/GlassCard';
 import * as Tabs from '@radix-ui/react-tabs';
 import { BridgeHealthTab } from './BridgeHealthTab';
 import { BotAnalyticsTab } from './BotAnalyticsTab';
@@ -57,15 +57,15 @@ interface DeveloperDashboardProps {
   initialWebsiteErrors: ErrorLog[];
 }
 
-const VIOLET = '#7c3aed';
-const CYAN = '#06b6d4';
-const AMBER = '#f59e0b';
-const RED = '#ef4444';
-const GREEN = '#22c55e';
+// const VIOLET = '#7c3aed'; // Unused for now
+// const CYAN = '#06b6d4'; // Unused for now
+// const AMBER = '#f59e0b'; // Unused for now
+// const RED = '#ef4444'; // Unused for now
+// const GREEN = '#22c55e'; // Unused for now
 
 export function DeveloperDashboard({
-  guildId,
-  initialMetrics,
+  guildId: _guildId,
+  initialMetrics: _initialMetrics,
   initialErrors,
   initialBridgeHealth,
   initialBotAnalytics,

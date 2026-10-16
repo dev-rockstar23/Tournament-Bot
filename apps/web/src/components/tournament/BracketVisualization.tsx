@@ -28,26 +28,27 @@ const MATCH_HEIGHT = 90
 const ROUND_SPACING = 60
 const MATCH_SPACING = 30
 
-function getStatusColor(status: MatchStatus): string {
-  switch (status) {
-    case 'LIVE':
-      return 'bg-green-500'
-    case 'COMPLETED':
-      return 'bg-cyan-500'
-    case 'CANCELLED':
-    case 'FORFEIT':
-      return 'bg-red-500'
-    case 'SCHEDULED':
-    case 'CHECK_IN':
-    case 'READY':
-      return 'bg-gray-500'
-    case 'AWAITING_RESULT':
-    case 'UNDER_REVIEW':
-      return 'bg-amber-500'
-    default:
-      return 'bg-gray-500'
-  }
-}
+// Unused for now, but kept for future use
+// function getStatusColor(status: MatchStatus): string {
+//   switch (status) {
+//     case 'LIVE':
+//       return 'bg-green-500'
+//     case 'COMPLETED':
+//       return 'bg-cyan-500'
+//     case 'CANCELLED':
+//     case 'FORFEIT':
+//       return 'bg-red-500'
+//     case 'SCHEDULED':
+//     case 'CHECK_IN':
+//     case 'READY':
+//       return 'bg-gray-500'
+//     case 'AWAITING_RESULT':
+//     case 'UNDER_REVIEW':
+//       return 'bg-amber-500'
+//     default:
+//       return 'bg-gray-500'
+//   }
+// }
 
 function getStatusPulseVariant(status: MatchStatus): 'live' | 'synced' | 'pending' | 'offline' {
   switch (status) {
@@ -191,7 +192,7 @@ function MatchDetailModal({ match, onClose }: MatchDetailModalProps) {
           {/* Participants */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-gray-400">Participants</h3>
-            {match.participants.map((participant, idx) => (
+            {match.participants.map((participant) => (
               <div
                 key={participant.teamId}
                 className="flex items-center justify-between bg-slate-800 rounded p-3"
@@ -314,10 +315,10 @@ function DoubleElimBracket({
   // Assuming positive rounds are winners bracket, and loser bracket follows
   const allRounds = Array.from(new Set(matches.map((m) => m.round))).sort((a, b) => a - b)
   const maxRound = Math.max(...allRounds)
-  const midRound = Math.ceil(maxRound / 2)
+  // const midRound = Math.ceil(maxRound / 2)
 
-  const winnerMatches = matches.filter((m) => m.round <= midRound)
-  const loserMatches = matches.filter((m) => m.round > midRound)
+  // const winnerMatches = matches.filter((m) => m.round <= midRound)
+  // const loserMatches = matches.filter((m) => m.round > midRound)
 
   const firstRoundCount = matches.filter((m) => m.round === 1).length
   const svgWidth = maxRound * (MATCH_WIDTH + ROUND_SPACING) + 80
@@ -422,6 +423,7 @@ export function BracketVisualization({
     try {
       // Attempt to subscribe to match updates
       // This is optional and will fail silently if Supabase is not configured
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { createClient } = require('@supabase/supabase-js')
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

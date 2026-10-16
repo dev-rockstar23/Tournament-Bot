@@ -24,7 +24,7 @@ interface BotErrorsTabProps {
 
 const ROWS_PER_PAGE = 10;
 const AMBER = '#f59e0b';
-const RED = '#ef4444';
+// const RED = '#ef4444'; // Unused for now
 
 function extractCommand(metadata: unknown): string | null {
   if (metadata && typeof metadata === 'object') {

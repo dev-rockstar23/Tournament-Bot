@@ -81,7 +81,7 @@ export default async function BracketPage({ params }: PageProps) {
     // Extract scores from segments
     const scores = match.segments.reduce((acc, seg) => {
       if (seg.scoreJson && typeof seg.scoreJson === 'object') {
-        return { ...acc, ...(seg.scoreJson as Record<string, any>) }
+        return { ...acc, ...(seg.scoreJson as Record<string, unknown>) }
       }
       return acc
     }, {} as Record<string, number>)
