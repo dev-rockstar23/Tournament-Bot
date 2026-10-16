@@ -18,7 +18,9 @@
     "dotenv": "^16.4.5",
     "@esports/permissions": "workspace:*",
     "@esports/database": "workspace:*",
-    "@esports/shared-types": "workspace:*"
+    "@esports/shared-types": "workspace:*",
+    "@esports/game-rules": "workspace:*",
+    "@esports/tournament-engine": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
