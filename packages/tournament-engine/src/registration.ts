@@ -70,7 +70,7 @@ export async function approveRegistration(
   registrationId: string,
   approverId: string,
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const registration = await tx.registration.findUnique({
       where: { id: registrationId },
       include: { tournament: true },
@@ -161,7 +161,7 @@ export async function forceFillSlot(
   teamId: string,
   adminId: string,
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Validate tournament exists
     const tournament = await tx.tournament.findUnique({
       where: { id: tournamentId },
@@ -279,7 +279,7 @@ export async function forceFillSlot(
 export async function promoteFromWaitlist(
   tournamentId: string,
 ): Promise<string | null> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Find oldest waitlisted registration
     const waitlistedReg = await tx.registration.findFirst({
       where: {
