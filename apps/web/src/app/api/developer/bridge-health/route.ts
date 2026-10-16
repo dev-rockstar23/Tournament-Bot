@@ -2,6 +2,9 @@ import { withPermission, AppRole } from '@esports/permissions';
 import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 
+// Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
+
 export const GET = withPermission(
   AppRole.SERVER_ADMIN,
   async (req, { guildId }) => {
