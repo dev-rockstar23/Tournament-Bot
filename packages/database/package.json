@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-prisma",
+    "copy-prisma": "node -e \"require('fs').cpSync('src/generated', 'dist/generated', {recursive: true, force: true})\"",
     "type-check": "tsc --noEmit",
     "lint": "eslint src",
     "db:generate": "prisma generate",
