@@ -1,22 +1,24 @@
-import { NextResponse } from 'next/server'
-import { withPermission, AppRole } from '@esports/permissions'
+import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { prisma } from '@esports/database'
-import { randomBytes } from 'crypto'
+import { withPermission } from '@esports/permissions'
+import { AppRole } from '@esports/permissions'
 
-// POST — generate or regenerate overlay token (SERVER_ADMIN only)
-export const POST = withPermission(
-  AppRole.SERVER_ADMIN,
-  async (_req, { guildId }) => {
-    const token = randomBytes(32).toString('hex')
+async function handler(
+  _req: NextRequest,
+  context: { userId: string; guildId: string; role: AppRole; isOwner: boolean; params: Record<string, string> }
+): Promise<NextResponse> {
+  const { guildId } = context
 
-    const settings = await prisma.serverSettings.upsert({
-      where: { guildId },
-      update: { overlayToken: token },
-      create: { guildId, overlayToken: token },
-    })
+  const token = crypto.randomBytes(32).toString('hex')
 
-    // Return full token only on generation — masked elsewhere
-    void settings
-    return NextResponse.json({ token })
-  },
-)
+  await prisma.serverSettings.upsert({
+    where: { guildId },
+    update: { overlayToken: token },
+    create: { guildId, overlayToken: token },
+  })
+
+  return NextResponse.json({ token })
+}
+
+export const POST = withPermission(AppRole.SERVER_ADMIN, handler)
