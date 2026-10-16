@@ -1,0 +1,27 @@
+TASK 18 — BullMQ Worker: Outbox Processor & Scheduled Jobs
+==========================================================
+Status: COMPLETE
+Date: 2026-10-16
+
+Files created:
+  apps/worker/src/discord-client.ts          — Extracted Discord client (avoids circular imports)
+  apps/worker/src/queues/definitions.ts      — ioredis connection + BullMQ Queue instances
+  apps/worker/src/processors/outbox.ts       — Outbox event processor (11 event types + Supabase broadcast)
+  apps/worker/src/processors/scheduler.ts   — Scheduled job processor (DM reminders, result deadline, credential release)
+  apps/worker/src/processors/dm.ts          — DM sender worker (handles code 50007 gracefully)
+  apps/worker/src/processors/reconciliation.ts — Re-enqueues stale PENDING outbox events
+  apps/worker/src/index.ts                  — Main entrypoint (replaced stub)
+
+Issues encountered & resolved:
+  1. Cross-app import: outbox.ts could not import embeds from apps/discord-bot (private package, no export).
+     Resolution: Inlined the needed buildTournamentEmbed / buildMatchEmbed helpers directly in outbox.ts.
+
+  2. ioredis version conflict: worker package.json has ioredis@6.0.0 but BullMQ@5.7.8 bundles
+     ioredis@5.11.1 internally, causing TS type incompatibility on ConnectionOptions.
+     Resolution: Cast `connection as unknown as ConnectionOptions` in definitions.ts — no runtime impact
+     (ioredis@6 is backward-compatible).
+
+  3. Circular import: outbox.ts and dm.ts both needed discordClient, which was in index.ts, but index.ts
+     imports outbox/dm. Resolution: Extracted client creation to discord-client.ts; index.ts re-exports it.
+
+Type-check: PASSED (0 errors)
