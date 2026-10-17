@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { GlowButton } from '@/components/ui/GlowButton'
-import AdminLayout from '@/components/admin/AdminLayout'
 
 interface PaymentConfig {
   id: string
@@ -118,8 +117,7 @@ export default function PaymentSettingsPage() {
   }
 
   return (
-    <AdminLayout guildId={guildId}>
-      <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
           <h1
@@ -284,6 +282,6 @@ export default function PaymentSettingsPage() {
           </>
         )}
       </div>
-    </AdminLayout>
+    </div>
   )
 }
