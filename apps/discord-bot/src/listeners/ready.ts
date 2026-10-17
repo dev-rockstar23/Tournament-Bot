@@ -38,7 +38,7 @@ export class ReadyListener extends Listener<typeof Events.ClientReady> {
 
     // Register all slash commands globally via REST
     try {
-      const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN!)
+      const rest = new REST({ version: '10', userAgentAppendix: 'LegendaryEsports/1.0' }).setToken(process.env.DISCORD_BOT_TOKEN!)
       await rest.put(Routes.applicationCommands(id), { body: COMMANDS })
       this.container.logger.info(`✅ Registered ${COMMANDS.length} global slash commands`)
     } catch (err) {
