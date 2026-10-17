@@ -1,0 +1,22 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add the registration management API route at apps/web/src/app/api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId]/route.ts. This is a thin proxy that re-exports the logic from the existing general registrations PATCH handler at apps/web/src/app/api/servers/[guildId]/registrations/[registrationId]/route.ts, placed under the admin/tournaments path for semantic clarity. The TournamentDetailPanel (FEAT-002) calls this admin-namespaced path. NOTE: This FEAT is independent of FEAT-002 but must be committed first because FEAT-002 references the URL /api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId].",
+  "status": "completed",
+  "steps": [
+    "Create the directory apps/web/src/app/api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId]/ (create the route file; Next.js will create the dir implicitly with the file).",
+    "Create apps/web/src/app/api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId]/route.ts. This file must: (a) import withPermission and AppRole from @esports/permissions, prisma from @esports/database, NextResponse from next/server, z from zod. (b) Declare `export const dynamic = 'force-dynamic'`. (c) Implement PATCH handler using withPermission(AppRole.TOURNAMENT_MANAGER, ...) that: validates body with zod schema {action: z.enum(['approve','reject','request_correction']), reason: z.string().max(500).optional()}; fetches the registration scoped to BOTH registrationId AND guildId (also verifies tournamentId matches registration.tournamentId to prevent cross-tournament manipulation); executes approve (transaction: lock tournament row with SELECT FOR UPDATE, check capacity, set status=APPROVED slotNumber=acceptedCount+1, increment tournament.acceptedCount, write AuditLog+OutboxEvent), reject (set status=REJECTED rejectedBy rejectedAt rejectionReason, write AuditLog+OutboxEvent), and request_correction (set status=PENDING, write AuditLog) — exactly matching the logic in apps/web/src/app/api/servers/[guildId]/registrations/[registrationId]/route.ts but with the extra tournamentId scope check. (d) Return serialized registration (dates as ISO strings).",
+    "The file must NOT import from the sibling /registrations/[registrationId]/route.ts (Next.js route files cannot be imported as modules). Duplicate the core logic inline — it is a small handler."
+  ],
+  "acceptance_criteria": [
+    "File apps/web/src/app/api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId]/route.ts exists and exports PATCH.",
+    "The PATCH handler rejects requests where the registration's tournamentId does not match the URL's [tournamentId] param.",
+    "Running `npm run type-check` in apps/web exits 0 with this file present."
+  ],
+  "verification": [
+    "cd \"d:\\Discord Projects\\Tournament-Bot\\esports-platform\\apps\\web\" && npm run type-check",
+    "cd \"d:\\Discord Projects\\Tournament-Bot\\esports-platform\\apps\\web\" && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": "Route created at apps/web/src/app/api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId]/route.ts. Exports PATCH with withPermission(AppRole.TOURNAMENT_MANAGER). Adds extra scope check: registration.tournament.id !== tournamentId returns 403. Logic is a full inline copy of the general registrations route (not imported) as required. All date fields serialized to ISO strings. type-check and lint both exit 0."
+}
