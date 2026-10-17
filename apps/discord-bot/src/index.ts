@@ -1,7 +1,10 @@
 import 'dotenv/config'
-import { SapphireClient } from '@sapphire/framework'
+import { SapphireClient, ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework'
 import '@sapphire/plugin-logger/register'
 import { GatewayIntentBits, Partials } from 'discord.js'
+
+// Always bulk-overwrite commands so they stay in sync on every restart
+ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite)
 
 const client = new SapphireClient({
   intents: [
