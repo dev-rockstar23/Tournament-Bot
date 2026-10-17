@@ -5,6 +5,7 @@ import { prisma } from '@esports/database'
 import type { Game, TournamentStatus } from '@esports/database'
 import Navigation from '@/components/ui/Navigation'
 import { Badge } from '@/components/ui/Badge'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,6 +122,12 @@ export default async function ServerPage({
 
   if (!server) notFound()
 
+  // Check if current user is the server owner to show admin button
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const discordId = user?.user_metadata?.provider_id ?? user?.user_metadata?.sub ?? ''
+  const isAdmin = server.ownerId === discordId
+
   const [liveTournaments, upcomingTournaments, recentWinners] =
     await Promise.all([
       prisma.tournament.findMany({
@@ -192,6 +199,15 @@ export default async function ServerPage({
                 </p>
               )}
             </div>
+            {/* Admin button — shown to server owner/admins */}
+            {isAdmin && (
+              <Link
+                href={`/servers/${guildId}/admin/tournaments`}
+                className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white border border-[rgba(124,58,237,0.5)] bg-[rgba(124,58,237,0.15)] hover:bg-[rgba(124,58,237,0.3)] transition-colors"
+              >
+                ⚙️ Admin Dashboard
+              </Link>
+            )}
           </div>
 
           {/* Live Tournaments */}
