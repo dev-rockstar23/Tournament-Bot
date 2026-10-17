@@ -41,9 +41,9 @@ export async function createRazorpayOrder({
   })
 
   return {
-    id: order.id,
-    amount: order.amount / 100, // Convert back to major currency unit
-    currency: order.currency,
+    id: order.id as string,
+    amount: Number(order.amount) / 100, // Convert back to major currency unit
+    currency: order.currency as string,
   }
 }
 
