@@ -5,8 +5,8 @@ WORKDIR /app
 # OpenSSL is required by Prisma on Alpine
 RUN apk add --no-cache openssl
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm (pinned: pnpm 11 fails installs with ERR_PNPM_IGNORED_BUILDS for unapproved build scripts)
+RUN npm install -g pnpm@9
 
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
