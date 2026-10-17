@@ -206,7 +206,7 @@ export default function PaymentSettingsPage() {
           </div>
 
           <div className="flex gap-3">
-            <GlowButton variant="danger" size="sm" onClick={handleDelete}>
+            <GlowButton variant="destructive" size="sm" onClick={handleDelete}>
               Delete Configuration
             </GlowButton>
           </div>
