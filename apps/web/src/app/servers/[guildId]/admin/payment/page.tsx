@@ -279,9 +279,8 @@ export default function PaymentSettingsPage() {
                 Your credentials are encrypted before storage. We'll test them before saving.
               </p>
             </div>
-          </>
-        )}
-      </div>
+        </>
+      )}
     </div>
   )
 }
