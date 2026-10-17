@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@esports/database'
 import { RegistrationForm } from '@/components/tournament/RegistrationForm'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string; tournamentId: string }
 }

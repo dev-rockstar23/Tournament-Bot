@@ -2,6 +2,8 @@ import { prisma } from '@esports/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 import {
+
+export const dynamic = 'force-dynamic'
   Trophy,
   Radio,
   CalendarClock,

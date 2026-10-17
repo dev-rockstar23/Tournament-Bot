@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/Badge'
 import { ShareButton } from '@/components/tournament/ShareButton'
 import { formatDistanceToNow, format } from 'date-fns'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string; tournamentId: string }
 }

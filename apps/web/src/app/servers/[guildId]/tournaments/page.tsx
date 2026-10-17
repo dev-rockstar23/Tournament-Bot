@@ -3,6 +3,8 @@ export const revalidate = 60
 import { prisma } from '@esports/database'
 import { TournamentCatalogue } from '@/components/tournament/TournamentCatalogue'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string }
 }

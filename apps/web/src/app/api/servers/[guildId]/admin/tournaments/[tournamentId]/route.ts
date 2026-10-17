@@ -3,6 +3,8 @@ import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/servers/[guildId]/admin/tournaments/[tournamentId]
 // Returns full admin view of a single tournament including stages, registrations, etc.
 export const GET = withPermission(

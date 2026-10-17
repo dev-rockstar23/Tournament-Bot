@@ -3,6 +3,8 @@ import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 import { subDays } from 'date-fns';
 
+export const dynamic = 'force-dynamic'
+
 export const GET = withPermission(
   AppRole.REFEREE,
   async (req, { guildId }) => {

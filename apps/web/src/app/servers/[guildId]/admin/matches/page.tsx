@@ -4,6 +4,8 @@ import { resolveUserRole, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { MatchSchedulerPanel, type TournamentWithMatches } from '@/components/admin/MatchSchedulerPanel'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string }
 }

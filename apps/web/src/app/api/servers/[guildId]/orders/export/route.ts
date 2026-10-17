@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { withPermission, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 
+export const dynamic = 'force-dynamic'
+
 function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return ''
   const headers = Object.keys(rows[0])

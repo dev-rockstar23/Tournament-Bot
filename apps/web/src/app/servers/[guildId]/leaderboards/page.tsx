@@ -3,6 +3,8 @@ export const revalidate = 300
 import { prisma } from '@esports/database'
 import { LeaderboardsClient } from '@/components/tournament/LeaderboardsClient'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string }
 }

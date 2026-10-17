@@ -4,6 +4,8 @@ import { assertMatchTransition, InvalidTransitionError } from '@esports/tourname
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const DisputeSchema = z.object({
   reason: z.string().min(10).max(1000),
   evidenceUrl: z.string().url().optional(),

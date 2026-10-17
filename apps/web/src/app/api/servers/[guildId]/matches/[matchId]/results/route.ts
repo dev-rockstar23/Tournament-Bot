@@ -4,6 +4,8 @@ import { assertMatchTransition, InvalidTransitionError } from '@esports/tourname
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const ResultSubmitSchema = z.object({
   scorecardJson: z.array(
     z.object({

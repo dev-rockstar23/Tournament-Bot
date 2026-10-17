@@ -3,6 +3,8 @@ import { AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export const GET = withPermission(AppRole.REFEREE, async (_req, { guildId }) => {
   // Run primary KPI queries in parallel for performance
   const [

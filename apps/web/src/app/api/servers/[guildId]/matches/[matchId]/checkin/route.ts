@@ -2,6 +2,8 @@ import { withPermission, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/servers/[guildId]/matches/[matchId]/checkin
 // Allows a team captain to check in their team for a match.
 export const POST = withPermission(

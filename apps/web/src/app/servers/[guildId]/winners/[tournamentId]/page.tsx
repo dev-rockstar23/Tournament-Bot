@@ -11,6 +11,8 @@ import {
 } from '@/components/tournament/WinnerDetailPodium'
 import { PodiumWrapper } from '@/components/tournament/PodiumWrapper'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string; tournamentId: string }
 }

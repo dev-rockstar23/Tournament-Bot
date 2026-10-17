@@ -2,6 +2,8 @@ import { withPermission, AppRole } from '@esports/permissions';
 import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'
+
 export const POST = withPermission(
   AppRole.TOURNAMENT_MANAGER,
   async (_req, { guildId, userId, params }) => {

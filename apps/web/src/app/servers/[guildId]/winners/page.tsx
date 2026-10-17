@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { prisma } from '@esports/database'
 import { WinnersPodium } from '@/components/tournament/WinnersPodium'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string }
 }

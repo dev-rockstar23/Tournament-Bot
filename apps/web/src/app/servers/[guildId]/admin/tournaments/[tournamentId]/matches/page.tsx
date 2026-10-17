@@ -4,6 +4,8 @@ import { resolveUserRole, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { MatchScheduler, type StageWithMatches } from '@/components/admin/MatchScheduler'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string; tournamentId: string }
 }

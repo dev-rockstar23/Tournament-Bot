@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@esports/database';
 
+export const dynamic = 'force-dynamic'
+
 // Public endpoint — no auth required
 // Scoped by BOTH guildId AND tournamentId — prevents cross-guild data leakage
 // NEVER returns PENDING registrations or private data

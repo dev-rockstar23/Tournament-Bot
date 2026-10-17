@@ -3,6 +3,8 @@ import { prisma } from '@esports/database'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const RescheduleSchema = z.object({
   scheduledStart: z.string().datetime(),
   scheduledEnd: z.string().datetime(),

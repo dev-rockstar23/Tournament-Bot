@@ -6,6 +6,8 @@ import { computeTournamentStandings } from '@esports/scoring'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { FinalizeButton } from '@/components/admin/FinalizeButton'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string; tournamentId: string }
 }

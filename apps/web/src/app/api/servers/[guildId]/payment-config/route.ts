@@ -4,6 +4,8 @@ import { prisma } from '@esports/database'
 import { encryptCredential, decryptCredential, createRazorpayOrder } from '@esports/payments'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const paymentConfigSchema = z.object({
   razorpayKeyId: z.string().min(1),
   razorpayKeySecret: z.string().min(1),

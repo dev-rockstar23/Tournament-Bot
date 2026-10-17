@@ -4,6 +4,8 @@ import { prisma } from '@esports/database'
 import { notFound } from 'next/navigation'
 import { BracketPageClient } from './BracketPageClient'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string; tournamentId: string }
 }

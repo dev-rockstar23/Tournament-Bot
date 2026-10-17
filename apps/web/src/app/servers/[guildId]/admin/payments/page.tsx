@@ -4,6 +4,8 @@ import { resolveUserRole, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { PaymentsTabs } from './PaymentsTabs'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string }
 }

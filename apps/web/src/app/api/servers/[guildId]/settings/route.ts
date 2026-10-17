@@ -3,6 +3,8 @@ import { withPermission, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 // GET — public read of server settings (name, icon, accentColor, logoUrl, timezone)
 export async function GET(
   _req: NextRequest,

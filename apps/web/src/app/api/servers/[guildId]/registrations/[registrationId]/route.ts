@@ -3,6 +3,8 @@ import { withPermission, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const patchSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_correction']),
   reason: z.string().max(500).optional(),

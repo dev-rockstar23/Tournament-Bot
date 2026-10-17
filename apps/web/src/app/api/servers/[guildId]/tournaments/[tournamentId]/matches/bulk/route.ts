@@ -3,6 +3,8 @@ import { prisma } from '@esports/database'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const BulkMatchSchema = z.object({
   count: z.number().int().min(1).max(10),
   firstMatchStart: z.string().datetime(),

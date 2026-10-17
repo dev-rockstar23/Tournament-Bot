@@ -3,6 +3,8 @@ import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic'
+
 export const GET = withPermission(
   AppRole.TOURNAMENT_MANAGER,
   async (req, { guildId }) => {

@@ -7,6 +7,8 @@ import {
 import { computeTournamentStandings } from '@esports/scoring';
 import { prisma } from '@esports/database';
 
+export const dynamic = 'force-dynamic'
+
 export const POST = withPermission(
   AppRole.TOURNAMENT_MANAGER,
   async (_req, { guildId, userId, params }) => {

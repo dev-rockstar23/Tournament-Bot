@@ -3,6 +3,8 @@ import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic'
+
 const cancelSchema = z.object({
   reason: z.string().min(1).max(1000),
 });

@@ -3,6 +3,8 @@ import { prisma } from '@esports/database';
 import { NextResponse } from 'next/server';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic'
+
 type ExportType = 'tournaments' | 'registrations' | 'results' | 'audit';
 
 function toCsv(rows: Record<string, unknown>[]): string {

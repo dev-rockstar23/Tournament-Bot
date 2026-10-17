@@ -2,6 +2,8 @@ import { withPermission, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/servers/[guildId]/matches/[matchId]/room
 // Returns room credentials ONLY to a captain of a checked-in team.
 // Room credentials are NEVER returned from any other route.

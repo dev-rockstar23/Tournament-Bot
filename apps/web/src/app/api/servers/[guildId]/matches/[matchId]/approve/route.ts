@@ -6,6 +6,8 @@ import type { MatchScoreParams } from '@esports/game-rules'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const ApproveSchema = z.object({
   action: z.enum(['approve', 'reject']),
   reason: z.string().min(1).max(1000).optional(),

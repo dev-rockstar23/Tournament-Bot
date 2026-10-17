@@ -4,6 +4,8 @@ import { prisma } from '@esports/database'
 import { TournamentAdminTable, type AdminTournament } from '@/components/admin/TournamentAdminTable'
 import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: { guildId: string }
 }

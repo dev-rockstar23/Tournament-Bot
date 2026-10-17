@@ -6,7 +6,7 @@ import type { Game, TournamentStatus } from '@esports/database'
 import Navigation from '@/components/ui/Navigation'
 import { Badge } from '@/components/ui/Badge'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 interface Tournament {
   id: string

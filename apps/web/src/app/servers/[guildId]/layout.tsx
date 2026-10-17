@@ -1,6 +1,8 @@
 import { prisma } from '@esports/database'
 import { ServerBrandingProvider } from '@/contexts/ServerBrandingContext'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ServerLayout({
   children,
   params,
