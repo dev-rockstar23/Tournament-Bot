@@ -18,7 +18,7 @@ interface PaymentConfig {
 
 export default function PaymentSettingsPage() {
   const params = useParams()
-  const guildId = params.guildId as string
+  const guildId = params?.guildId as string
 
   const [config, setConfig] = useState<PaymentConfig | null>(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +33,9 @@ export default function PaymentSettingsPage() {
 
   // Fetch existing config
   useEffect(() => {
-    fetchConfig()
+    if (guildId) {
+      fetchConfig()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guildId])
 
@@ -58,6 +60,7 @@ export default function PaymentSettingsPage() {
   }
 
   async function handleSave() {
+    if (!guildId) return
     setError(null)
     setSuccess(null)
     setSaving(true)
@@ -93,6 +96,7 @@ export default function PaymentSettingsPage() {
   }
 
   async function handleDelete() {
+    if (!guildId) return
     if (!confirm('Are you sure you want to delete this payment configuration?')) {
       return
     }
@@ -119,6 +123,12 @@ export default function PaymentSettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
+      {!guildId ? (
+        <div className="glass-card p-8 text-center">
+          <div className="text-[var(--color-text-secondary)]">Loading...</div>
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <div className="mb-8">
         <h1
