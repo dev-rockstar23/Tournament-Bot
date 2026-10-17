@@ -5,7 +5,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc && npm run copy-prisma",
-    "copy-prisma": "node -e \"require('fs').cpSync('src/generated', 'dist/generated', {recursive: true, force: true})\"",
+    "copy-prisma": "node -e \"const fs=require('fs'); fs.cpSync('src/generated', 'dist/generated', {recursive:true,force:true}); try{fs.cpSync('src/generated','../../apps/web/src/generated',{recursive:true,force:true})}catch(e){}\"",
     "type-check": "tsc --noEmit",
     "lint": "eslint src",
     "db:generate": "prisma generate",

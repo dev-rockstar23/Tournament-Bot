@@ -1,0 +1,886 @@
+// This is your Prisma schema file
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/client"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum AppRole {
+  VIEWER
+  PLAYER
+  REFEREE
+  TOURNAMENT_MANAGER
+  SERVER_ADMIN
+}
+
+enum Game {
+  BGMI
+  FREE_FIRE
+  COD_MOBILE
+}
+
+enum GameMode {
+  BATTLE_ROYALE
+  CLASH_SQUAD
+  MULTIPLAYER
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  CHECK_IN
+  LIVE
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum RegistrationPhase {
+  FIRST_OPEN
+  REOPENED
+  CLOSED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  CHECK_IN
+  READY
+  LIVE
+  AWAITING_RESULT
+  UNDER_REVIEW
+  COMPLETED
+  POSTPONED
+  CANCELLED
+  FORFEIT
+  DISPUTED
+}
+
+enum EntryType {
+  FREE
+  PAID
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  DISPUTED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  RAZORPAY
+}
+
+enum AwardType {
+  CHAMPION
+  RUNNER_UP
+  THIRD_PLACE
+  MVP
+  TOP_FRAGGER
+  BEST_TEAM
+  CUSTOM
+}
+
+enum FulfillmentStatus {
+  PENDING
+  PROCESSING
+  FULFILLED
+  ON_HOLD
+}
+
+enum OutboxStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISQUALIFIED
+  WAITLISTED
+}
+
+enum ResultStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  DISPUTED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum ScoreEventType {
+  MATCH_SCORE
+  CORRECTION
+}
+
+enum MapRotationType {
+  FIXED
+  SEQUENTIAL
+  CUSTOM
+}
+
+enum RegistrationFormat {
+  SIMPLE_MENTIONS
+  CAPTAIN_BASED
+  FULL_PLAYER_DETAILS
+  TEAM_WITH_SUBSTITUTE
+  CODM_FIVE_PLAYER
+  FULL_WITH_SUBSTITUTE
+}
+
+// ============================================================
+// CORE TENANT MODELS
+// ============================================================
+
+model DiscordServer {
+  id          String   @id @default(cuid())
+  guildId     String   @unique @map("guild_id")
+  name        String
+  icon        String?
+  ownerId     String   @map("owner_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  installedAt DateTime @default(now()) @map("installed_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  settings           ServerSettings?
+  roleBindings       ServerRoleBinding[]
+  tournaments        Tournament[]
+  teams              Team[]
+  users              ServerMembership[]
+  auditLogs          AuditLog[]
+  outboxEvents       OutboxEvent[]
+  messageBindings    DiscordMessageBinding[]
+  adminBans          AdminBan[]
+  systemMetrics      SystemMetric[]
+  errorLogs          ErrorLog[]
+  bridgeHealthChecks BridgeHealthCheck[]
+  paymentConfigs     OrganizerPaymentConfig[]
+
+  @@map("discord_servers")
+}
+
+model ServerSettings {
+  id                    String   @id @default(cuid())
+  guildId               String   @unique @map("guild_id")
+  timezone              String   @default("UTC")
+  accentColor           String?  @map("accent_color")
+  logoUrl               String?  @map("logo_url")
+  bannerUrl             String?  @map("banner_url")
+  announcementChannelId String?  @map("announcement_channel_id")
+  matchChannelId        String?  @map("match_channel_id")
+  resultsChannelId      String?  @map("results_channel_id")
+  disputesChannelId     String?  @map("disputes_channel_id")
+  adminChannelId        String?  @map("admin_channel_id")
+  registrationChannelId String?  @map("registration_channel_id")
+  overlayToken          String?  @map("overlay_token")
+  controlPanelMessageId String?  @map("control_panel_message_id")
+  refundOnCancel        Boolean  @default(false) @map("refund_on_cancel")
+  maxDelayDays          Int      @default(90) @map("max_delay_days")
+  dmNotificationConfig  Json     @default("{\"advance_1\":{\"hours\":24,\"enabled\":true},\"advance_2\":{\"minutes\":30,\"enabled\":true},\"advance_3\":{\"minutes\":5,\"enabled\":true},\"checkin_reminder\":{\"minutes_before_close\":15,\"enabled\":true}}") @map("dm_notification_config")
+  timezoneConfigured    Boolean  @default(false) @map("timezone_configured")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@map("server_settings")
+}
+
+model ServerRoleBinding {
+  id              String   @id @default(cuid())
+  guildId         String   @map("guild_id")
+  discordRoleId   String   @map("discord_role_id")
+  discordRoleName String   @map("discord_role_name")
+  appRole         AppRole  @map("app_role")
+  createdAt       DateTime @default(now()) @map("created_at")
+  createdBy       String   @map("created_by")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, discordRoleId])
+  @@map("server_role_bindings")
+}
+
+// ============================================================
+// USERS
+// ============================================================
+
+model User {
+  id            String   @id @default(cuid())
+  discordId     String   @unique @map("discord_id")
+  username      String
+  discriminator String?  @map("discriminator")
+  avatar        String?
+  email         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  memberships     ServerMembership[]
+  gameProfiles    GameProfile[]
+  captainOf       Team[]
+  teamMemberships TeamMember[]
+  auditLogs       AuditLog[]
+  adminBans       AdminBan[]
+
+  @@map("users")
+}
+
+model ServerMembership {
+  id       String   @id @default(cuid())
+  userId   String   @map("user_id")
+  guildId  String   @map("guild_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([userId, guildId])
+  @@map("server_memberships")
+}
+
+model GameProfile {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  game       Game
+  ign        String
+  uid        String
+  isVerified Boolean  @default(false) @map("is_verified")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registrationMembers RegistrationMember[]
+
+  @@unique([userId, game])
+  @@map("game_profiles")
+}
+
+// ============================================================
+// TEAMS
+// ============================================================
+
+model Team {
+  id        String   @id @default(cuid())
+  guildId   String   @map("guild_id")
+  name      String
+  tag       String?
+  captainId String   @map("captain_id")
+  logoUrl   String?  @map("logo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  server            DiscordServer      @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  captain           User               @relation(fields: [captainId], references: [id])
+  members           TeamMember[]
+  registrations     Registration[]
+  matchParticipants MatchParticipant[]
+  scoreEvents       ScoreEvent[]
+  winnerRecords     WinnerRecord[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String   @map("team_id")
+  userId   String   @map("user_id")
+  role     String   @default("member")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// ============================================================
+// TOURNAMENTS
+// ============================================================
+
+model Tournament {
+  id                  String             @id @default(cuid())
+  guildId             String             @map("guild_id")
+  name                String
+  description         String?
+  game                Game
+  mode                GameMode
+  status              TournamentStatus   @default(DRAFT)
+  registrationPhase   RegistrationPhase  @default(FIRST_OPEN) @map("registration_phase")
+  entryType           EntryType          @default(FREE) @map("entry_type")
+  entryPrice          Decimal?           @map("entry_price") @db.Decimal(10, 2)
+  currency            String             @default("INR")
+  teamCapacity        Int                @map("team_capacity")
+  acceptedCount       Int                @default(0) @map("accepted_count")
+  rosterMin           Int                @default(2) @map("roster_min")
+  rosterMax           Int                @default(4) @map("roster_max")
+  substituteAllowed   Int                @default(1) @map("substitute_allowed")
+  waitlistEnabled     Boolean            @default(true) @map("waitlist_enabled")
+  registrationFormat  RegistrationFormat @default(FULL_WITH_SUBSTITUTE) @map("registration_format")
+  autoApprove         Boolean            @default(false) @map("auto_approve")
+  mapPool             Json               @default("[]") @map("map_pool")
+  mapRotation         MapRotationType    @default(SEQUENTIAL) @map("map_rotation")
+  bannerUrl           String?            @map("banner_url")
+  rulesUrl            String?            @map("rules_url")
+  organizerId         String?            @map("organizer_id")
+  visibility          String             @default("public")
+  registrationOpenAt  DateTime?          @map("registration_open_at")
+  registrationCloseAt DateTime?          @map("registration_close_at")
+  checkInOpenAt       DateTime?          @map("check_in_open_at")
+  checkInCloseAt      DateTime?          @map("check_in_close_at")
+  startAt             DateTime?          @map("start_at")
+  endAt               DateTime?          @map("end_at")
+  completedAt         DateTime?          @map("completed_at")
+  cancelledAt         DateTime?          @map("cancelled_at")
+  archivedAt          DateTime?          @map("archived_at")
+  resultsLocked       Boolean            @default(false) @map("results_locked")
+  extensionCount      Int                @default(0) @map("extension_count")
+  paymentConfigId     String?            @map("payment_config_id")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  server          DiscordServer           @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  paymentConfig   OrganizerPaymentConfig? @relation(fields: [paymentConfigId], references: [id])
+  ruleVersions    TournamentRuleVersion[]
+  stages          Stage[]
+  registrations   Registration[]
+  winnerRecords   WinnerRecord[]
+  awards          Award[]
+  messageBindings DiscordMessageBinding[]
+  scheduledJobs   ScheduledJob[]
+
+  @@index([guildId, status])
+  @@map("tournaments")
+}
+
+model TournamentRuleVersion {
+  id           String   @id @default(cuid())
+  tournamentId String   @map("tournament_id")
+  version      Int      @default(1)
+  rulesJson    Json     @map("rules_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+  createdBy    String   @map("created_by")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, version])
+  @@map("tournament_rule_versions")
+}
+
+// ============================================================
+// STAGES AND MATCHES
+// ============================================================
+
+model Stage {
+  id           String   @id @default(cuid())
+  tournamentId String   @map("tournament_id")
+  name         String
+  type         String
+  order        Int
+  status       String   @default("pending")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches    Match[]
+
+  @@map("stages")
+}
+
+model Match {
+  id                 String      @id @default(cuid())
+  stageId            String      @map("stage_id")
+  guildId            String      @map("guild_id")
+  number             Int
+  status             MatchStatus @default(SCHEDULED)
+  scheduledStart     DateTime    @map("scheduled_start")
+  scheduledEnd       DateTime    @map("scheduled_end")
+  map                String?
+  mode               String?
+  resultDeadline     DateTime?   @map("result_deadline")
+  roomReleaseAt      DateTime?   @map("room_release_at")
+  cancelledAt        DateTime?   @map("cancelled_at")
+  postponedAt        DateTime?   @map("postponed_at")
+  completedAt        DateTime?   @map("completed_at")
+  matchSpecificRules String?     @map("match_specific_rules")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  stage             Stage                   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  segments          MatchSegment[]
+  participants      MatchParticipant[]
+  roomCredentials   RoomCredential?
+  resultSubmissions ResultSubmission[]
+  scoreEvents       ScoreEvent[]
+  disputes          Dispute[]
+  messageBindings   DiscordMessageBinding[]
+  scheduledJobs     ScheduledJob[]
+
+  @@unique([stageId, number])
+  @@index([scheduledStart])
+  @@map("matches")
+}
+
+model MatchSegment {
+  id            String   @id @default(cuid())
+  matchId       String   @map("match_id")
+  segmentNumber Int      @map("segment_number")
+  map           String?
+  mode          String?
+  status        String   @default("pending")
+  winnerId      String?  @map("winner_id")
+  scoreJson     Json?    @map("score_json")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, segmentNumber])
+  @@map("match_segments")
+}
+
+model MatchParticipant {
+  id          String    @id @default(cuid())
+  matchId     String    @map("match_id")
+  teamId      String    @map("team_id")
+  seeding     Int?
+  checkedIn   Boolean   @default(false) @map("checked_in")
+  checkedInAt DateTime? @map("checked_in_at")
+  isVacant    Boolean   @default(false) @map("is_vacant")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team  Team  @relation(fields: [teamId], references: [id])
+
+  @@unique([matchId, teamId])
+  @@map("match_participants")
+}
+
+// ============================================================
+// REGISTRATIONS
+// ============================================================
+
+model Registration {
+  id                   String             @id @default(cuid())
+  tournamentId         String             @map("tournament_id")
+  guildId              String             @map("guild_id")
+  teamId               String             @map("team_id")
+  slotNumber           Int?               @map("slot_number")
+  status               RegistrationStatus @default(PENDING)
+  phase                RegistrationPhase  @default(FIRST_OPEN)
+  paymentStatus        PaymentStatus?     @map("payment_status")
+  promotedFromWaitlist Boolean            @default(false) @map("promoted_from_waitlist")
+  submittedRaw         String?            @map("submitted_raw")
+  approvedBy           String?            @map("approved_by")
+  approvedAt           DateTime?          @map("approved_at")
+  rejectedBy           String?            @map("rejected_by")
+  rejectedAt           DateTime?          @map("rejected_at")
+  rejectionReason      String?            @map("rejection_reason")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  tournament Tournament           @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team                 @relation(fields: [teamId], references: [id])
+  members    RegistrationMember[]
+  order      Order?
+
+  @@unique([tournamentId, teamId])
+  @@index([tournamentId, status])
+  @@map("registrations")
+}
+
+model RegistrationMember {
+  id             String   @id @default(cuid())
+  registrationId String   @map("registration_id")
+  userId         String   @map("user_id")
+  gameProfileId  String?  @map("game_profile_id")
+  isSubstitute   Boolean  @default(false) @map("is_substitute")
+  isCaptain      Boolean  @default(false) @map("is_captain")
+  status         String   @default("active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  gameProfile  GameProfile? @relation(fields: [gameProfileId], references: [id])
+
+  @@map("registration_members")
+}
+
+// ============================================================
+// ROOM CREDENTIALS
+// ============================================================
+
+model RoomCredential {
+  id         String    @id @default(cuid())
+  matchId    String    @unique @map("match_id")
+  roomId     String    @map("room_id")
+  password   String
+  releaseAt  DateTime  @map("release_at")
+  expiresAt  DateTime  @map("expires_at")
+  releasedAt DateTime? @map("released_at")
+  createdBy  String    @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("room_credentials")
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+
+model ResultSubmission {
+  id              String       @id @default(cuid())
+  matchId         String       @map("match_id")
+  submittedBy     String       @map("submitted_by")
+  scorecardJson   Json         @map("scorecard_json")
+  evidenceUrl     String?      @map("evidence_url")
+  status          ResultStatus @default(PENDING_REVIEW)
+  reviewedBy      String?      @map("reviewed_by")
+  reviewedAt      DateTime?    @map("reviewed_at")
+  rejectionReason String?      @map("rejection_reason")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@map("result_submissions")
+}
+
+model ScoreEvent {
+  id           String         @id @default(cuid())
+  matchId      String         @map("match_id")
+  teamId       String         @map("team_id")
+  type         ScoreEventType @default(MATCH_SCORE)
+  points       Decimal        @db.Decimal(10, 2)
+  kills        Int            @default(0)
+  placement    Int?
+  penalties    Decimal        @default(0) @db.Decimal(10, 2)
+  correctionOf String?        @map("correction_of")
+  status       String         @default("active")
+  createdBy    String         @map("created_by")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team  Team  @relation(fields: [teamId], references: [id])
+
+  @@index([matchId])
+  @@map("score_events")
+}
+
+model Dispute {
+  id          String        @id @default(cuid())
+  matchId     String        @map("match_id")
+  raisedBy    String        @map("raised_by")
+  reason      String
+  evidenceUrl String?       @map("evidence_url")
+  status      DisputeStatus @default(OPEN)
+  assignedTo  String?       @map("assigned_to")
+  resolution  String?
+  resolvedBy  String?       @map("resolved_by")
+  resolvedAt  DateTime?     @map("resolved_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("disputes")
+}
+
+// ============================================================
+// WINNERS AND AWARDS
+// ============================================================
+
+model WinnerRecord {
+  id             String    @id @default(cuid())
+  tournamentId   String    @map("tournament_id")
+  teamId         String    @map("team_id")
+  placement      Int
+  awardType      AwardType @default(CHAMPION) @map("award_type")
+  rosterSnapshot Json      @map("roster_snapshot")
+  isSuperseded   Boolean   @default(false) @map("is_superseded")
+  version        Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id])
+
+  @@map("winner_records")
+}
+
+model Award {
+  id                String            @id @default(cuid())
+  tournamentId      String            @map("tournament_id")
+  userId            String?           @map("user_id")
+  teamId            String?           @map("team_id")
+  type              AwardType
+  label             String
+  criteria          String?
+  fulfillmentStatus FulfillmentStatus @default(PENDING) @map("fulfillment_status")
+  fulfilledBy       String?           @map("fulfilled_by")
+  fulfilledAt       DateTime?         @map("fulfilled_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@map("awards")
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+
+model OrganizerPaymentConfig {
+  id                    String          @id @default(cuid())
+  guildId               String          @map("guild_id")
+  userId                String          @map("user_id")
+  provider              PaymentProvider @default(RAZORPAY)
+  razorpayKeyId         String          @map("razorpay_key_id")
+  razorpayKeySecret     String          @map("razorpay_key_secret")
+  razorpayWebhookSecret String          @map("razorpay_webhook_secret")
+  isActive              Boolean         @default(true) @map("is_active")
+  isVerified            Boolean         @default(false) @map("is_verified")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  server      DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  tournaments Tournament[]
+
+  @@unique([guildId, userId])
+  @@map("organizer_payment_configs")
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  registrationId String        @unique @map("registration_id")
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("INR")
+  status         PaymentStatus @default(PENDING)
+  providerRef    String?       @map("provider_ref")
+  expiresAt      DateTime      @map("expires_at")
+  paidAt         DateTime?     @map("paid_at")
+  failedAt       DateTime?     @map("failed_at")
+  refundedAt     DateTime?     @map("refunded_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  registration  Registration   @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  paymentEvents PaymentEvent[]
+  refund        Refund?
+
+  @@map("orders")
+}
+
+model PaymentEvent {
+  id              String   @id @default(cuid())
+  orderId         String   @map("order_id")
+  providerEventId String   @unique @map("provider_event_id")
+  type            String
+  payloadJson     Json     @map("payload_json")
+  processedAt     DateTime @default(now()) @map("processed_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payment_events")
+}
+
+model Refund {
+  id          String    @id @default(cuid())
+  orderId     String    @unique @map("order_id")
+  amount      Decimal   @db.Decimal(10, 2)
+  reason      String
+  status      String    @default("pending")
+  providerRef String?   @map("provider_ref")
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("refunds")
+}
+
+// ============================================================
+// SYNC INFRASTRUCTURE
+// ============================================================
+
+model DiscordMessageBinding {
+  id           String   @id @default(cuid())
+  guildId      String   @map("guild_id")
+  channelId    String   @map("channel_id")
+  messageId    String   @map("message_id")
+  recordType   String   @map("record_type")
+  recordId     String   @map("record_id")
+  tournamentId String?  @map("tournament_id")
+  matchId      String?  @map("match_id")
+  lastSyncedAt DateTime @default(now()) @map("last_synced_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  server     DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  tournament Tournament?   @relation(fields: [tournamentId], references: [id])
+  match      Match?        @relation(fields: [matchId], references: [id])
+
+  @@unique([channelId, messageId])
+  @@map("discord_message_bindings")
+}
+
+model OutboxEvent {
+  id              String       @id @default(cuid())
+  guildId         String       @map("guild_id")
+  type            String
+  payloadJson     Json         @map("payload_json")
+  status          OutboxStatus @default(PENDING)
+  retryCount      Int          @default(0) @map("retry_count")
+  lastAttemptedAt DateTime?    @map("last_attempted_at")
+  deliveredAt     DateTime?    @map("delivered_at")
+  failureReason   String?      @map("failure_reason")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
+model ScheduledJob {
+  id           String    @id @default(cuid())
+  jobKey       String    @unique @map("job_key")
+  type         String
+  payloadJson  Json      @map("payload_json")
+  scheduledFor DateTime  @map("scheduled_for")
+  status       JobStatus @default(PENDING)
+  completedAt  DateTime? @map("completed_at")
+  cancelledAt  DateTime? @map("cancelled_at")
+  tournamentId String?   @map("tournament_id")
+  matchId      String?   @map("match_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  tournament Tournament? @relation(fields: [tournamentId], references: [id])
+  match      Match?      @relation(fields: [matchId], references: [id])
+
+  @@index([status, scheduledFor])
+  @@map("scheduled_jobs")
+}
+
+// ============================================================
+// AUDIT AND SECURITY
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  guildId    String   @map("guild_id")
+  actorId    String   @map("actor_id")
+  action     String
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
+  reason     String?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  actor  User          @relation(fields: [actorId], references: [id])
+
+  @@index([guildId, createdAt])
+  @@map("audit_logs")
+}
+
+model AdminBan {
+  id           String    @id @default(cuid())
+  guildId      String    @map("guild_id")
+  userId       String    @map("user_id")
+  reason       String    @default("Repeated unauthorized admin access attempts")
+  bannedUntil  DateTime? @map("banned_until")
+  isPermanent  Boolean   @default(false) @map("is_permanent")
+  attemptCount Int       @default(0) @map("attempt_count")
+  bannedBy     String?   @map("banned_by")
+  liftedAt     DateTime? @map("lifted_at")
+  liftedBy     String?   @map("lifted_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id])
+
+  @@unique([guildId, userId])
+  @@map("admin_bans")
+}
+
+// ============================================================
+// DEVELOPER DASHBOARD MODELS
+// ============================================================
+
+model SystemMetric {
+  id         String   @id @default(cuid())
+  guildId    String   @map("guild_id")
+  metricType String   @map("metric_type")
+  metricName String   @map("metric_name")
+  value      Decimal  @db.Decimal(20, 4)
+  metadata   Json?
+  timestamp  DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, timestamp])
+  @@map("system_metrics")
+}
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  guildId   String   @map("guild_id")
+  source    String
+  errorType String   @map("error_type")
+  message   String
+  stack     String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, timestamp])
+  @@index([source, timestamp])
+  @@map("error_logs")
+}
+
+model BridgeHealthCheck {
+  id        String   @id @default(cuid())
+  guildId   String   @map("guild_id")
+  component String
+  status    String
+  latencyMs Int?     @map("latency_ms")
+  metadata  Json?
+  checkedAt DateTime @default(now()) @map("checked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  server DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, checkedAt])
+  @@map("bridge_health_checks")
+}

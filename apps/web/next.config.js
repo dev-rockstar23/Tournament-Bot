@@ -9,7 +9,6 @@ const nextConfig = {
     serverComponentsExternalPackages: [
       'three',
       '@prisma/client',
-      '@esports/database',
       'prisma',
     ],
   },
@@ -34,6 +33,12 @@ const nextConfig = {
         ...config.resolve.fallback,
         fs: false,
       };
+    }
+
+    // Resolve @esports/database to use the locally-generated Prisma client
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@esports/database': require('path').resolve(__dirname, '../../packages/database/src'),
     }
     
     return config;
