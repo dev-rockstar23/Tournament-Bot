@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma, type RegistrationStatus } from '@esports/database'
 import { createClient } from '@/lib/supabase/server'
 import { withPermission, AppRole } from '@esports/permissions'
+
+export const dynamic = 'force-dynamic'
 import { RegistrationSubmitSchema } from '@esports/shared-types'
 
 // ─── POST /api/servers/[guildId]/tournaments/[tournamentId]/registrations ─────
