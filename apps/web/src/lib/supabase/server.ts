@@ -14,12 +14,12 @@ export function createClient() {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch {}
+          } catch { /* cookie cannot be set in server component */ }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
-          } catch {}
+          } catch { /* cookie cannot be removed in server component */ }
         },
       },
     },
