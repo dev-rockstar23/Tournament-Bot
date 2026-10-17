@@ -38,7 +38,6 @@ export async function createRazorpayOrder({
     amount: amountInPaise,
     currency: currency.toUpperCase(),
     receipt: receiptId,
-    payment_capture: 1, // Auto-capture payment
   })
 
   return {
