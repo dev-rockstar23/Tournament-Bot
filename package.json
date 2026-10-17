@@ -22,5 +22,15 @@
     "@typescript-eslint/parser": "^7.8.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "unrs-resolver",
+      "msgpackr-extract"
+    ]
   }
 }
