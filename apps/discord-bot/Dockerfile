@@ -11,6 +11,7 @@ RUN npm install -g pnpm@9
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY .npmrc ./
+COPY tsconfig.base.json ./
 
 # Copy package.json files for all packages
 COPY apps/discord-bot/package.json ./apps/discord-bot/
