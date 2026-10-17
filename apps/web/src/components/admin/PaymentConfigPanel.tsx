@@ -19,7 +19,7 @@ interface PaymentConfigPanelProps {
   userId: string
 }
 
-export function PaymentConfigPanel({ guildId, userId }: PaymentConfigPanelProps) {
+export function PaymentConfigPanel({ guildId, userId: _userId }: PaymentConfigPanelProps) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [configured, setConfigured] = useState(false)

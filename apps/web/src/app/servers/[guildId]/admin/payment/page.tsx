@@ -260,7 +260,7 @@ export default function PaymentSettingsPage() {
                 <ol className="text-sm text-amber-300/80 space-y-1 list-decimal list-inside">
                   <li>Login to Razorpay Dashboard</li>
                   <li>Go to Settings → API Keys</li>
-                  <li>Generate keys if you haven't already</li>
+                  <li>Generate keys if you haven&apos;t already</li>
                   <li>Copy Key ID and Key Secret</li>
                   <li>Go to Settings → Webhooks to get Webhook Secret</li>
                 </ol>
@@ -277,7 +277,7 @@ export default function PaymentSettingsPage() {
               </div>
 
               <p className="text-xs text-[var(--color-text-tertiary)] mt-4">
-                Your credentials are encrypted before storage. We'll test them before saving.
+                Your credentials are encrypted before storage. We&apos;ll test them before saving.
               </p>
             </div>
         </>

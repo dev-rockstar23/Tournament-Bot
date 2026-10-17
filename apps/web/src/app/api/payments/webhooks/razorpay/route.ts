@@ -19,14 +19,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
   }
 
-  let event: any
+  let event: unknown
   try {
     event = JSON.parse(body)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { event: eventType, payload } = event
+  const { event: eventType, payload } = event as {
+    event: string
+    payload: {
+      payment: { entity: { id: string; amount: number; currency: string } }
+      order: { entity: { id: string } }
+    }
+  }
 
   if (!payload?.payment?.entity || !payload?.order?.entity) {
     return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 })
