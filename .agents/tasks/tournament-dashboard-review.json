@@ -1,0 +1,5 @@
+{
+  "verdict": "APPROVED",
+  "findings": [],
+  "reviewDoc": "All 8 review criteria pass. The admin registration route exists at the required path, exports PATCH with withPermission(AppRole.TOURNAMENT_MANAGER), and rejects requests where registration.tournament.id !== URL tournamentId (403). The server component page exists with export const dynamic='force-dynamic', auth guard requiring TOURNAMENT_MANAGER, full Prisma fetch with stages+matches+registrations, date serialization, and renders TournamentDetailPanel. TournamentDetailPanel has all 4 tabs (overview, registrations, matches, settings): overview shows metadata grid with capacity bar, Badge, dates, and conditionally renders Publish (DRAFT), Cancel (non-terminal), and Finalize link (LIVE); registrations tab embeds ParticipantsTable with correctly serialized RegistrationRow[]; settings tab uses react-hook-form and PATCHes /api/servers/[guildId]/admin/tournaments/[tournamentId]. No existing files were modified (setup.ts change is in the base commit, not in the two FEAT commits). npm run type-check and npm run lint both exit 0."
+}
