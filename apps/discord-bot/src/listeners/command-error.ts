@@ -24,7 +24,7 @@ export class CommandErrorListener extends Listener<typeof Events.ChatInputComman
       .setDescription(
         error instanceof UserError
           ? error.message
-          : 'An unexpected error occurred. Please try again.'
+          : `Error: ${error.message}`
       );
 
     try {
