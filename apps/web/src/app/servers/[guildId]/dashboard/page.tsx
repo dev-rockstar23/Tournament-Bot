@@ -2,8 +2,6 @@ import { prisma } from '@esports/database'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 import {
-
-export const dynamic = 'force-dynamic'
   Trophy,
   Radio,
   CalendarClock,
@@ -17,6 +15,8 @@ export const dynamic = 'force-dynamic'
   Clock,
   Star,
 } from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 interface DashboardPageProps {
   params: { guildId: string }
