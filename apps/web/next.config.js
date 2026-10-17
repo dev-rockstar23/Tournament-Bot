@@ -6,7 +6,12 @@ const nextConfig = {
   },
   
   experimental: {
-    serverComponentsExternalPackages: ['three'],
+    serverComponentsExternalPackages: [
+      'three',
+      '@prisma/client',
+      '@esports/database',
+      'prisma',
+    ],
   },
   
   skipTrailingSlashRedirect: true,
