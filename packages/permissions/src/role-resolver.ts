@@ -1,4 +1,4 @@
-import type { PrismaClient, ServerRoleBinding } from '@esports/database/src/generated/client'
+import type { PrismaClient, ServerRoleBinding } from '@esports/database'
 import { getGuildMember } from './guild-membership'
 import { AppRole } from './roles'
 

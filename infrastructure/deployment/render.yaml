@@ -1,7 +1,7 @@
 services:
   - type: worker
     name: discord-bot
-    buildCommand: pnpm install && pnpm --filter discord-bot build
+    buildCommand: pnpm install && pnpm --filter @esports/database build && pnpm --filter @esports/shared-types build && pnpm --filter @esports/permissions build && pnpm --filter @esports/game-rules build && pnpm --filter @esports/tournament-engine build && pnpm --filter discord-bot build
     startCommand: node apps/discord-bot/dist/index.js
     region: singapore
     plan: free

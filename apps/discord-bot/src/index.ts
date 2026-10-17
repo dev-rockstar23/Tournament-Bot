@@ -7,6 +7,7 @@ import { GatewayIntentBits, Partials } from 'discord.js'
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite)
 
 const client = new SapphireClient({
+  baseUserDirectory: __dirname,
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
