@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# OpenSSL is required by Prisma on Alpine
+RUN apk add --no-cache openssl
+
 # Install pnpm
 RUN npm install -g pnpm
 
@@ -18,6 +21,9 @@ COPY packages/game-rules/package.json ./packages/game-rules/
 COPY packages/tournament-engine/package.json ./packages/tournament-engine/
 COPY packages/scoring/package.json ./packages/scoring/
 COPY packages/payments/package.json ./packages/payments/
+
+# Prisma schema must exist before install because the root postinstall runs `prisma generate`
+COPY packages/database/prisma ./packages/database/prisma
 
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
