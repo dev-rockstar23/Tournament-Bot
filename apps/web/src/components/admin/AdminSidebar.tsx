@@ -90,7 +90,7 @@ export function AdminSidebar({
     },
     {
       label: 'Payments',
-      href: `/servers/${guildId}/admin/payments`,
+      href: `/servers/${guildId}/admin/payment`,
       icon: CreditCard,
       minRole: AppRole.SERVER_ADMIN,
     },
