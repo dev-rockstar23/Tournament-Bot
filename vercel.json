@@ -3,7 +3,7 @@
   "buildCommand": "pnpm build:web",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "outputDirectory": "apps/web/.next",
-  "framework": null,
+  "framework": "nextjs",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -36,8 +36,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "PAYMENTS_ENABLED": "false"
-  }
+  ]
 }
