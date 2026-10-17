@@ -1,8 +1,4 @@
 {
-  "extends": ["next/core-web-vitals"],
-  "rules": {
-    "no-empty": ["error", { "allowEmptyCatch": true }],
-    "@next/next/no-img-element": "warn",
-    "import/order": "off"
-  }
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": ["src/generated/**", ".next/**", "node_modules/**"]
 }
