@@ -19,10 +19,17 @@ interface ServerItem {
 }
 
 export async function GET() {
+  try {
   const supabase = createClient()
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession()
+
+  if (sessionError) {
+    console.error('[servers] session error:', sessionError)
+    return NextResponse.json({ error: 'Session error', detail: sessionError.message }, { status: 500 })
+  }
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -82,9 +89,19 @@ export async function GET() {
   }
 
   // Query all active servers in the DB
-  const dbServers = await prisma.discordServer.findMany({
-    where: { isActive: true },
-  })
+  let dbServers: { guildId: string; name: string; icon: string | null }[] = []
+  try {
+    dbServers = await prisma.discordServer.findMany({
+      where: { isActive: true },
+    })
+  } catch (dbErr) {
+    console.error('[servers] DB error:', dbErr)
+    return NextResponse.json({ 
+      error: 'Database error', 
+      detail: dbErr instanceof Error ? dbErr.message : String(dbErr),
+      dbUrl: process.env.DATABASE_URL ? 'set' : 'MISSING'
+    }, { status: 500 })
+  }
   const dbGuildIdSet = new Set(dbServers.map((s) => s.guildId))
 
   // Categorize guilds
@@ -171,4 +188,11 @@ export async function GET() {
     eligible: eligibleItems,
     unavailable: unavailableItems,
   })
+  } catch (err) {
+    console.error('[servers] unhandled error:', err)
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      detail: err instanceof Error ? err.message : String(err)
+    }, { status: 500 })
+  }
 }
