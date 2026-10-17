@@ -13,3 +13,5 @@ generated/
 .turbo/
 coverage/
 .DS_Store
+
+.vercel
