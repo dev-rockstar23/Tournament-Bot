@@ -34,6 +34,7 @@ export default function PaymentSettingsPage() {
   // Fetch existing config
   useEffect(() => {
     fetchConfig()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guildId])
 
   async function fetchConfig() {
