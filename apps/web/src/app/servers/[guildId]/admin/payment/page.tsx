@@ -118,40 +118,40 @@ export default function PaymentSettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1
-            className="text-3xl font-black text-white mb-2"
-            style={{ fontFamily: 'var(--font-display, Orbitron, sans-serif)' }}
-          >
-            Payment Settings
-          </h1>
-          <p className="text-[var(--color-text-secondary)]">
-            Configure Razorpay credentials to accept payments for paid tournaments
-          </p>
+      {/* Header */}
+      <div className="mb-8">
+        <h1
+          className="text-3xl font-black text-white mb-2"
+          style={{ fontFamily: 'var(--font-display, Orbitron, sans-serif)' }}
+        >
+          Payment Settings
+        </h1>
+        <p className="text-[var(--color-text-secondary)]">
+          Configure Razorpay credentials to accept payments for paid tournaments
+        </p>
+      </div>
+
+      {/* Alert messages */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400">
+          {error}
         </div>
+      )}
 
-        {/* Alert messages */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400">
-            {error}
-          </div>
-        )}
+      {success && (
+        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/50 rounded-lg text-green-400">
+          {success}
+        </div>
+      )}
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/50 rounded-lg text-green-400">
-            {success}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="glass-card p-8 text-center">
-            <div className="text-[var(--color-text-secondary)]">Loading...</div>
-          </div>
-        ) : (
-          <>
-            {/* Existing config */}
-            {config && (
+      {loading ? (
+        <div className="glass-card p-8 text-center">
+          <div className="text-[var(--color-text-secondary)]">Loading...</div>
+        </div>
+      ) : (
+        <>
+          {/* Existing config */}
+          {config && (
               <div className="glass-card p-6 mb-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
