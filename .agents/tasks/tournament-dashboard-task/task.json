@@ -1,0 +1,7 @@
+{
+  "task_id": "task-tournament-dashboard",
+  "task_description": "Build the tournament detail admin page at apps/web/src/app/servers/[guildId]/admin/tournaments/[tournamentId]/page.tsx with Overview, Registrations, Matches, and Settings tabs; plus a missing registration management API route at apps/web/src/app/api/servers/[guildId]/admin/tournaments/[tournamentId]/registrations/[registrationId]/route.ts. A TournamentDetailPanel client component ties it together.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}
