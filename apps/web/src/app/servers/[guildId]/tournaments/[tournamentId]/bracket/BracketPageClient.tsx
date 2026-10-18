@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { BracketVisualization } from '@/components/tournament/BracketVisualization'
 import { MatchStatus } from '@esports/database'
 import { Download, Share2, ArrowLeft } from 'lucide-react'
@@ -183,7 +184,12 @@ export function BracketPageClient({
         </div>
 
         {/* Right side panel */}
-        <div className="w-full lg:w-80 flex-shrink-0 px-4 sm:px-6 lg:px-4 py-8 flex flex-col gap-4">
+        <motion.div
+          className="w-full lg:w-80 flex-shrink-0 px-4 sm:px-6 lg:px-4 py-8 flex flex-col gap-4"
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut', delay: 0.15 }}
+        >
           {/* Stats */}
           <GlassCard hud className="p-4">
             <p className="text-xs font-mono text-[var(--color-text-muted)] tracking-widest uppercase mb-3">MATCH STATS</p>
@@ -286,7 +292,7 @@ export function BracketPageClient({
               </Link>
             </GlowButton>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <StatusBar shardOnline>

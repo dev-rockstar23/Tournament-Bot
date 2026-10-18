@@ -1,64 +1,84 @@
-FEAT-005: Result Submission and Approval — COMPLETED
-======================================================
+FEAT-005: Overlay, Docs, Error Pages — Cyberpunk Redesign COMPLETED
+=====================================================================
 
-Commit: feat(phase3): FEAT-005 result submission and approval
+Commit: feat: FEAT-005 overlay/docs/error pages cyberpunk redesign
 
-Files created:
+Files changed:
 --------------
 
-1. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/results/route.ts
-   POST — withPermission(PLAYER). Validates body with ResultSubmitSchema (zod).
-   In $transaction: fetches match (guildId-scoped), assertMatchTransition(→UNDER_REVIEW),
-   validates captain-of-participant OR REFEREE+ authorization, validates all scorecardJson
-   teamIds are match participants, creates ResultSubmission(status:PENDING_REVIEW), updates
-   match to UNDER_REVIEW, creates OutboxEvent(RESULT_SUBMITTED), writes AuditLog.
+1. apps/web/src/app/overlay/[guildId]/[tournamentId]/OverlayClient.tsx
+   Full cyberpunk OBS overlay redesign. Transparent bg, 1920×1080 canvas.
+   - TOP BAR: server name + SHARD ONLINE badge / pulsing LIVE FEED indicator /
+     match# + STATUS + ZONE info — semi-transparent dark with cyan border glow
+   - LEFT PANEL: LIVE STANDINGS widget — HUD-style header, column grid (rank/team/pts/kills),
+     top-1 highlighted with violet gradient row, framer-motion AnimatePresence row animations,
+     ranked badges: gold #1, silver #2
+   - FRAG KING WIDGET (bottom-left): shows team with highest total kills, red neon glow,
+     skull icon — only visible when kills > 0
+   - BOTTOM TICKER: cyan "RULES" label + horizontally scrolling rule announcements,
+     self-contained @keyframes ticker-scroll CSS via inline <style> tag
+   - No Navigation component included
+   - All existing Prisma queries and StandingRow / CurrentMatch types untouched
+   - Added serverName prop (optional, defaults to 'LEGENDARY ESPORTS')
 
-2. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/approve/route.ts
-   POST — withPermission(REFEREE). Body: { action: 'approve'|'reject', reason?: string }.
-   Approve path ($transaction): fetches match+tournament+ruleVersion, validates UNDER_REVIEW,
-   gets PENDING_REVIEW submission, parses scorecardJson, builds ScoringConfig (ruleVersion or
-   game default), calls calculateBgmiMatchScore (generic signature across all games), creates
-   ScoreEvent records (Decimal points/penalties), sets submission APPROVED+reviewedBy+reviewedAt,
-   assertMatchTransition(→COMPLETED), creates OutboxEvent(RESULT_APPROVED), writes AuditLog.
-   Reject path: validates UNDER_REVIEW, sets submission REJECTED+reason, assertMatchTransition
-   (→AWAITING_RESULT), creates OutboxEvent(RESULT_REJECTED), writes AuditLog.
+2. apps/web/src/app/docs/layout.tsx
+   Full cyberpunk docs layout redesign.
+   - Top header: brand logo with neon-text-violet, DocsSearch bar (cyber >_ prefix),
+     Dashboard link with violet gradient, mobile toggle with framer-motion AnimatePresence drawer
+   - Desktop sidebar (w-56 sticky): dark glass panel with cyan border, nav items with
+     violet active-state left border + gradient bg, version badge (SHARD ONLINE style)
+   - Content area: glass card wrapper (blur + dark bg)
+   - Right rail (xl): violet neon "// ON THIS PAGE" section links
+   - HUD grid dot-pattern fixed background across whole page
+   - Mobile drawer: framer-motion slide-in, dark glass
 
-3. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/dispute/route.ts
-   POST — withPermission(PLAYER). Validates { reason (min10/max1000), evidenceUrl? }.
-   In $transaction: fetches match (guildId-scoped), creates Dispute(status:OPEN),
-   assertMatchTransition(→DISPUTED), updates match, creates OutboxEvent(DISPUTE_OPENED),
-   writes AuditLog.
+3. apps/web/src/app/docs/page.tsx
+   Cyberpunk docs home page redesign.
+   - Hero: NeonText glitch "ESPORTS" heading, GlowButton cyber variant "START HERE →"
+   - Quick-access section links: 4 GlassCard neonColor="violet" cards for all doc pages
+   - Quick Start: 4 steps with numbered gradient badges, command pills with cyan styling,
+     GlassCard scanline overlay on each step card
+   - Platform Features: 6 GlassCard with alternating violet/cyan neonColor, framer-motion
+     stagger animations throughout
+   - All doc links covered: overview, getting-started, tournaments/create,
+     tournaments/formats, discord-commands
+   - export const dynamic = 'force-dynamic'
 
-4. apps/web/src/app/servers/[guildId]/admin/results/page.tsx
-   Server component with REFEREE+ guard (redirects if lower role). Fetches:
-   - Matches AWAITING_RESULT (pending submission) scoped by guildId
-   - Matches UNDER_REVIEW with PENDING_REVIEW ResultSubmissions (status field excluded from
-     client serialization — PENDING_REVIEW never returned to any public route)
-   - Open Disputes (via match.guildId filter)
-   Serializes Dates to ISO strings; renders ResultsQueue client component.
+4. apps/web/src/app/not-found.tsx
+   Cyberpunk 404 page.
+   - Glitch "404" heading using .glitch-text CSS class + data-text attribute,
+     violet neon glow text-shadow
+   - "SIGNAL LOST" subtitle in cyan neon
+   - Terminal block: dark glass card, traffic-light dots, "NODE_NOT_FOUND" error output,
+     terminal lines in color-coded mono font
+   - "← RETURN TO BASE" link styled as GlowButton cyber variant (inline styles for
+     server component compatibility)
+   - HUD grid dot-pattern fixed background + scanline-overlay
+   - Background "LOST" decorative watermark
+   - export const dynamic = 'force-dynamic'
 
-5. apps/web/src/components/admin/ResultsQueue.tsx
-   'use client'. Radix Tabs with three tabs:
-   - Pending Submission: lists AWAITING_RESULT matches as GlassCard summaries with Badge
-   - Under Review: renders ResultReviewCard per submission; fallback card if no submission
-   - Disputes: renders DisputeCard per open dispute with Resolve/Dismiss buttons
-   Uses data-[state=active] CSS selectors on Tabs.Trigger (no asChild render-prop).
+5. apps/web/src/app/global-error.tsx
+   Cyberpunk 500 / global error page.
+   - 'use client' (Next.js requirement for global-error.tsx)
+   - "SYSTEM FAILURE" h1 with red neon glow + CSS glitch animation (@keyframes glitch-red)
+   - "CRITICAL EXCEPTION" subtitle with amber neon + flicker animation
+   - Terminal block: error.digest displayed if present, error.message in red-tinted block,
+     fallback message for errors without message
+   - "⟳ REBOOT SYSTEM" button calls reset() with red gradient styling
+   - All styles via inline <style> in <head> (required for global-error.tsx since it replaces
+     the entire HTML document — no globals.css or Tailwind available)
+   - Preserves existing error boundary interface: { error: Error & { digest?: string }, reset }
 
-6. apps/web/src/components/admin/ResultReviewCard.tsx
-   'use client'. GlassCard wrapper. Shows match header, scorecard table (dark alternating rows,
-   placement/kills/penalties columns), evidence URL link, submission meta. Approve button
-   (green GlowButton) calls /approve with action:'approve'. Reject opens Radix Dialog with
-   textarea for reason, calls /approve with action:'reject'+reason. Both buttons refresh router
-   on success via useRouter().refresh().
+TypeScript:
+-----------
+pnpm --filter web exec tsc --noEmit → exit 0, no errors
 
-Dependencies added to apps/web/package.json:
-   @esports/game-rules: workspace:*
-   @esports/scoring: workspace:*
-
-Security invariants enforced:
-   - All DB queries include guildId scope
-   - State machine transitions enforced via assertMatchTransition (never bypassed)
-   - PENDING_REVIEW ResultSubmissions: fetched server-side only, status field excluded
-     from client serialization, never returned on any public route
-   - Decimal fields (points, penalties): stored as Decimal in DB; Number() only for scoring
-     engine params and frontend serialization
+Invariants maintained:
+----------------------
+- No Prisma queries or business logic touched
+- All auth logic untouched
+- No navigation in overlay
+- CSS classes: .scanline-overlay, .glitch-text, .neon-text-violet, .neon-text-cyan used
+- Components used: GlassCard (neonColor, scanline props), GlowButton (cyber variant),
+  NeonText (glitch prop), StatusPulse (indirectly via StatusBar — not used in overlay)
+- framer-motion for all entrance animations

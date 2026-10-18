@@ -1,0 +1,13 @@
+{
+  "task_id": "task-cyberpunk-ui-redesign",
+  "task_description": "Full cyberpunk UI redesign of the Legendary Esports web application across all pages. Upgrade CSS design tokens, enhance all layout components (Navigation, AdminSidebar), rebuild the landing page hero with glitch effects and animated counters, redesign all public/community/admin/developer pages with dense data-rich cyberpunk aesthetics, animated status bars, glassmorphism, neon glow, and Framer Motion transitions. Upgrade the broadcast overlay and docs pages. All pages must be fully functional and editable.",
+  "status": "pending",
+  "feature_order": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003",
+    "FEAT-004",
+    "FEAT-005"
+  ],
+  "blocked_reason": null
+}

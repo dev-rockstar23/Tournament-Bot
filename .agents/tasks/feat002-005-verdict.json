@@ -1,0 +1,41 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "id": 1,
+      "label": "force-dynamic gap in docs sub-pages",
+      "description": "/docs/getting-started, /docs/discord-commands, /docs/tournaments/create, and /docs/tournaments/formats have no per-file export const dynamic = 'force-dynamic'. Add the export to each file to match the rest of the codebase.",
+      "severity": "minor",
+      "confidence": "confirmed"
+    },
+    {
+      "id": 2,
+      "label": "Auth-guard regression in /admin/payment/page.tsx",
+      "description": "The rewrite removed the server-side auth guard present on every other admin page. The payment UI frame renders before the useEffect API call returns a 401. Convert back to the server-component + client-component pattern, or add a server-rendered auth check before the client shell is sent.",
+      "severity": "major",
+      "confidence": "confirmed"
+    },
+    {
+      "id": 3,
+      "label": "Query-cache subscription leak in OverlayClient.tsx",
+      "description": "queryClient.getQueryCache().subscribe() is called in the component body with no cleanup. Every re-render adds a new subscriber. Wrap in useEffect and return the unsubscribe function.",
+      "severity": "major",
+      "confidence": "confirmed"
+    },
+    {
+      "id": 4,
+      "label": "Stale eslint-disable comment in OverlayClient.tsx",
+      "description": "Line 57 has eslint-disable-next-line @typescript-eslint/no-explicit-any but the suppressed line uses Record<string, unknown> with as-casts, not any. Remove the comment.",
+      "severity": "minor",
+      "confidence": "confirmed"
+    },
+    {
+      "id": 5,
+      "label": "BracketPageClient.tsx has no framer-motion animations",
+      "description": "It is a 'use client' component but no entry animations were added, despite FEAT-003 implying coverage. Add motion.div wrappers to the panel entry for consistency with every other client component in the redesign.",
+      "severity": "minor",
+      "confidence": "confirmed"
+    }
+  ],
+  "reviewDoc": "d:\\Discord Projects\\Tournament-Bot\\esports-platform\\.agents\\tasks\\feat002-005-review.md"
+}

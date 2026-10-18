@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRealtimeTournament } from '@/lib/realtime'
@@ -43,33 +43,35 @@ export default function OverlayClient({
   useRealtimeTournament(guildId, tournamentId)
 
   // Listen for query invalidations triggered by the realtime hook
-  queryClient.getQueryCache().subscribe((event) => {
-    if (
-      event.type === 'updated' &&
-      Array.isArray(event.query.queryKey) &&
-      event.query.queryKey[0] === 'standings' &&
-      event.query.queryKey[1] === tournamentId
-    ) {
-      fetch(`/api/servers/${guildId}/tournaments/${tournamentId}/standings`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.standings) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setStandings(
-              data.standings.map((s: Record<string, unknown>) => ({
-                teamId: s.teamId as string,
-                teamName: (s.name ?? s.teamName ?? s.teamId) as string,
-                totalPoints: s.totalPoints as number,
-                totalKills: s.totalKills as number,
-                matchesPlayed: s.matchesPlayed as number,
-                rank: s.rank as number,
-              }))
-            )
-          }
-        })
-        .catch(() => {/* silently ignore fetch errors on the overlay */})
-    }
-  })
+  useEffect(() => {
+    const unsub = queryClient.getQueryCache().subscribe((event) => {
+      if (
+        event.type === 'updated' &&
+        Array.isArray(event.query.queryKey) &&
+        event.query.queryKey[0] === 'standings' &&
+        event.query.queryKey[1] === tournamentId
+      ) {
+        fetch(`/api/servers/${guildId}/tournaments/${tournamentId}/standings`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.standings) {
+              setStandings(
+                data.standings.map((s: Record<string, unknown>) => ({
+                  teamId: s.teamId as string,
+                  teamName: (s.name ?? s.teamName ?? s.teamId) as string,
+                  totalPoints: s.totalPoints as number,
+                  totalKills: s.totalKills as number,
+                  matchesPlayed: s.matchesPlayed as number,
+                  rank: s.rank as number,
+                }))
+              )
+            }
+          })
+          .catch(() => {/* silently ignore fetch errors on the overlay */})
+      }
+    })
+    return () => unsub()
+  }, [queryClient, guildId, tournamentId])
 
   const currentMatch = initialMatch
 

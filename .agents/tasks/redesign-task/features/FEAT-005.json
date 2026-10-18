@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Broadcast overlay + Docs pages cyberpunk redesign, plus final cross-cutting polish (not-found page, global-error page, docs layout, StatusBar wiring). All existing data-fetching and realtime subscription logic preserved exactly. Depends on FEAT-001 through FEAT-004.",
+  "status": "pending",
+  "steps": [
+    "1. Upgrade apps/web/src/app/overlay/[guildId]/[tournamentId]/OverlayClient.tsx. Read the full file first (it was truncated during exploration — use read_file with offset to get the rest). Keep useRealtimeTournament hook, all useState for standings, all queryClient subscription logic. Visual upgrades: the overlay is designed for OBS capture (transparent/dark background, no Navigation/StatusBar). Standings table becomes a full-height dark panel: bg-[rgba(5,5,8,0.92)] with a neon-border-violet left accent stripe; each standing row gets rank-coloured left border (gold/silver/bronze/neon for top 3, dim for rest); team name in Orbitron, points/kills in JetBrains Mono; top header bar shows tournament name in NeonText + current match number Badge + live/completed StatusPulse; add a CSS @keyframes data-scroll animation for a slow upward ticker if standings exceed 8 rows; entrance animation uses Framer Motion scanIn variant (clip-path reveal). File: apps/web/src/app/overlay/[guildId]/[tournamentId]/OverlayClient.tsx",
+    "2. Upgrade apps/web/src/app/overlay/[guildId]/[tournamentId]/layout.tsx. Read it first. Keep whatever it currently does. Visual: ensure the overlay layout has background:transparent meta, no body padding, overflow hidden. If it has a <html> root, set background-color: transparent for OBS chroma-key use. File: apps/web/src/app/overlay/[guildId]/[tournamentId]/layout.tsx",
+    "3. Upgrade apps/web/src/app/docs/layout.tsx. Read it first. Keep sidebar navigation structure. Visual upgrades: sidebar gets bg-[#050508] with neon-border-violet right border; active doc link gets neon-text-cyan + neon-border-cyan left indicator; section headers in JetBrains Mono uppercase tracking-widest text-white/40; search bar (if present) gets neon focus ring; add CyberBreadcrumb in main content area. File: apps/web/src/app/docs/layout.tsx",
+    "4. Upgrade apps/web/src/app/docs/page.tsx and all doc sub-pages (docs/getting-started/page.tsx, docs/discord-commands/page.tsx, docs/tournaments/create/page.tsx, docs/tournaments/formats/page.tsx). Keep all content arrays and text. Visual upgrades: docs/page.tsx — NeonText hero title 'LEGENDARY ESPORTS DOCS', quickStartSteps badges use the gradient already defined in the file (preserve), GlassCard neonColor per step colour; platformFeatures grid uses GlassCard neonColor='violet'. Sub-pages — read each and apply the same treatment: NeonText headings, GlassCard containers, code blocks in a monospace pre with neon-border-cyan bg. Files: apps/web/src/app/docs/page.tsx, apps/web/src/app/docs/getting-started/page.tsx, apps/web/src/app/docs/discord-commands/page.tsx, apps/web/src/app/docs/tournaments/create/page.tsx, apps/web/src/app/docs/tournaments/formats/page.tsx",
+    "5. Upgrade apps/web/src/app/not-found.tsx. Read it first (or create if missing). Cyberpunk 404 page: full-screen centered layout, NeonText glitch '404' in large Orbitron font, subtitle in JetBrains Mono 'SECTOR NOT FOUND', a scanline-overlay div, GlowButton primary 'RETURN TO BASE' linking to '/', animated HeroScene background (use HeroSceneWrapper dynamic import). File: apps/web/src/app/not-found.tsx",
+    "6. Upgrade apps/web/src/app/global-error.tsx. Read it first. Cyberpunk error page: NeonText glitch '500' or 'SYSTEM ERROR', description in mono, a 'RELOAD' GlowButton destructive, no Three.js (global error boundary must be minimal). File: apps/web/src/app/global-error.tsx",
+    "7. Wire the StatusBar component into the root layout. In apps/web/src/app/layout.tsx, import StatusBar dynamically (dynamic import with ssr:false to avoid hydration mismatch from the tick counter). Render <StatusBar /> just before the closing </body> tag. The StatusBar is fixed-position so it appears on all pages. Do NOT modify metadata, font loading, or the Providers wrapper. File: apps/web/src/app/layout.tsx"
+  ],
+  "acceptance_criteria": [
+    "pnpm --filter web type-check exits 0",
+    "pnpm --filter web lint exits 0",
+    "pnpm --filter web build completes without errors",
+    "OverlayClient compiles and preserves useRealtimeTournament hook",
+    "Docs pages compile with NeonText headings",
+    "not-found.tsx renders with 404 NeonText and HeroSceneWrapper",
+    "StatusBar is rendered in layout.tsx via dynamic import"
+  ],
+  "verification": [
+    "cd 'd:\\Discord Projects\\Tournament-Bot\\esports-platform' && pnpm --filter web type-check",
+    "cd 'd:\\Discord Projects\\Tournament-Bot\\esports-platform' && pnpm --filter web lint",
+    "cd 'd:\\Discord Projects\\Tournament-Bot\\esports-platform' && pnpm --filter web build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
