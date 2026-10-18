@@ -1,9 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Shield, Menu, X, ChevronDown } from 'lucide-react'
+import { Bell, Menu, X, ChevronDown } from 'lucide-react'
 import { GlowButton } from './GlowButton'
 import { NeonText } from './NeonText'
 import { GlassCard } from './GlassCard'
@@ -88,29 +89,27 @@ export default function Navigation() {
             <Link
               href="/"
               className="flex items-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md"
-              aria-label="Legendary Esports home"
+              aria-label="SHADØW TOURNAMENTS home"
             >
-              {/* Shield icon */}
-              <Shield
-                size={20}
-                className="text-[#7c3aed]"
-                style={{ filter: 'drop-shadow(0 0 6px rgba(124,58,237,0.8))' }}
-                aria-hidden="true"
+              <Image
+                src="/shadow-logo.png"
+                alt="SHADØW TOURNAMENTS"
+                width={32}
+                height={32}
+                unoptimized
+                className="rounded"
               />
               <span
-                className="text-white font-black tracking-widest text-sm"
+                className="font-bold text-white"
                 style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
               >
-                LEGENDARY
+                SHADØW
               </span>
               <span
-                className="text-[#06b6d4] font-black tracking-widest text-sm"
-                style={{
-                  fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)',
-                  textShadow: '0 0 8px rgba(6,182,212,0.7)',
-                }}
+                className="text-violet-400"
+                style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
               >
-                ESPORTS
+                TOURNAMENTS
               </span>
               {/* SYNCED badge */}
               <span className="hidden sm:flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[9px] font-mono tracking-widest uppercase border border-[rgba(34,197,94,0.4)] bg-[rgba(34,197,94,0.08)] text-[#22c55e]">
@@ -122,7 +121,7 @@ export default function Navigation() {
             {/* ── CENTER: Desktop nav links ── */}
             <div className="hidden lg:flex items-center gap-1" role="list">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href || (pathname?.startsWith(link.href + '/') ?? false)
+              const isActive = pathname?.startsWith(link.href) ?? false
                 return (
                   <Link
                     key={link.label}

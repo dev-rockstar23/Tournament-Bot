@@ -190,11 +190,11 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
               color: '#f8fafc',
             }}
           >
-            LEGENDARY{' '}
+            SHADØW{' '}
             <span
               className="neon-text-violet"
             >
-              ESPORTS
+              TOURNAMENTS
             </span>
           </Link>
 

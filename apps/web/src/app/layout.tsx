@@ -26,10 +26,35 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Legendary Esports',
+  title: {
+    default: 'SHADØW TOURNAMENTS',
+    template: '%s | SHADØW TOURNAMENTS',
+  },
   description:
     'Discord-native tournament management for BGMI, Free Fire, and COD Mobile.',
   themeColor: '#0a0a0f',
+  icons: {
+    icon: '/shadow-logo.png',
+    apple: '/shadow-logo.png',
+  },
+  openGraph: {
+    title: 'SHADØW TOURNAMENTS',
+    description:
+      'Discord-native esports tournament platform for BGMI, Free Fire & COD Mobile',
+    images: [
+      { url: 'https://shadow-tournaments.vercel.app/shadow-banner.png' },
+    ],
+    url: 'https://shadow-tournaments.vercel.app',
+    siteName: 'SHADØW TOURNAMENTS',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SHADØW TOURNAMENTS',
+    description:
+      'Discord-native esports tournament platform for BGMI, Free Fire & COD Mobile',
+    images: ['https://shadow-tournaments.vercel.app/shadow-banner.png'],
+  },
 }
 
 export default function RootLayout({

@@ -10,7 +10,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <head>
-        <title>System Failure — Legendary Esports</title>
+        <title>System Failure — SHADØW TOURNAMENTS</title>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
 

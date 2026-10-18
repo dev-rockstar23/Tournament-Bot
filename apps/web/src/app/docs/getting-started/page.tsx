@@ -16,7 +16,7 @@ const steps = [
     title: 'Invite the Bot',
     gradient: 'linear-gradient(135deg, #7c3aed 0%, #9f5bff 100%)',
     description:
-      "Visit the bot invite link and add Legendary Esports to your server. You'll need 'Manage Server' permission.",
+      "Visit the bot invite link and add SHADØW TOURNAMENTS to your server. You'll need 'Manage Server' permission.",
     action: (
       <Link
         href="/invite"
@@ -87,7 +87,7 @@ export default function GettingStartedPage() {
           Getting Started
         </h1>
         <p className="mb-10 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          Follow these four steps to get Legendary Esports up and running in your Discord server.
+          Follow these four steps to get SHADØW TOURNAMENTS up and running in your Discord server.
         </p>
       </motion.div>
 

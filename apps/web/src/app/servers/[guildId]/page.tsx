@@ -129,10 +129,13 @@ function TournamentOperationCard({ t, guildId }: { t: Tournament; guildId: strin
 
 export default async function ServerPage({
   params,
+  searchParams,
 }: {
   params: { guildId: string }
+  searchParams?: { tab?: string }
 }) {
   const { guildId } = params
+  const activeTab = searchParams?.tab ?? 'ALL'
 
   const server = await prisma.discordServer.findUnique({
     where: { guildId },
@@ -146,21 +149,11 @@ export default async function ServerPage({
   const discordId = user?.user_metadata?.provider_id ?? user?.user_metadata?.sub ?? ''
   const isAdmin = server.ownerId === discordId
 
-  const [liveTournaments, upcomingTournaments, recentWinners] = await Promise.all([
+  const [allTournaments, recentWinners] = await Promise.all([
     prisma.tournament.findMany({
-      where: { guildId, status: 'LIVE' },
+      where: { guildId, status: { notIn: ['DRAFT', 'ARCHIVED', 'CANCELLED'] } },
       orderBy: { startAt: 'asc' },
-      take: 6,
-      select: {
-        id: true, name: true, game: true, status: true,
-        startAt: true, registrationCloseAt: true,
-        teamCapacity: true, acceptedCount: true,
-      },
-    }),
-    prisma.tournament.findMany({
-      where: { guildId, status: { in: ['REGISTRATION_OPEN', 'CHECK_IN'] } },
-      orderBy: { registrationCloseAt: 'asc' },
-      take: 6,
+      take: 20,
       select: {
         id: true, name: true, game: true, status: true,
         startAt: true, registrationCloseAt: true,
@@ -178,11 +171,29 @@ export default async function ServerPage({
     }),
   ])
 
+  // Derive filtered lists
+  const liveTournaments = allTournaments.filter((t) => t.status === 'LIVE')
+  const upcomingTournaments = allTournaments.filter(
+    (t) => t.status === 'REGISTRATION_OPEN' || t.status === 'CHECK_IN'
+  )
+  const completedTournaments = allTournaments.filter((t) => t.status === 'COMPLETED')
+
+  // Filter based on tab param
+  const tabFilteredTournaments = (() => {
+    switch (activeTab) {
+      case 'LIVE': return liveTournaments
+      case 'REGISTRATION OPEN': return allTournaments.filter((t) => t.status === 'REGISTRATION_OPEN')
+      case 'UPCOMING': return upcomingTournaments
+      case 'COMPLETED': return completedTournaments
+      default: return allTournaments
+    }
+  })()
+
   const accentColor = server.settings?.accentColor ?? '#7c3aed'
 
   const liveNow = liveTournaments.length
   const featuredLive = liveTournaments[0] ?? null
-  const operationsDeck = [...liveTournaments.slice(1), ...upcomingTournaments].slice(0, 4)
+  const operationsDeck = tabFilteredTournaments.slice(0, 8)
 
   return (
     <div
@@ -259,7 +270,7 @@ export default async function ServerPage({
             {[
               {
                 label: 'TOTAL TOURNAMENTS',
-                value: liveTournaments.length + upcomingTournaments.length + recentWinners.length,
+                value: allTournaments.length,
                 color: 'violet' as const,
               },
               {
@@ -296,13 +307,25 @@ export default async function ServerPage({
 
           {/* Filter tabs */}
           <div className="flex items-center gap-1 mb-8 overflow-x-auto pb-1">
-            {['ALL', 'LIVE', 'REGISTRATION OPEN', 'UPCOMING', 'COMPLETED'].map((tab) => (
-              <button
+            {[
+              { tab: 'ALL', label: 'ALL' },
+              { tab: 'LIVE', label: 'LIVE' },
+              { tab: 'REGISTRATION OPEN', label: 'REGISTRATION OPEN' },
+              { tab: 'UPCOMING', label: 'UPCOMING' },
+              { tab: 'COMPLETED', label: 'COMPLETED' },
+            ].map(({ tab, label }) => (
+              <Link
                 key={tab}
-                className="px-3 py-1.5 rounded-full text-xs font-mono font-bold whitespace-nowrap tracking-widest uppercase transition-all text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5 border border-white/10"
+                href={tab === 'ALL' ? `?` : `?tab=${encodeURIComponent(tab)}`}
+                className={[
+                  'px-3 py-1.5 rounded-full text-xs font-mono font-bold whitespace-nowrap tracking-widest uppercase transition-all',
+                  activeTab === tab
+                    ? 'bg-[var(--color-neon-violet)] text-black'
+                    : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5 border border-white/10',
+                ].join(' ')}
               >
-                {tab}
-              </button>
+                {label}
+              </Link>
             ))}
           </div>
 

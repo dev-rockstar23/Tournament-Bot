@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, Lock, ChevronDown, Server, Cpu, Zap } from 'lucide-react'
+import { Lock, ChevronDown, Server, Cpu, Zap } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GlowButton } from '@/components/ui/GlowButton'
 import { NeonText } from '@/components/ui/NeonText'
@@ -87,6 +88,16 @@ export default function LandingPage() {
         className="relative min-h-screen flex flex-col"
         style={{ backgroundColor: '#050508' }}
       >
+        {/* Banner as hero background */}
+        <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
+          <Image
+            src="/shadow-banner.png"
+            alt=""
+            fill
+            className="object-cover opacity-20"
+            unoptimized
+          />
+        </div>
         {/* Subtle grid lines overlay */}
         <div
           className="fixed inset-0 pointer-events-none hud-grid-bg opacity-[0.07]"
@@ -101,7 +112,7 @@ export default function LandingPage() {
             initial="hidden"
             animate="visible"
           >
-            {/* Shield icon */}
+            {/* Logo icon */}
             <motion.div variants={fadeIn} className="flex justify-center mb-6">
               <div
                 className="relative flex items-center justify-center w-20 h-20 rounded-full border border-[rgba(124,58,237,0.5)]"
@@ -112,11 +123,12 @@ export default function LandingPage() {
                     '0 0 40px rgba(124,58,237,0.2), inset 0 0 20px rgba(124,58,237,0.05)',
                 }}
               >
-                <Shield
-                  size={36}
-                  className="text-[#7c3aed]"
-                  style={{ filter: 'drop-shadow(0 0 10px rgba(124,58,237,0.9))' }}
-                  aria-hidden="true"
+                <Image
+                  src="/shadow-logo.png"
+                  alt="SHADØW TOURNAMENTS"
+                  width={80}
+                  height={80}
+                  unoptimized
                 />
                 {/* Pulse ring */}
                 <span
@@ -144,7 +156,7 @@ export default function LandingPage() {
                 glitch
                 className="text-4xl sm:text-5xl md:text-6xl font-black leading-none tracking-[0.08em]"
               >
-                LEGENDARY ESPORTS
+                SHADØW TOURNAMENTS
               </NeonText>
             </motion.div>
 
@@ -323,7 +335,7 @@ export default function LandingPage() {
               ))}
             </div>
             <p className="text-[10px] font-mono tracking-[0.15em] uppercase text-[#2d3748]">
-              © {new Date().getFullYear()} LEGENDARY ESPORTS — ALL RIGHTS RESERVED
+              © {new Date().getFullYear()} SHADØW TOURNAMENTS — ALL RIGHTS RESERVED
             </p>
           </div>
         </footer>

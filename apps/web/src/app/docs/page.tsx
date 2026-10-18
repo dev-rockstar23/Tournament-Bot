@@ -14,7 +14,7 @@ const quickStartSteps = [
   {
     number: '01',
     title: 'Invite Bot',
-    description: 'Add the Legendary Esports bot to your Discord server with Manage Server permissions.',
+    description: 'Add the SHADØW TOURNAMENTS bot to your Discord server with Manage Server permissions.',
     gradient: 'linear-gradient(135deg, #7c3aed 0%, #9f5bff 100%)',
     cmd: '/invite',
     neon: 'violet' as const,
@@ -113,9 +113,9 @@ export default function DocsPage() {
             className="text-4xl sm:text-5xl font-black mb-4 leading-tight"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            LEGENDARY{' '}
+            SHADØW{' '}
             <NeonText as="span" color="violet" glitch>
-              ESPORTS
+              TOURNAMENTS
             </NeonText>
             <br />
             <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.65em', fontWeight: 400 }}>

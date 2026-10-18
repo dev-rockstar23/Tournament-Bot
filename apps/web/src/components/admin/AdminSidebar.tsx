@@ -106,7 +106,7 @@ export function AdminSidebar({
           {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
 
-        {/* ── CONTROL_NEXUS header ── */}
+        {/* ── SHADØW header ── */}
         <div
           className="px-4 py-4 overflow-hidden"
           style={{ borderBottom: '1px solid rgba(124,58,237,0.15)' }}
@@ -117,13 +117,13 @@ export function AdminSidebar({
                 className="text-[11px] font-mono font-bold tracking-[0.2em] uppercase"
                 style={{ color: '#7c3aed', textShadow: '0 0 8px rgba(124,58,237,0.7)' }}
               >
-                CONTROL_NEXUS
+                SHADØW
               </p>
               <p
                 className="text-[9px] font-mono tracking-[0.12em] uppercase mt-0.5"
                 style={{ color: 'rgba(124,58,237,0.6)' }}
               >
-                v3.42
+                TOURNAMENTS v3.42
               </p>
             </>
           ) : (
@@ -131,7 +131,7 @@ export function AdminSidebar({
               className="text-[9px] font-mono font-bold tracking-wider uppercase text-center"
               style={{ color: '#7c3aed' }}
             >
-              CN
+              SW
             </p>
           )}
         </div>

@@ -1,5 +1,6 @@
 export const revalidate = 300
 
+import Link from 'next/link'
 import { prisma } from '@esports/database'
 import Navigation from '@/components/ui/Navigation'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: { guildId: string }
+  searchParams?: { game?: string }
 }
 
 interface AggregatedTeam {
@@ -25,7 +27,7 @@ interface AggregatedTeam {
   bestPlacement: number | null
 }
 
-export default async function LeaderboardsPage({ params }: PageProps) {
+export default async function LeaderboardsPage({ params, searchParams }: PageProps) {
   const scoreEvents = await prisma.scoreEvent.findMany({
     where: {
       status: 'active',
@@ -91,9 +93,20 @@ export default async function LeaderboardsPage({ params }: PageProps) {
       bestPlacement: entry.bestPlacement,
     }))
 
+  // Apply game filter from URL params
+  const activeGame = searchParams?.game ?? 'ALL GAMES'
+  const filteredRows = activeGame === 'ALL GAMES'
+    ? rows
+    : rows.filter((r) => {
+        if (activeGame === 'BGMI') return r.game === 'BGMI'
+        if (activeGame === 'FREE FIRE') return r.game === 'FREE_FIRE'
+        if (activeGame === 'COD MOBILE') return r.game === 'COD_MOBILE'
+        return true
+      })
+
   // Top 3 podium entries (overall, all games combined by team)
   const podiumMap = new Map<string, { teamId: string; name: string; tag: string | null; totalPoints: number; totalKills: number }>()
-  for (const r of rows) {
+  for (const r of filteredRows) {
     const existing = podiumMap.get(r.teamId)
     if (!existing) {
       podiumMap.set(r.teamId, { teamId: r.teamId, name: r.name, tag: r.tag, totalPoints: r.totalPoints, totalKills: r.totalKills })
@@ -106,7 +119,7 @@ export default async function LeaderboardsPage({ params }: PageProps) {
     .sort((a, b) => b.totalPoints - a.totalPoints || b.totalKills - a.totalKills)
     .slice(0, 3)
 
-  const totalPlayers = rows.length
+  const totalPlayers = filteredRows.length
 
   return (
     <main className="min-h-screen pb-16" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
@@ -208,18 +221,24 @@ export default async function LeaderboardsPage({ params }: PageProps) {
 
         {/* Game filter tabs */}
         <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-1">
-          {['ALL GAMES', 'BGMI', 'FREE FIRE', 'COD MOBILE'].map((game, i) => (
-            <button
-              key={game}
+          {[
+            { label: 'ALL GAMES', param: 'ALL GAMES' },
+            { label: 'BGMI', param: 'BGMI' },
+            { label: 'FREE FIRE', param: 'FREE FIRE' },
+            { label: 'COD MOBILE', param: 'COD MOBILE' },
+          ].map(({ label, param }) => (
+            <Link
+              key={param}
+              href={param === 'ALL GAMES' ? '?' : `?game=${encodeURIComponent(param)}`}
               className={[
                 'px-3 py-1.5 rounded-full text-xs font-mono font-bold whitespace-nowrap tracking-widest uppercase transition-all',
-                i === 0
+                activeGame === param
                   ? 'bg-[var(--color-neon-violet)] text-black'
                   : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5 border border-white/10',
               ].join(' ')}
             >
-              {game}
-            </button>
+              {label}
+            </Link>
           ))}
           <div className="ml-auto text-xs font-mono text-[var(--color-text-muted)] tracking-widest whitespace-nowrap">
             {totalPlayers} TEAMS RANKED
@@ -235,7 +254,7 @@ export default async function LeaderboardsPage({ params }: PageProps) {
                   OFFICIAL STANDINGS TABLE
                 </NeonText>
               </div>
-              <LeaderboardsClient rows={rows} />
+              <LeaderboardsClient rows={filteredRows} />
             </GlassCard>
           </div>
 
@@ -246,9 +265,9 @@ export default async function LeaderboardsPage({ params }: PageProps) {
               <p className="text-xs font-mono text-red-400 tracking-widest uppercase mb-3 font-bold">
                 MVP FRAG RACE
               </p>
-              {rows.length > 0 ? (
+              {filteredRows.length > 0 ? (
                 <div className="space-y-2">
-                  {rows.slice(0, 5).map((r, i) => (
+                  {filteredRows.slice(0, 5).map((r, i) => (
                     <div key={r.teamId + r.game} className="flex items-center gap-3">
                       <span className="text-xs font-mono text-[var(--color-text-muted)] w-4">#{i + 1}</span>
                       <div className="flex-1 min-w-0">
@@ -256,7 +275,7 @@ export default async function LeaderboardsPage({ params }: PageProps) {
                         <div className="mt-0.5 h-1 rounded-full bg-white/10 overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-red-500 to-orange-500"
-                            style={{ width: `${rows[0] ? Math.min((r.totalKills / Math.max(rows[0].totalKills, 1)) * 100, 100) : 0}%` }}
+                            style={{ width: `${filteredRows[0] ? Math.min((r.totalKills / Math.max(filteredRows[0].totalKills, 1)) * 100, 100) : 0}%` }}
                           />
                         </div>
                       </div>
@@ -276,9 +295,9 @@ export default async function LeaderboardsPage({ params }: PageProps) {
               </p>
               <div className="space-y-2 text-xs font-mono">
                 {[
-                  { label: 'HIGHEST SCORE', value: rows.length > 0 ? `${rows[0].totalPoints}pt` : '—', color: 'text-[var(--color-neon-violet)]' },
-                  { label: 'MOST KILLS', value: rows.length > 0 ? `${rows.reduce((a, b) => a.totalKills > b.totalKills ? a : b, rows[0]).totalKills}K` : '—', color: 'text-red-400' },
-                  { label: 'TOURNAMENTS', value: String(new Set(rows.map((r) => r.game)).size > 0 ? rows[0]?.tournamentsPlayed ?? 0 : 0), color: 'text-[var(--color-neon-cyan)]' },
+                  { label: 'HIGHEST SCORE', value: filteredRows.length > 0 ? `${filteredRows[0].totalPoints}pt` : '—', color: 'text-[var(--color-neon-violet)]' },
+                  { label: 'MOST KILLS', value: filteredRows.length > 0 ? `${filteredRows.reduce((a, b) => a.totalKills > b.totalKills ? a : b, filteredRows[0]).totalKills}K` : '—', color: 'text-red-400' },
+                  { label: 'TOURNAMENTS', value: String(new Set(filteredRows.map((r) => r.game)).size > 0 ? filteredRows[0]?.tournamentsPlayed ?? 0 : 0), color: 'text-[var(--color-neon-cyan)]' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="flex justify-between items-center py-1.5 border-b border-white/5">
                     <span className="text-[var(--color-text-muted)] tracking-wider">{label}</span>

@@ -33,7 +33,7 @@ export default function OverlayClient({
   tournamentId,
   initialStandings,
   initialMatch,
-  serverName = 'LEGENDARY ESPORTS',
+  serverName = 'SHADØW TOURNAMENTS',
 }: Props) {
   const queryClient = useQueryClient()
   const [standings, setStandings] = useState<StandingRow[]>(initialStandings)
