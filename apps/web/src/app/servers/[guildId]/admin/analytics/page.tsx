@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { resolveUserRole, AppRole } from '@esports/permissions';
 import { prisma } from '@esports/database';
-import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { AnalyticsNexus } from '@/components/analytics/AnalyticsNexus';
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +66,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
   }
 
   return (
-    <AnalyticsDashboard
+    <AnalyticsNexus
       guildId={guildId}
       initialData={initialData}
       userRole={userRole as AppRole}

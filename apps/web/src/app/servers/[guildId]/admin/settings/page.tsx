@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { resolveUserRole, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
-import { ServerSettingsPanel } from '@/components/admin/ServerSettingsPanel'
+import { SettingsNexus } from '@/components/admin/SettingsNexus'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,15 +83,6 @@ export default async function AdminSettingsPage({ params }: PageProps) {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-black text-white">Server Settings</h1>
-        <p className="text-white/50 text-sm mt-1">
-          Configure branding, channels, staff roles, and integrations
-        </p>
-      </div>
-
-      <ServerSettingsPanel guildId={guildId} initialSettings={initialSettings} />
-    </div>
+    <SettingsNexus guildId={guildId} initialSettings={initialSettings} />
   )
 }

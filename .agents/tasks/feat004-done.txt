@@ -1,51 +1,96 @@
-FEAT-004: Multi-Match Scheduler — COMPLETE
-==========================================
+FEAT-004: Admin + Developer Pages — Cyberpunk UI Redesign
+=========================================================
+Completed: all 7 pages redesigned + 1 developer dashboard
 
-Files created/updated:
+CHANGES SUMMARY
+---------------
 
-1. apps/web/src/app/api/servers/[guildId]/tournaments/[tournamentId]/matches/bulk/route.ts
-   - POST endpoint with TOURNAMENT_MANAGER permission
-   - Zod-validated BulkMatchSchema (count, firstMatchStart, durationMinutes, gapMinutes, defaultMap, defaultMode, stageId, resultDeadlineMinutes)
-   - Single $transaction: validates stage→tournament→guild ownership, gets highest match number,
-     creates each match with sequential time slots, 4 ScheduledJob rows per match (24h, 30min,
-     5min reminders + result deadline), and one OutboxEvent(MATCH_SCHEDULED) per match
+1. apps/web/src/components/admin/AdminDashboardNexus.tsx  [NEW]
+   - "TOURNAMENT CONTROL NEXUS" header with version badge + SYNCED pulse
+   - HUD status bar: COMMANDS / DELAY / ROOM / ROLES / BROADCAST HUD
+   - Metrics row 1: Total Tourneys, Currently Live, Upcoming, Registrations,
+     Unique Players, Active Teams (GlassCard neonColor=violet)
+   - Metrics row 2: Fill Rate, Check-in Rate, No-Show Rate, Pending Results,
+     Open Disputes, Completion (GlassCard neonColor=cyan)
+   - Urgent Ops Queue: dispute cards with FILE EVIDENCE / APPROVE / REJECT /
+     OPEN DISPUTE buttons (GlowButton variants)
+   - Active Deployment Grid table (tab-switched with dispute queue)
+   - Registration Velocity area chart (recharts AreaChart)
+   - Staff & Defense panel + Sentinel Alerts + Quick Actions (right column)
 
-2. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/schedule/route.ts
-   - PATCH endpoint with TOURNAMENT_MANAGER permission
-   - RescheduleSchema with cascadeSubsequent, map, mode
-   - Computes timeDelta, cascades to all subsequent matches in stage if requested
-   - Cancels PENDING jobs, creates new versioned job keys, writes OutboxEvent + AuditLog
-   - Non-blocking overlap detection: returns warnings: ['OVERLAP_DETECTED'] if any two
-     matches in the tournament have overlapping windows
+2. apps/web/src/app/servers/[guildId]/admin/tournaments/page.tsx  [UPDATED]
+   - Swapped TournamentAdminTable render for AdminDashboardNexus
+   - All Prisma queries kept untouched
 
-3. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/checkin/route.ts  (NEW)
-   - POST endpoint with PLAYER permission
-   - Validates match is in CHECK_IN or READY status
-   - Finds MatchParticipant for a team captained by the requesting user
-   - Sets checkedIn=true, checkedInAt=now()
+3. apps/web/src/app/servers/[guildId]/admin/tournaments/new/page.tsx  [UPDATED]
+   - 6-step wizard header bar with step labels
+   - Registration Format Schema: 6 format cards (SOLO/DUO/TRIO/SQUAD/SQUAD+1/OPEN)
+   - Slot Force-Fill Manager panel (advanced section below wizard)
+   - Capacity Matrix display + Approval Gates + Registration Tariff panels
+   - Keeps TournamentWizard component untouched
 
-4. apps/web/src/app/api/servers/[guildId]/matches/[matchId]/room/route.ts  (NEW)
-   - GET endpoint with PLAYER permission
-   - Returns {roomId, password} ONLY to captains of checked-in teams
-   - Validates: match LIVE/READY, RoomCredential exists, releaseAt <= now(), user is checked-in captain
-   - Credentials never exposed in any other route
+4. apps/web/src/app/servers/[guildId]/admin/tournaments/[tournamentId]/page.tsx  [UPDATED]
+   - Cyberpunk header with tournament name + status badge
+   - Slot visualizer grid (accepted/pending/open coded by color)
+   - Legend for slot states
+   - TournamentDetailPanel component kept in place below
 
-5. apps/web/src/app/servers/[guildId]/admin/matches/page.tsx  (NEW)
-   - Server component with REFEREE+ auth guard
-   - Fetches all tournaments with stages→matches scoped by guildId
-   - Serializes Dates to ISO strings, renders MatchSchedulerPanel
+5. apps/web/src/components/analytics/AnalyticsNexus.tsx  [NEW]
+   - "SERVER ANALYTICS & COMPETITIVE INTELLIGENCE" glitch header
+   - Primary KPI row: Total Tourneys, Active Live, Total Registrations,
+     Unique Combatants
+   - Secondary 8-KPI row: Fill Rate, Check-in Attendance, Match Completion,
+     Dispute Escalations, Disbursed Escrow, OCR Delay, Krafton Match Rate,
+     Sentinel Flag Rate
+   - Registration Velocity area chart (dual series: registrations + check-ins)
+   - Game Segment Share donut (recharts PieChart)
+   - OCR Arbitration Latency histogram (horizontal BarChart)
+   - Leaderboard Telemetry table + Individual Athlete Telemetry table
+   - Export panel
 
-6. apps/web/src/components/admin/MatchSchedulerPanel.tsx  (NEW)
-   - 'use client' component
-   - Tournament selector dropdown at top
-   - Match list table with number, datetime, map, mode, status badge
-   - Collapsible bulk generation form with:
-     - Count button group (1/2/3/4/6/8/10)
-     - Stage selector, first match datetime
-     - Duration/gap/deadline number inputs
-     - Default map (select from mapPool if available, else text input) + mode input
-     - "Generate Preview" button (calculates timeline without saving)
-     - "Create Matches" button (calls bulk API, shows toast)
-   - Preview timeline rendered as GlassCards with match number, time, map/mode
+6. apps/web/src/app/servers/[guildId]/admin/analytics/page.tsx  [UPDATED]
+   - Swapped AnalyticsDashboard for AnalyticsNexus
+   - All auth/Prisma logic untouched
 
-TypeScript: pnpm --filter web type-check → Exit 0 (no errors)
+7. apps/web/src/components/admin/SettingsNexus.tsx  [NEW]
+   - 3-tab design: STAFF MANAGEMENT & ROLES / TIMEZONE & CHANNELS / ANTI-BRUTE FORCE SECURITY
+   - Staff Role Bindings table (Discord Role → App Role → Members → Security Tier)
+   - Active Staff Directory cards grid with online status pulses
+   - Chrono & Channels panel (timezone picker, channel bindings)
+   - Security Sentinel panel (rate limits, lockout, security events log)
+
+8. apps/web/src/app/servers/[guildId]/admin/settings/page.tsx  [UPDATED]
+   - Swapped ServerSettingsPanel render for SettingsNexus
+   - All auth/Prisma logic untouched; initialSettings passed through
+
+9. apps/web/src/app/servers/[guildId]/admin/payment/page.tsx  [REWRITTEN]
+   - "PAYMENT OPERATIONS & TRANSACTION AUDIT" header with PCI-DSS badge
+   - KPI row: Total Collected, Active Escrow, Disbursed, Failed/Reversed
+   - Filter tabs (ALL/COLLECTED/ESCROW/DISBURSED/FAILED)
+   - Live Ledger table with animated row transitions
+   - Razorpay Webhook Health panel (right column)
+   - Escrow Release Policy panel
+   - Credentials form (save/delete) kept functionally identical to original
+
+10. apps/web/src/components/developer/DeveloperDashboard.tsx  [REWRITTEN]
+    - 4-tab layout: BOT ANALYTICS / BOT ERRORS / BRIDGE HEALTH / WEBSITE ERRORS
+    - BOT ANALYTICS: KPI cards, execution ratio donut (recharts), most used
+      commands horizontal bar chart, live command trace table
+    - BOT ERRORS: critical error cards with stack trace accordion, SNOOZE /
+      MARK RESOLVED buttons; regular errors in collapsible rows
+    - BRIDGE HEALTH: 4 named connection nodes (Neon DB / Railway Bot /
+      Vercel Web / Upstash Redis) each with latency bar + status pulse
+    - WEBSITE ERRORS: NextJS error categories table with critical/warning/info
+      severity badges + summary count cards
+
+TECHNICAL COMPLIANCE
+--------------------
+- export const dynamic = 'force-dynamic' present on all page files
+- All Prisma queries kept exactly as-is (only JSX return changed)
+- All auth guards kept exactly as-is
+- TypeScript strict — npx tsc --noEmit exits 0, no errors
+- Uses: GlassCard neonColor, GlowButton cyber variant, NeonText glitch,
+  StatusPulse, CyberBreadcrumb, scanline-overlay, hud-grid-bg CSS classes
+- recharts AreaChart / BarChart / PieChart used for all charts
+- framer-motion motion.div used for animated entry
+- No 'any' types introduced

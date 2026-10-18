@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { resolveUserRole, AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
-import { TournamentAdminTable, type AdminTournament } from '@/components/admin/TournamentAdminTable'
+import { type AdminTournament } from '@/components/admin/TournamentAdminTable'
+import { AdminDashboardNexus } from '@/components/admin/AdminDashboardNexus'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -76,9 +77,9 @@ export default async function AdminTournamentsPage({ params }: PageProps) {
   }))
 
   return (
-    <TournamentAdminTable
+    <AdminDashboardNexus
       guildId={guildId}
-      initialData={initialData}
+      tournaments={initialData}
       userRole={userRole as AppRole}
     />
   )
