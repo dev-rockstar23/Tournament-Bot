@@ -1,0 +1,24 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "id": "hardcoded-og-domain",
+      "severity": "minor",
+      "summary": "Hardcoded OG image domain",
+      "detail": "og:image and twitter:image in layout.tsx are hardcoded to https://shadow-tournaments.vercel.app/shadow-banner.png. If the deployment domain differs, social preview cards will serve a broken image. Fix by using metadataBase or NEXT_PUBLIC_SITE_URL."
+    },
+    {
+      "id": "mobile-nav-active-state",
+      "severity": "minor",
+      "summary": "Mobile nav drawer uses exact pathname match instead of startsWith",
+      "detail": "Desktop nav correctly uses pathname.startsWith(link.href) but the mobile drawer uses pathname === link.href. Sub-pages under /docs/ will not highlight the Docs link on mobile."
+    },
+    {
+      "id": "discord-bot-brand-residue",
+      "severity": "informational",
+      "summary": "Discord bot still uses Legendary Esports brand (out of web scope)",
+      "detail": "apps/discord-bot/src/ contains 12+ files with Legendary Esports in embed footers and /setup command descriptions. Out of scope for this diff but visible to end-users via Discord."
+    }
+  ],
+  "reviewDoc": "d:\\Discord Projects\\Tournament-Bot\\esports-platform\\.agents\\tasks\\shadow-rebrand-review.md"
+}
