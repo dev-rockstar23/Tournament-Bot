@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { useMotionValue, useTransform, animate, motion, useInView } from 'framer-motion'
+import { cn } from '@/lib/utils'
+import { scaleIn } from '@/lib/motion'
 
 interface AnimatedCounterProps {
   value: number
@@ -8,6 +10,8 @@ interface AnimatedCounterProps {
   prefix?: string
   suffix?: string
   className?: string
+  /** Render the number in font-mono */
+  monospace?: boolean
 }
 
 export function AnimatedCounter({
@@ -16,6 +20,7 @@ export function AnimatedCounter({
   prefix = '',
   suffix = '',
   className,
+  monospace = false,
 }: AnimatedCounterProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const motionValue = useMotionValue(0)
@@ -30,9 +35,15 @@ export function AnimatedCounter({
   }, [isInView, value, duration, motionValue])
 
   return (
-    <span ref={ref} className={className}>
+    <span ref={ref} className={cn(monospace && 'font-mono', className)}>
       {prefix}
-      <motion.span>{rounded}</motion.span>
+      <motion.span
+        variants={scaleIn}
+        initial="hidden"
+        animate={isInView ? 'visible' : 'hidden'}
+      >
+        {rounded}
+      </motion.span>
       {suffix}
     </span>
   )

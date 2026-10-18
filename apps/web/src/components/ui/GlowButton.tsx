@@ -2,7 +2,7 @@
 import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
-type Variant = 'primary' | 'secondary' | 'destructive' | 'ghost'
+type Variant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'cyber'
 type Size = 'sm' | 'md' | 'lg'
 
 interface GlowButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,15 +19,15 @@ const variantClasses: Record<Variant, string> = {
     'border border-[rgba(124,58,237,0.5)]',
     'hover:from-[#6d28d9] hover:to-[#8b5cf6]',
     'hover:shadow-[0_0_20px_rgba(124,58,237,0.6),0_0_40px_rgba(124,58,237,0.3)]',
-    'focus-visible:ring-2 focus-visible:ring-[#7c3aed] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]',
+    'focus-visible:ring-2 focus-visible:ring-[#7c3aed] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508]',
   ].join(' '),
   secondary: [
     'bg-gradient-to-r from-[#06b6d4] to-[#22d3ee]',
-    'text-[#0a0a0f] font-semibold',
+    'text-[#050508] font-semibold',
     'border border-[rgba(6,182,212,0.5)]',
     'hover:from-[#0891b2] hover:to-[#06b6d4]',
     'hover:shadow-[0_0_20px_rgba(6,182,212,0.6),0_0_40px_rgba(6,182,212,0.3)]',
-    'focus-visible:ring-2 focus-visible:ring-[#06b6d4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]',
+    'focus-visible:ring-2 focus-visible:ring-[#06b6d4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508]',
   ].join(' '),
   destructive: [
     'bg-gradient-to-r from-[#dc2626] to-[#ef4444]',
@@ -35,14 +35,22 @@ const variantClasses: Record<Variant, string> = {
     'border border-[rgba(220,38,38,0.5)]',
     'hover:from-[#b91c1c] hover:to-[#dc2626]',
     'hover:shadow-[0_0_20px_rgba(220,38,38,0.6),0_0_40px_rgba(220,38,38,0.3)]',
-    'focus-visible:ring-2 focus-visible:ring-[#dc2626] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]',
+    'focus-visible:ring-2 focus-visible:ring-[#dc2626] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508]',
   ].join(' '),
   ghost: [
     'bg-transparent',
     'text-[#f8fafc] font-semibold',
     'border border-[rgba(255,255,255,0.15)]',
     'hover:bg-white/5 hover:border-[rgba(255,255,255,0.3)]',
-    'focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]',
+    'focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508]',
+  ].join(' '),
+  cyber: [
+    'bg-gradient-to-r from-[#06b6d4] to-[#22d3ee]',
+    'text-[#050508] font-bold font-mono tracking-widest uppercase',
+    'border border-[rgba(6,182,212,0.6)]',
+    'hover:from-[#0891b2] hover:to-[#06b6d4]',
+    'hover:shadow-[0_0_20px_rgba(124,58,237,0.6),0_0_40px_rgba(6,182,212,0.4)]',
+    'focus-visible:ring-2 focus-visible:ring-[#06b6d4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508]',
   ].join(' '),
 }
 
@@ -51,6 +59,9 @@ const sizeClasses: Record<Size, string> = {
   md: 'px-6 py-2.5 text-sm rounded-xl',
   lg: 'px-8 py-3 text-base rounded-xl',
 }
+
+/** Variants that get the shimmer animation span */
+const shimmerVariants: Set<Variant> = new Set(['primary', 'cyber'])
 
 export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
   (
@@ -67,6 +78,7 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
   ) => {
     const baseClasses = cn(
       'inline-flex items-center justify-center gap-2',
+      'relative overflow-hidden',
       'transition-all duration-200 ease-out',
       'select-none outline-none',
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
@@ -75,13 +87,18 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
       className
     )
 
-    // When asChild=true, clone the single child and apply our classes to it
+    const shimmer = shimmerVariants.has(variant) ? (
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"
+        style={{ backgroundSize: '200% 100%' }}
+      />
+    ) : null
+
     if (asChild && children) {
-      // We just render children wrapped in a span-like container using a div trick.
-      // Since @radix-ui/react-slot is not installed, we render a styled wrapper
-      // that acts as a passthrough by making the child fill it completely.
       return (
         <span className={cn(baseClasses, 'relative')}>
+          {shimmer}
           {children}
         </span>
       )
@@ -94,6 +111,7 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
         disabled={disabled}
         {...props}
       >
+        {shimmer}
         {children}
       </button>
     )

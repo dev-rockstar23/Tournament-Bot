@@ -53,3 +53,30 @@ export const rankChange: Variants = {
   initial: { scale: 1.2, color: '#22c55e' },
   animate: { scale: 1, color: 'inherit', transition: { duration: 0.4 } }
 }
+
+// ── Cyberpunk additions ───────────────────────────────────────────────────────
+
+/** Glitch reveal: opacity fade + brief horizontal jitter with skew */
+export const glitchReveal: Variants = {
+  hidden:  { opacity: 0, x: -4, skewX: 2 },
+  visible: { opacity: 1, x: 0, skewX: 0, transition: { duration: 0.4 } },
+}
+
+/** Scan-in: clip-path reveal sweeping from top to bottom */
+export const scanIn: Variants = {
+  hidden:  { clipPath: 'inset(0 0 100% 0)' },
+  visible: {
+    clipPath: 'inset(0 0 0% 0)',
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  },
+}
+
+/** Counter pop: scale bounce on reveal */
+export const counterPop: Variants = {
+  hidden:  { scale: 0.8, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 300, damping: 20 },
+  },
+}

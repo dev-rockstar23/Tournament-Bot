@@ -5,23 +5,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #1a1a2e;
-  --color-bg-card: #16213e;
-  --color-bg-elevated: #1e2a4a;
-  --color-accent: #7c3aed;
-  --color-accent-glow: #9f5bff;
-  --color-accent-2: #06b6d4;
-  --color-accent-2-glow: #22d3ee;
-  --color-text-primary: #f8fafc;
+  /* ── Background tokens ───────────────────────────────────────── */
+  --color-bg-primary:   #050508;
+  --color-bg-secondary: #0d0d18;
+  --color-bg-card:      #111127;
+  --color-bg-elevated:  #1e2a4a;
+  --color-bg-hud:       #0a0a14;
+
+  /* ── Accent / brand ──────────────────────────────────────────── */
+  --color-accent:       #7c3aed;
+  --color-accent-glow:  #9f5bff;
+  --color-accent-2:     #06b6d4;
+  --color-accent-2-glow:#22d3ee;
+
+  /* ── Neon palette ────────────────────────────────────────────── */
+  --color-neon-violet:  #7c3aed;
+  --color-neon-cyan:    #06b6d4;
+  --color-neon-red:     #ef4444;
+  --color-neon-green:   #22c55e;
+  --color-neon-amber:   #f59e0b;
+
+  /* ── Text ────────────────────────────────────────────────────── */
+  --color-text-primary:   #f8fafc;
   --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text-muted:     #64748b;
+
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --color-border:        rgba(255, 255, 255, 0.08);
   --color-border-accent: rgba(124, 58, 237, 0.30);
 
+  /* ── Typography ──────────────────────────────────────────────── */
   --font-display: 'Orbitron', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -45,8 +61,11 @@ body {
 
 h1, h2, h3 { font-family: var(--font-display); }
 
+/* ═══════════════════════════════════════════════════════════════
+   GLASS CARD
+═══════════════════════════════════════════════════════════════ */
 .glass-card {
-  background: rgba(22, 33, 62, 0.60);
+  background: rgba(17, 17, 39, 0.60);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -69,6 +88,9 @@ h1, h2, h3 { font-family: var(--font-display); }
   transform: translateY(-2px);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   KEYFRAMES — original
+═══════════════════════════════════════════════════════════════ */
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -80,21 +102,70 @@ h1, h2, h3 { font-family: var(--font-display); }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 10px rgba(124,58,237,0.3); }
-  50% { box-shadow: 0 0 30px rgba(124,58,237,0.8), 0 0 60px rgba(124,58,237,0.4); }
+  50%       { box-shadow: 0 0 30px rgba(124,58,237,0.8), 0 0 60px rgba(124,58,237,0.4); }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50%       { transform: translateY(-10px); }
 }
 
-/* Animated gradient border for tournament cards */
+@keyframes rank-up {
+  0%   { transform: translateY(4px);  color: #22c55e; }
+  100% { transform: translateY(0);    color: inherit; }
+}
+@keyframes rank-down {
+  0%   { transform: translateY(-4px); color: #ef4444; }
+  100% { transform: translateY(0);    color: inherit; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYFRAMES — cyberpunk additions
+═══════════════════════════════════════════════════════════════ */
+
+/* Glitch: clips text layer for glitch effect */
+@keyframes glitch-clip {
+  0%   { clip-path: inset(40% 0 61% 0); transform: translate(-2px, 0); }
+  20%  { clip-path: inset(92% 0 1%  0); transform: translate(2px,  0); }
+  40%  { clip-path: inset(43% 0 1%  0); transform: translate(1px,  0); }
+  60%  { clip-path: inset(25% 0 58% 0); transform: translate(-1px, 0); }
+  80%  { clip-path: inset(54% 0 7%  0); transform: translate(2px,  0); }
+  100% { clip-path: inset(58% 0 43% 0); transform: translate(-2px, 0); }
+}
+
+/* Scanline: vertical scan animation for overlay */
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Grid scroll: scrolling perspective grid background */
+@keyframes grid-scroll {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 60px; }
+}
+
+/* HUD slide-in: status-bar entrance */
+@keyframes hud-slide-in {
+  0%   { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* Data flicker: random opacity flicker for terminal text */
+@keyframes data-flicker {
+  0%,  19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 22%, 24%, 55%                        { opacity: 0.4; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOURNAMENT CARD GLOW
+═══════════════════════════════════════════════════════════════ */
 .tournament-card-glow {
   position: relative;
 }
@@ -113,7 +184,9 @@ h1, h2, h3 { font-family: var(--font-display); }
   opacity: 1;
 }
 
-/* Live match pulsing indicator */
+/* ═══════════════════════════════════════════════════════════════
+   LIVE MATCH INDICATOR
+═══════════════════════════════════════════════════════════════ */
 .live-indicator {
   display: inline-flex;
   align-items: center;
@@ -129,19 +202,112 @@ h1, h2, h3 { font-family: var(--font-display); }
   box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
 }
 
-/* Championship podium */
-.podium-first { animation: float 3s ease-in-out infinite; }
+/* ═══════════════════════════════════════════════════════════════
+   CHAMPIONSHIP PODIUM
+═══════════════════════════════════════════════════════════════ */
+.podium-first  { animation: float 3s ease-in-out infinite; }
 .podium-second { animation: float 3s ease-in-out infinite 0.5s; }
-.podium-third { animation: float 3s ease-in-out infinite 1s; }
+.podium-third  { animation: float 3s ease-in-out infinite 1s; }
 
-/* Rank change animation */
-@keyframes rank-up {
-  0% { transform: translateY(4px); color: #22c55e; }
-  100% { transform: translateY(0); color: inherit; }
-}
-@keyframes rank-down {
-  0% { transform: translateY(-4px); color: #ef4444; }
-  100% { transform: translateY(0); color: inherit; }
-}
-.rank-changed-up { animation: rank-up 0.5s ease-out; }
+/* ═══════════════════════════════════════════════════════════════
+   RANK CHANGE
+═══════════════════════════════════════════════════════════════ */
+.rank-changed-up   { animation: rank-up   0.5s ease-out; }
 .rank-changed-down { animation: rank-down 0.5s ease-out; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CYBERPUNK UTILITY CLASSES
+═══════════════════════════════════════════════════════════════ */
+
+/* Scanline overlay — full-size child div inside a relative parent */
+.scanline-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  z-index: 1;
+}
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(6, 182, 212, 0.08) 50%,
+    transparent 100%
+  );
+  animation: scanline 8s linear infinite;
+}
+
+/* HUD grid background */
+.hud-grid-bg {
+  background-color: var(--color-bg-hud);
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  animation: grid-scroll 4s linear infinite;
+}
+
+/* Neon text utilities */
+.neon-text-violet {
+  color: var(--color-neon-violet);
+  text-shadow:
+    0 0 6px  rgba(124, 58, 237, 0.9),
+    0 0 20px rgba(124, 58, 237, 0.6),
+    0 0 40px rgba(124, 58, 237, 0.3);
+}
+
+.neon-text-cyan {
+  color: var(--color-neon-cyan);
+  text-shadow:
+    0 0 6px  rgba(6, 182, 212, 0.9),
+    0 0 20px rgba(6, 182, 212, 0.6),
+    0 0 40px rgba(6, 182, 212, 0.3);
+}
+
+/* Neon border utilities */
+.neon-border-violet {
+  border-color: var(--color-neon-violet) !important;
+  box-shadow:
+    0 0 6px  rgba(124, 58, 237, 0.6),
+    0 0 20px rgba(124, 58, 237, 0.3),
+    inset 0 0 6px rgba(124, 58, 237, 0.1);
+}
+
+.neon-border-cyan {
+  border-color: var(--color-neon-cyan) !important;
+  box-shadow:
+    0 0 6px  rgba(6, 182, 212, 0.6),
+    0 0 20px rgba(6, 182, 212, 0.3),
+    inset 0 0 6px rgba(6, 182, 212, 0.1);
+}
+
+/* Glitch text — requires data-text attribute equal to the text content */
+.glitch-text {
+  position: relative;
+}
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+.glitch-text::before {
+  color: var(--color-neon-cyan);
+  animation: glitch-clip 0.4s steps(2, end) infinite;
+  clip-path: inset(0 0 50% 0);
+  transform: translate(-1px, 0);
+}
+.glitch-text::after {
+  color: var(--color-neon-violet);
+  animation: glitch-clip 0.4s steps(2, end) infinite reverse;
+  clip-path: inset(50% 0 0 0);
+  transform: translate(1px, 0);
+}
