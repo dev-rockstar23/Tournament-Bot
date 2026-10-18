@@ -26,6 +26,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://shadow-tournaments.vercel.app'),
   title: {
     default: 'SHADØW TOURNAMENTS',
     template: '%s | SHADØW TOURNAMENTS',
@@ -41,9 +42,7 @@ export const metadata: Metadata = {
     title: 'SHADØW TOURNAMENTS',
     description:
       'Discord-native esports tournament platform for BGMI, Free Fire & COD Mobile',
-    images: [
-      { url: 'https://shadow-tournaments.vercel.app/shadow-banner.png' },
-    ],
+    images: [{ url: '/shadow-banner.png' }],
     url: 'https://shadow-tournaments.vercel.app',
     siteName: 'SHADØW TOURNAMENTS',
     type: 'website',
@@ -53,7 +52,7 @@ export const metadata: Metadata = {
     title: 'SHADØW TOURNAMENTS',
     description:
       'Discord-native esports tournament platform for BGMI, Free Fire & COD Mobile',
-    images: ['https://shadow-tournaments.vercel.app/shadow-banner.png'],
+    images: ['/shadow-banner.png'],
   },
 }
 

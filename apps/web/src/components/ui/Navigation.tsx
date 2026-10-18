@@ -303,7 +303,7 @@ export default function Navigation() {
                 style={{ backgroundColor: 'rgba(5,5,8,0.98)' }}
               >
                 {navLinks.map((link) => {
-                  const isActive = pathname === link.href
+                  const isActive = pathname?.startsWith(link.href) ?? false
                   return (
                     <Link
                       key={link.label}
