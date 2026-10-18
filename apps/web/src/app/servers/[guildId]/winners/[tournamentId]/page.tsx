@@ -10,6 +10,12 @@ import {
   type StandingRow,
 } from '@/components/tournament/WinnerDetailPodium'
 import { PodiumWrapper } from '@/components/tournament/PodiumWrapper'
+import Navigation from '@/components/ui/Navigation'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { NeonText } from '@/components/ui/NeonText'
+import { StatusBar } from '@/components/ui/StatusBar'
+import { CyberBreadcrumb } from '@/components/ui/CyberBreadcrumb'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,19 +98,13 @@ export default async function TournamentWinnersPage({ params }: PageProps) {
   let standingsRows: StandingRow[] = []
   try {
     const raw = await computeTournamentStandings(prisma, tournamentId, guildId)
-
-    // Enrich with team names from the DB
     const teamIds = raw.map((r) => r.teamId)
     const teams = await prisma.team.findMany({
       where: { id: { in: teamIds } },
       select: { id: true, name: true },
     })
     const teamMap = new Map(teams.map((t) => [t.id, t.name]))
-
-    standingsRows = raw.map((r) => ({
-      ...r,
-      teamName: teamMap.get(r.teamId),
-    }))
+    standingsRows = raw.map((r) => ({ ...r, teamName: teamMap.get(r.teamId) }))
   } catch {
     // standings failure must not break the page
   }
@@ -129,31 +129,40 @@ export default async function TournamentWinnersPage({ params }: PageProps) {
     'bg-violet-500/15 border-violet-500/30 text-violet-400'
 
   const isCompleted = tournament.status === 'COMPLETED'
+  const champion = winners.find((w) => w.placement === 1)
 
   return (
-    <main
-      className="min-h-screen"
-      style={{ backgroundColor: 'var(--color-bg-primary)' }}
-    >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="min-h-screen pb-16" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+      <div className="scanline-overlay" aria-hidden="true" />
+      <Navigation />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <CyberBreadcrumb
+          labels={{
+            servers: 'Servers',
+            [guildId]: 'Guild',
+            winners: 'Hall of Fame',
+            [tournamentId]: tournament.name,
+          }}
+          className="mb-6"
+        />
+
         {/* Tournament header */}
-        <div className="mb-12 text-center">
+        <div className="mb-10 text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeClass}`}
-            >
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium border ${badgeClass}`}>
               {gameLabels[tournament.game as string] ?? tournament.game}
             </span>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium border bg-amber-500/15 border-amber-500/30 text-amber-400">
+              COMPLETED
+            </span>
           </div>
-          <h1
-            className="font-display text-4xl sm:text-5xl font-black text-white leading-tight"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <NeonText as="h1" color="violet" glitch className="text-4xl sm:text-5xl font-black leading-tight mb-3">
             {tournament.name}
-          </h1>
+          </NeonText>
           {tournament.completedAt && (
-            <p className="text-white/40 text-sm mt-3">
-              Completed{' '}
+            <p className="text-[var(--color-text-muted)] text-sm font-mono tracking-wider">
+              COMPLETED:{' '}
               {new Intl.DateTimeFormat('en-IN', {
                 year: 'numeric',
                 month: 'long',
@@ -161,17 +170,52 @@ export default async function TournamentWinnersPage({ params }: PageProps) {
               }).format(tournament.completedAt)}
             </p>
           )}
+          {champion && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <span className="text-xl">🏆</span>
+              <span className="text-sm font-bold font-display text-amber-400">{champion.team.name}</span>
+              <span className="text-xs font-mono text-[var(--color-text-muted)] tracking-widest uppercase">CHAMPION</span>
+            </div>
+          )}
         </div>
 
-        {/* Podium section wrapped with framer-motion + CSS confetti */}
-        <PodiumWrapper showConfetti={isCompleted}>
-          <WinnerDetailPodium
-            winners={winners}
-            awards={awards}
-            standings={standingsRows}
-          />
-        </PodiumWrapper>
+        {/* Full result detail */}
+        <GlassCard neonColor="violet" className="p-6 mb-8">
+          <NeonText as="h2" color="cyan" className="text-sm font-bold tracking-widest uppercase mb-4">
+            TOURNAMENT RESULT DETAIL
+          </NeonText>
+          {/* Podium section wrapped with framer-motion + CSS confetti */}
+          <PodiumWrapper showConfetti={isCompleted}>
+            <WinnerDetailPodium
+              winners={winners}
+              awards={awards}
+              standings={standingsRows}
+            />
+          </PodiumWrapper>
+        </GlassCard>
+
+        {/* Nav links */}
+        <div className="flex items-center justify-between">
+          <Link
+            href={`/servers/${guildId}/winners`}
+            className="text-xs font-mono text-[var(--color-text-muted)] hover:text-[var(--color-neon-cyan)] tracking-widest uppercase transition-colors"
+          >
+            ← ALL CHAMPIONS
+          </Link>
+          <Link
+            href={`/servers/${guildId}/tournaments/${tournamentId}`}
+            className="text-xs font-mono text-[var(--color-text-muted)] hover:text-[var(--color-neon-violet)] tracking-widest uppercase transition-colors"
+          >
+            TOURNAMENT DETAILS →
+          </Link>
+        </div>
       </div>
+
+      <StatusBar shardOnline>
+        <span className="text-amber-400">TOURNAMENT COMPLETED</span>
+        <span className="mx-2 text-[var(--color-text-muted)]">|</span>
+        {champion && <span>CHAMPION: <span className="text-[var(--color-neon-violet)]">{champion.team.name}</span></span>}
+      </StatusBar>
     </main>
   )
 }

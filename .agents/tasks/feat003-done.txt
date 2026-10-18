@@ -1,0 +1,96 @@
+FEAT-003 — All Public Pages Cyberpunk Redesign
+==============================================
+Completed: All 9 public-facing pages have been redesigned with the legendary
+cyberpunk UI/UX treatment. Zero Prisma queries or auth logic was modified.
+All pages pass `tsc --noEmit`.
+
+Pages changed
+─────────────
+
+1. apps/web/src/app/servers/page.tsx
+   - Added `export const dynamic = 'force-dynamic'`
+   - Full-width scanline-overlay
+   - Huge Orbitron glitch header: "YOUR ESPORTS GUILDS & SERVERS"
+   - Stat badges: X GUILDS CACHED / NODE: DELTA-ASIA
+   - Filter tabs: ALL / CONNECTED & ONLINE / ELIGIBLE TO CONNECT / ARCHIVED + search box
+   - Section header "CONNECTED TACTICAL LOBBIES PROD READY" + SORT dropdown
+   - Eligible section with dashed GlassCard (neonColor="cyan") + ADD DISCORD BOT CTA
+   - MISSING A SERVER? full-width hud GlassCard CTA banner
+   - StatusBar footer: ACTIVE GATEWAY / SYNC / PLAYERS
+
+2. apps/web/src/app/servers/[guildId]/page.tsx
+   - Server header in GlassCard hud: guild icon with colored ring, verified badge, BOT ENGINE ONLINE
+   - Quick stats row (4 GlassCards): TOTAL TOURNAMENTS / LIVE RIGHT NOW (pulse) / ROSTERS ACTIVE / CHAMPIONS CROWNED
+   - Filter tab bar
+   - Featured LIVE hero card (red neon, watch broadcast + view standings buttons)
+   - Tournament Operations Deck: grid of operation cards with slot bars
+   - Hall of Champions strip with link to /winners
+   - Admin button top-right for owners
+   - StatusBar footer
+
+3. apps/web/src/app/servers/[guildId]/tournaments/page.tsx
+   - Preserved exactly (only passes data to TournamentCatalogue, no JSX of its own)
+
+4. apps/web/src/app/servers/[guildId]/tournaments/[tournamentId]/page.tsx
+   - Tournament hero banner with scanlines, spectator count, prize pool
+   - CyberBreadcrumb, NeonText glitch title
+   - Tab bar: OVERVIEW / PARTICIPANTS / BRACKET / STANDINGS
+   - 3-column layout: main content + live standings sidebar
+   - Registration card with GlowButton cyber CTA
+   - Match schedule in hud GlassCard
+   - Registered teams with slot numbers
+   - Live/Final standings snapshot panel (right sidebar)
+   - StatusBar footer
+
+5. apps/web/src/app/servers/[guildId]/tournaments/[tournamentId]/bracket/BracketPageClient.tsx
+   - HUD sticky header with bracket tabs: UPPER/LOWER/GRAND FINALS/FULL TREE
+   - Neon share/export buttons
+   - Two-panel layout: bracket area + right side panel
+   - Live match popup panel showing active matches with scores
+   - Selected match detail panel
+   - Map veto timeline + room credentials placeholders
+   - StatusBar footer
+
+6. apps/web/src/app/servers/[guildId]/tournaments/[tournamentId]/register/page.tsx
+   - Squad Registration layout
+   - Team Identity header card
+   - Roster role labels: IGL/CAPTAIN, ASSAULTER, ENTRY FRAGGER, SUPPORT, SUBSTITUTE
+   - Slot Engine panel (right): visual grid of taken/available slots
+   - Escrow Checkout panel (right): entry fee, slots remaining, status
+   - CyberBreadcrumb + StatusBar
+
+7. apps/web/src/app/servers/[guildId]/leaderboards/page.tsx
+   - Season Championship podium (1st center/tallest, 2nd left, 3rd right)
+   - Season selector dropdown
+   - Game filter tabs
+   - Official standings table via LeaderboardsClient in GlassCard hud
+   - MVP Frag Race sidebar (kill bar chart)
+   - Server Records panel
+   - StatusBar footer
+
+8. apps/web/src/app/servers/[guildId]/winners/page.tsx
+   - "CHAMPIONS & HALL OF FAME" header with total tournaments + crowned champions stats
+   - Season finale pinned record (featured large card with 1st/2nd/3rd breakdown)
+   - WinnersPodium component preserved
+   - Historic tournament champions grid (cards with champion name + game badge)
+   - CyberBreadcrumb + StatusBar
+
+9. apps/web/src/app/servers/[guildId]/winners/[tournamentId]/page.tsx
+   - Full tournament result detail with NeonText glitch title, champion inline badge
+   - PodiumWrapper + WinnerDetailPodium preserved
+   - Navigation links to all champions / tournament details
+   - CyberBreadcrumb + StatusBar
+
+Components used
+───────────────
+- GlassCard (neonColor, hud, scanline props)
+- GlowButton (cyber, primary, ghost variants)
+- NeonText (violet, cyan; glitch on headers)
+- StatusBar (footer on every page)
+- StatusPulse (live, synced variants)
+- CyberBreadcrumb (on all server-scoped pages)
+- .scanline-overlay, .hud-grid-bg, neon-text-violet, neon-text-cyan CSS classes
+
+TypeScript
+──────────
+`pnpm --filter web exec tsc --noEmit` — 0 errors
