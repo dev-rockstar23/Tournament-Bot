@@ -1,5 +1,5 @@
 'use client'
-import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react'
+import { ButtonHTMLAttributes, forwardRef, ReactNode, Children, cloneElement, isValidElement } from 'react'
 import { cn } from '@/lib/utils'
 
 type Variant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'cyber'
@@ -96,12 +96,14 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
     ) : null
 
     if (asChild && children) {
-      return (
-        <span className={cn(baseClasses, 'relative')}>
-          {shimmer}
-          {children}
-        </span>
-      )
+      const child = Children.only(children)
+      if (isValidElement(child)) {
+        const childProps = child.props as { className?: string }
+        return cloneElement(child, {
+          ...childProps,
+          className: cn(baseClasses, childProps.className),
+        } as Record<string, unknown>)
+      }
     }
 
     return (

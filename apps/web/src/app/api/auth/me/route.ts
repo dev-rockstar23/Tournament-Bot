@@ -15,9 +15,12 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    id: user.id,
-    discordId: user.user_metadata?.provider_id,
-    username: user.user_metadata?.full_name ?? user.user_metadata?.name,
-    avatar: user.user_metadata?.avatar_url,
+    user: {
+      id: user.user_metadata?.provider_id ?? user.id,
+      username: user.user_metadata?.full_name ?? user.user_metadata?.name ?? 'Unknown',
+      avatar: user.user_metadata?.avatar_url ?? null,
+      discriminator: '0000',
+      globalRole: (user.user_metadata?.globalRole as string | undefined) ?? undefined,
+    },
   })
 }

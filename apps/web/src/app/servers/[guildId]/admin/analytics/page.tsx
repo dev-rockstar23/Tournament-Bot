@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { resolveUserRole, AppRole } from '@esports/permissions';
 import { prisma } from '@esports/database';
@@ -52,11 +53,12 @@ export default async function AnalyticsPage({ params }: PageProps) {
 
   // Fetch initial analytics data server-side for fast first paint (last 30 days, all games)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const cookieHeader = cookies().toString();
   let initialData = null;
   try {
     const res = await fetch(
       `${baseUrl}/api/servers/${guildId}/analytics`,
-      { headers: { Cookie: '' }, cache: 'no-store' }
+      { headers: { Cookie: cookieHeader }, cache: 'no-store' }
     );
     if (res.ok) {
       initialData = await res.json();

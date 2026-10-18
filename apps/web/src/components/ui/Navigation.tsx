@@ -24,12 +24,8 @@ interface NavLink {
 }
 
 const navLinks: NavLink[] = [
-  { href: '/servers', label: 'Tournaments' },
-  { href: '/leaderboards', label: 'Leaderboards' },
   { href: '/servers', label: 'Servers' },
-  { href: '/winners', label: 'Champions/Winners' },
   { href: '/docs', label: 'Documentation' },
-  { href: '/admin', label: 'Admin Console' },
 ]
 
 export default function Navigation() {

@@ -5,10 +5,9 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
-  KeyRound,
-  AlertTriangle,
   GitBranch,
-  Radio,
+  BarChart2,
+  CreditCard,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -56,28 +55,22 @@ export function AdminSidebar({
       minRole: AppRole.REFEREE,
     },
     {
-      label: 'ROOMS & CREDS',
-      href: `/servers/${guildId}/admin/rooms`,
-      icon: KeyRound,
-      minRole: AppRole.TOURNAMENT_MANAGER,
-    },
-    {
-      label: 'ROSTER DISPUTES',
-      href: `/servers/${guildId}/admin/disputes`,
-      icon: AlertTriangle,
-      minRole: AppRole.REFEREE,
-    },
-    {
-      label: 'BRACKET ENGINE',
+      label: 'TOURNAMENTS',
       href: `/servers/${guildId}/admin/tournaments`,
       icon: GitBranch,
       minRole: AppRole.TOURNAMENT_MANAGER,
     },
     {
-      label: 'BROADCAST HUD',
-      href: `/servers/${guildId}/admin/broadcast`,
-      icon: Radio,
+      label: 'ANALYTICS',
+      href: `/servers/${guildId}/admin/analytics`,
+      icon: BarChart2,
       minRole: AppRole.REFEREE,
+    },
+    {
+      label: 'PAYMENT OPS',
+      href: `/servers/${guildId}/admin/payment`,
+      icon: CreditCard,
+      minRole: AppRole.TOURNAMENT_MANAGER,
     },
     {
       label: 'TENANT CONFIG',
@@ -266,7 +259,7 @@ export function AdminSidebar({
             )}
 
             <Link
-              href="/auth/signout"
+              href="/api/auth/logout"
               className="ml-auto shrink-0 text-white/30 hover:text-red-400 transition-colors"
               title="Sign out"
             >
