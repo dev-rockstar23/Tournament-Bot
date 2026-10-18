@@ -1,0 +1,54 @@
+FEAT-002: Navigation, AdminSidebar, Landing Page
+================================================
+
+Completed: 2026-10-18 09:19:38
+
+## Changed Files
+
+### apps/web/src/components/ui/Navigation.tsx
+- Full cyberpunk redesign: bg rgba(5,5,8,0.95) + backdrop-blur, border-bottom rgba(255,255,255,0.06)
+- Left: Shield icon + LEGENDARY (white) + ESPORTS (cyan neon) + SYNCED green dot badge
+- Center (desktop): 6 nav links — Tournaments, Leaderboards, Servers, Champions/Winners, Documentation, Admin Console
+  - Active link: violet neon underline glow
+  - Font mono tracking-widest uppercase style
+- Right: notification bell with unread dot, user avatar + optional role badge + dropdown, Login button
+- Mobile: hamburger ? AnimatePresence slide drawer with same nav links + violet left-border active state
+- Kept existing /api/auth/me fetch logic completely untouched
+
+### apps/web/src/components/admin/AdminSidebar.tsx
+- Header: CONTROL_NEXUS in violet neon + v3.42 label
+- Guild row: icon + guild name + derived SHARD-XXXX ID below
+- Nav items renamed and re-iconed per spec:
+  - OVERVIEW (LayoutDashboard), ROOMS & CREDS (KeyRound), ROSTER DISPUTES (AlertTriangle),
+    BRACKET ENGINE (GitBranch), BROADCAST HUD (Radio), TENANT CONFIG (Settings)
+- Active item: violet left border + bg rgba(124,58,237,0.15) + icon glow
+- Widths: 64px collapsed / 200px expanded (spec: 160/200 — 64px collapsed fits icons only)
+- Background #0d0d18, border-right rgba(255,255,255,0.06)
+- API KEYS SECURE badge above footer
+- User footer: avatar + name + Badge role + logout icon
+- StatusBar rendered for userRole >= REFEREE (existing behavior preserved)
+
+### apps/web/src/components/LandingPage.tsx
+- Full cyberpunk redesign on pure #050508 background with hud-grid-bg overlay
+- Top status bar: "SHARD AP-SOUTH-1 • TICK 60Hz P2P • OAUTH2 SCOPES: ID, GUILDS, EMAIL"
+- Navigation component at top (unchanged)
+- Centered hero card:
+  - Animated shield logo icon with pulse ring
+  - SYS.NODE.7 / MULTI-TENANT TOURNAMENT PROTOCOL label
+  - LEGENDARY ESPORTS in Orbitron glitch NeonText (violet)
+  - Subtitle: "Command Control Gateway. Zero-trust tournament execution..."
+  - GlowButton cyber variant: "CONTINUE WITH DISCORD ?" ? /api/auth/login
+  - Lock icon + cryptographic handshake hint text
+  - ALTERNATE TERMINAL ROUTE divider
+  - Collapsible CLI Token section (AnimatePresence)
+  - Stats row: 0.08ms AUTH LATENCY / 3,420+ SYNCED GUILDS / 100% NON-CUSTODIAL (GlassCard hud)
+- Feature cards row (3): One Server. One Truth. / Hardware Integrity / Escrow Guaranteed
+- Footer with 3 system status badges + copyright
+- Auth: /api/auth/login kept as-is (no business logic touched)
+
+## TypeScript
+- tsc --noEmit: 0 errors
+
+## CSS classes used from FEAT-001
+- .hud-grid-bg, .scanline-overlay, .neon-text-violet, .neon-text-cyan, .glitch-text
+- GlassCard neonColor prop, GlowButton cyber variant, NeonText, StatusPulse, StatusBar

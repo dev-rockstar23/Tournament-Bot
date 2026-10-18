@@ -2,7 +2,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Bell, Shield, Menu, X, ChevronDown } from 'lucide-react'
 import { GlowButton } from './GlowButton'
+import { NeonText } from './NeonText'
+import { GlassCard } from './GlassCard'
+import { StatusPulse } from './StatusPulse'
 import { cn } from '@/lib/utils'
 
 interface UserProfile {
@@ -10,16 +15,32 @@ interface UserProfile {
   username: string
   avatar: string | null
   discriminator: string
+  globalRole?: string
 }
+
+interface NavLink {
+  href: string
+  label: string
+}
+
+const navLinks: NavLink[] = [
+  { href: '/servers', label: 'Tournaments' },
+  { href: '/leaderboards', label: 'Leaderboards' },
+  { href: '/servers', label: 'Servers' },
+  { href: '/winners', label: 'Champions/Winners' },
+  { href: '/docs', label: 'Documentation' },
+  { href: '/admin', label: 'Admin Console' },
+]
 
 export default function Navigation() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<UserProfile | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [scanDone, setScanDone] = useState(false)
 
   useEffect(() => {
-    // Check session via API route to avoid importing Supabase SSR client in client component
     fetch('/api/auth/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { user: UserProfile } | null) => {
@@ -28,162 +49,304 @@ export default function Navigation() {
       .catch(() => null)
   }, [])
 
-  const navLinks = [
-    { href: '/docs', label: 'Docs' },
-  ]
+  useEffect(() => {
+    const timer = setTimeout(() => setScanDone(true), 600)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Close drawers on route change
+  useEffect(() => {
+    setMobileOpen(false)
+    setDropdownOpen(false)
+    setNotifOpen(false)
+  }, [pathname])
 
   return (
-    <nav
-      className="sticky top-0 z-50 w-full backdrop-blur-md bg-black/20 border-b border-white/5"
-      role="navigation"
-      aria-label="Main navigation"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md"
-          >
-            <span
-              className="text-lg font-black tracking-widest text-white"
-              style={{ fontFamily: 'var(--font-display, Orbitron, sans-serif)' }}
+    <>
+      <nav
+        className="sticky top-0 z-50 w-full"
+        style={{
+          backdropFilter: 'blur(16px)',
+          backgroundColor: 'rgba(5,5,8,0.95)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        {/* Animated scan line — plays once on mount */}
+        {!scanDone && (
+          <div
+            className="absolute bottom-0 left-0 h-px w-full pointer-events-none"
+            style={{
+              background: 'rgba(6,182,212,0.6)',
+              animation: 'hud-slide-in 0.5s ease-out forwards',
+            }}
+            aria-hidden="true"
+          />
+        )}
+
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
+
+            {/* ── LEFT: Logo ── */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md"
+              aria-label="Legendary Esports home"
             >
-              LEGENDARY{' '}
-              <span className="text-[#7c3aed]">ESPORTS</span>
-            </span>
-          </Link>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-sm transition-colors duration-150',
-                  pathname === link.href
-                    ? 'text-white font-semibold'
-                    : 'text-[#94a3b8] hover:text-white'
-                )}
+              {/* Shield icon */}
+              <Shield
+                size={20}
+                className="text-[#7c3aed]"
+                style={{ filter: 'drop-shadow(0 0 6px rgba(124,58,237,0.8))' }}
+                aria-hidden="true"
+              />
+              <span
+                className="text-white font-black tracking-widest text-sm"
+                style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
               >
-                {link.label}
-              </Link>
-            ))}
+                LEGENDARY
+              </span>
+              <span
+                className="text-[#06b6d4] font-black tracking-widest text-sm"
+                style={{
+                  fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)',
+                  textShadow: '0 0 8px rgba(6,182,212,0.7)',
+                }}
+              >
+                ESPORTS
+              </span>
+              {/* SYNCED badge */}
+              <span className="hidden sm:flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[9px] font-mono tracking-widest uppercase border border-[rgba(34,197,94,0.4)] bg-[rgba(34,197,94,0.08)] text-[#22c55e]">
+                <StatusPulse variant="synced" className="w-1.5 h-1.5" />
+                SYNCED
+              </span>
+            </Link>
 
-            {user ? (
+            {/* ── CENTER: Desktop nav links ── */}
+            <div className="hidden lg:flex items-center gap-1" role="list">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href || (pathname?.startsWith(link.href + '/') ?? false)
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    role="listitem"
+                    className={cn(
+                      'relative px-3 py-1.5 text-xs font-mono tracking-widest uppercase transition-colors duration-150 rounded-sm',
+                      isActive
+                        ? 'text-[#7c3aed]'
+                        : 'text-[#64748b] hover:text-white'
+                    )}
+                    style={
+                      isActive
+                        ? { textShadow: '0 0 10px rgba(124,58,237,0.9)' }
+                        : undefined
+                    }
+                  >
+                    {link.label}
+                    {isActive && (
+                      <span
+                        className="absolute -bottom-0.5 left-0 right-0 h-px rounded-full"
+                        style={{
+                          background: '#7c3aed',
+                          boxShadow: '0 0 8px rgba(124,58,237,0.9)',
+                        }}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* ── RIGHT: Bell + Avatar ── */}
+            <div className="flex items-center gap-3">
+              {/* Notification bell */}
               <div className="relative">
                 <button
-                  onClick={() => setDropdownOpen((v) => !v)}
-                  className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-full"
-                  aria-haspopup="true"
-                  aria-expanded={dropdownOpen}
+                  type="button"
+                  onClick={() => setNotifOpen((v) => !v)}
+                  className="relative p-2 rounded-md text-[#64748b] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
+                  aria-label="Notifications"
+                  aria-expanded={notifOpen}
                 >
-                  {user.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
-                      alt={user.username}
-                      className="w-8 h-8 rounded-full border border-white/10"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#7c3aed]/40 border border-[#7c3aed]/30 flex items-center justify-center text-xs font-bold text-white">
-                      {user.username[0].toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-sm text-white">{user.username}</span>
-                  <svg
-                    className={cn('w-4 h-4 text-[#94a3b8] transition-transform', dropdownOpen && 'rotate-180')}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+                  <Bell size={16} aria-hidden="true" />
+                  {/* Unread dot */}
+                  <span
+                    className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#7c3aed] animate-pulse"
                     aria-hidden="true"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                  />
                 </button>
 
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 glass-card py-1 rounded-xl overflow-hidden shadow-xl">
-                    <Link
-                      href="/servers"
-                      className="block px-4 py-2 text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 transition-colors"
-                      onClick={() => setDropdownOpen(false)}
+                <AnimatePresence>
+                  {notifOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-64"
                     >
-                      My Servers
+                      <GlassCard neonColor="violet" className="py-3 rounded-xl overflow-hidden shadow-xl">
+                        <p className="px-4 py-1 text-[10px] font-mono tracking-widest uppercase text-[#7c3aed]">
+                          Notifications
+                        </p>
+                        <div className="border-t border-white/5 my-1" />
+                        <p className="px-4 py-2 text-xs text-[#64748b]">No new notifications</p>
+                      </GlassCard>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* User avatar / login */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen((v) => !v)}
+                    className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-full"
+                    aria-haspopup="true"
+                    aria-expanded={dropdownOpen}
+                  >
+                    {user.avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
+                        alt={user.username}
+                        className="w-8 h-8 rounded-full border border-[rgba(124,58,237,0.5)] ring-1 ring-[rgba(124,58,237,0.3)]"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[rgba(124,58,237,0.3)] border border-[rgba(124,58,237,0.5)] flex items-center justify-center text-xs font-bold text-white">
+                        {user.username[0].toUpperCase()}
+                      </div>
+                    )}
+                    {/* Role badge */}
+                    {user.globalRole && (
+                      <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase border border-[rgba(6,182,212,0.4)] bg-[rgba(6,182,212,0.08)] text-[#06b6d4]">
+                        {user.globalRole}
+                      </span>
+                    )}
+                    <ChevronDown
+                      size={12}
+                      className={cn('text-[#64748b] transition-transform hidden sm:block', dropdownOpen && 'rotate-180')}
+                      aria-hidden="true"
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {dropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-44"
+                      >
+                        <GlassCard neonColor="violet" className="py-1 rounded-xl overflow-hidden shadow-xl">
+                          <div className="px-4 py-2 border-b border-white/5">
+                            <p className="text-xs font-semibold text-white truncate">{user.username}</p>
+                            <p className="text-[10px] text-[#64748b] font-mono">#{user.discriminator}</p>
+                          </div>
+                          <Link
+                            href="/servers"
+                            className="block px-4 py-2 text-xs text-[#94a3b8] hover:text-white hover:bg-white/5 transition-colors font-mono tracking-wide"
+                            onClick={() => setDropdownOpen(false)}
+                          >
+                            My Servers
+                          </Link>
+                          <div className="border-t border-white/5 my-1" />
+                          <Link
+                            href="/api/auth/logout"
+                            className="block px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors font-mono tracking-wide"
+                            onClick={() => setDropdownOpen(false)}
+                          >
+                            Log Out
+                          </Link>
+                        </GlassCard>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <GlowButton variant="primary" size="sm" asChild>
+                  <Link href="/api/auth/login" className="no-underline text-white text-xs">
+                    Login with Discord
+                  </Link>
+                </GlowButton>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                type="button"
+                className="lg:hidden p-2 rounded-md text-[#64748b] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
+                onClick={() => setMobileOpen((v) => !v)}
+                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={mobileOpen}
+              >
+                {mobileOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Mobile slide-drawer ── */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              key="mobile-drawer"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              className="lg:hidden overflow-hidden"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div
+                className="py-4 px-4 flex flex-col gap-1"
+                style={{ backgroundColor: 'rgba(5,5,8,0.98)' }}
+              >
+                {navLinks.map((link) => {
+                  const isActive = pathname === link.href
+                  return (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      className={cn(
+                        'text-xs font-mono tracking-widest uppercase px-3 py-2.5 rounded-sm transition-colors border-l-2',
+                        isActive
+                          ? 'text-[#7c3aed] border-[#7c3aed] bg-[rgba(124,58,237,0.08)]'
+                          : 'text-[#64748b] hover:text-white border-transparent hover:bg-white/5'
+                      )}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {link.label}
                     </Link>
-                    <div className="border-t border-white/5 my-1" />
+                  )
+                })}
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  {user ? (
                     <Link
                       href="/api/auth/logout"
-                      className="block px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors"
-                      onClick={() => setDropdownOpen(false)}
+                      className="text-xs font-mono tracking-widest uppercase px-3 py-2.5 text-red-400 hover:text-red-300"
+                      onClick={() => setMobileOpen(false)}
                     >
                       Log Out
                     </Link>
-                  </div>
-                )}
+                  ) : (
+                    <GlowButton variant="primary" size="sm" asChild>
+                      <Link href="/api/auth/login" className="no-underline text-white text-xs" onClick={() => setMobileOpen(false)}>
+                        Login with Discord
+                      </Link>
+                    </GlowButton>
+                  )}
+                </div>
               </div>
-            ) : (
-              <GlowButton variant="primary" size="sm" asChild>
-                <Link href="/api/auth/login" className="no-underline text-white">
-                  Login with Discord
-                </Link>
-              </GlowButton>
-            )}
-          </div>
-
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden p-2 rounded-md text-[#94a3b8] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileOpen}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              {mobileOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden py-4 border-t border-white/5 flex flex-col gap-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-sm px-2 py-1 transition-colors',
-                  pathname === link.href ? 'text-white font-semibold' : 'text-[#94a3b8] hover:text-white'
-                )}
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {user ? (
-              <Link
-                href="/api/auth/logout"
-                className="text-sm px-2 py-1 text-red-400 hover:text-red-300"
-                onClick={() => setMobileOpen(false)}
-              >
-                Log Out
-              </Link>
-            ) : (
-              <GlowButton variant="primary" size="sm" asChild>
-                <Link href="/api/auth/login" className="no-underline text-white" onClick={() => setMobileOpen(false)}>
-                  Login with Discord
-                </Link>
-              </GlowButton>
-            )}
-          </div>
-        )}
-      </div>
-    </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+    </>
   )
 }

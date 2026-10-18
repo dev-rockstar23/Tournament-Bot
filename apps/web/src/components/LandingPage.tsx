@@ -1,372 +1,333 @@
 'use client'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Shield, Lock, ChevronDown, Server, Cpu, Zap } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GlowButton } from '@/components/ui/GlowButton'
+import { NeonText } from '@/components/ui/NeonText'
+import { StatusPulse } from '@/components/ui/StatusPulse'
 import Navigation from '@/components/ui/Navigation'
-import HeroSceneWrapper from '@/components/three/HeroSceneWrapper'
 import { fadeUp, fadeIn, staggerChildren } from '@/lib/motion'
 
-// ─── Feature data ────────────────────────────────────────────────────────────
+// ─── Feature cards ────────────────────────────────────────────────────────────
 
-const features = [
+const featureCards = [
   {
-    icon: '🎮',
-    title: 'Discord-Native',
+    icon: Server,
+    title: 'One Server. One Truth.',
     description:
-      'Built from the ground up for Discord. Every tournament lives in your server, with roles, channels, and notifications you already have.',
+      'Single source of truth for all guild state. Every match, roster, and bracket is cryptographically anchored.',
+    code: '#F001',
+    color: 'violet' as const,
   },
   {
-    icon: '🏆',
-    title: 'Multi-Game Support',
+    icon: Cpu,
+    title: 'Hardware Integrity',
     description:
-      'Full support for BGMI, Free Fire, and COD Mobile — each with game-specific scoring, formats, and leaderboards.',
+      'Room credentials are ephemeral and zero-knowledge. Credentials never touch a third-party relay.',
+    code: '#F002',
+    color: 'cyan' as const,
   },
   {
-    icon: '⚡',
-    title: 'Real-Time Sync',
+    icon: Zap,
+    title: 'Escrow Guaranteed',
     description:
-      'Two-way sync between Discord and the web dashboard. Changes anywhere reflect everywhere, instantly.',
+      'Prize escrow is non-custodial. Funds are released only after on-chain attestation of match results.',
+    code: '#F003',
+    color: 'violet' as const,
   },
 ]
 
-// ─── Game data ────────────────────────────────────────────────────────────────
+// ─── Stats row ────────────────────────────────────────────────────────────────
 
-const games = [
-  {
-    name: 'BGMI',
-    modes: 'Battle Royale • Clash Squad',
-    gradient: 'linear-gradient(135deg, rgba(124,58,237,0.25) 0%, rgba(22,33,62,0.8) 100%)',
-    accentColor: '#7c3aed',
-    emoji: '🇮🇳',
-  },
-  {
-    name: 'Free Fire',
-    modes: 'Battle Royale • Clash Squad • Lone Wolf',
-    gradient: 'linear-gradient(135deg, rgba(239,68,68,0.25) 0%, rgba(22,33,62,0.8) 100%)',
-    accentColor: '#ef4444',
-    emoji: '🔥',
-  },
-  {
-    name: 'COD Mobile',
-    modes: 'Multiplayer • Battle Royale',
-    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.25) 0%, rgba(22,33,62,0.8) 100%)',
-    accentColor: '#10b981',
-    emoji: '💥',
-  },
+const stats = [
+  { value: '0.08ms', label: 'AUTH LATENCY' },
+  { value: '3,420+', label: 'SYNCED GUILDS' },
+  { value: '100%', label: 'NON-CUSTODIAL' },
 ]
 
-// ─── Steps ────────────────────────────────────────────────────────────────────
+// ─── Bottom badges ────────────────────────────────────────────────────────────
 
-const steps = [
-  {
-    badge: '01',
-    icon: '🔑',
-    title: 'Login with Discord',
-    description: 'Authorize with your Discord account to see all your servers and tournaments',
-  },
-  {
-    badge: '02',
-    icon: '🏰',
-    title: 'Select Your Server',
-    description: 'Pick the server you want to run tournaments on. Use /server setup to configure channels and roles',
-  },
-  {
-    badge: '03',
-    icon: '🏆',
-    title: 'Run Tournaments',
-    description: 'Create, publish, and manage full tournament brackets directly from Discord or the web dashboard',
-  },
+const systemBadges = [
+  'Discord Developer Verified Bot v3.4.2',
+  'Supabase PostgreSQL Encrypted',
+  'Upstash Redis BullMQ Worker Ready',
 ]
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const [cliOpen, setCliOpen] = useState(false)
+
   return (
     <>
+      {/* ── Top status bar ── */}
+      <div
+        className="w-full px-4 py-1.5 text-center"
+        style={{
+          backgroundColor: 'rgba(124,58,237,0.08)',
+          borderBottom: '1px solid rgba(124,58,237,0.2)',
+        }}
+        role="status"
+        aria-label="System status"
+      >
+        <p
+          className="text-[9px] font-mono tracking-[0.18em] uppercase"
+          style={{ color: '#7c3aed' }}
+        >
+          SHARD AP-SOUTH-1&nbsp;•&nbsp;TICK 60Hz P2P&nbsp;•&nbsp;OAUTH2 SCOPES: ID, GUILDS, EMAIL
+        </p>
+      </div>
+
       <Navigation />
 
-      {/* ── Section 1: Hero ── */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* 3D Background */}
-        <div className="absolute inset-0 z-0">
-          <HeroSceneWrapper />
-        </div>
-
-        {/* Gradient overlay */}
+      {/* ── Background ── */}
+      <div
+        className="relative min-h-screen flex flex-col"
+        style={{ backgroundColor: '#050508' }}
+      >
+        {/* Subtle grid lines overlay */}
         <div
-          className="absolute inset-0 z-10"
-          style={{
-            background:
-              'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(10,10,15,0.3) 0%, rgba(10,10,15,0.75) 60%, rgba(10,10,15,0.98) 100%)',
-          }}
+          className="fixed inset-0 pointer-events-none hud-grid-bg opacity-[0.07]"
           aria-hidden="true"
         />
 
-        {/* Hero content */}
-        <motion.div
-          className="relative z-20 text-center px-4 max-w-4xl mx-auto"
-          variants={staggerChildren}
-          initial="hidden"
-          animate="visible"
+        {/* ── Hero section ── */}
+        <section className="relative z-10 flex-1 flex items-center justify-center px-4 py-24">
+          <motion.div
+            className="w-full max-w-lg mx-auto text-center"
+            variants={staggerChildren}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Shield icon */}
+            <motion.div variants={fadeIn} className="flex justify-center mb-6">
+              <div
+                className="relative flex items-center justify-center w-20 h-20 rounded-full border border-[rgba(124,58,237,0.5)]"
+                style={{
+                  background:
+                    'radial-gradient(circle at 50% 50%, rgba(124,58,237,0.15) 0%, rgba(5,5,8,0) 70%)',
+                  boxShadow:
+                    '0 0 40px rgba(124,58,237,0.2), inset 0 0 20px rgba(124,58,237,0.05)',
+                }}
+              >
+                <Shield
+                  size={36}
+                  className="text-[#7c3aed]"
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(124,58,237,0.9))' }}
+                  aria-hidden="true"
+                />
+                {/* Pulse ring */}
+                <span
+                  className="absolute inset-0 rounded-full border border-[rgba(124,58,237,0.3)] animate-ping"
+                  style={{ animationDuration: '2.5s' }}
+                  aria-hidden="true"
+                />
+              </div>
+            </motion.div>
+
+            {/* System node label */}
+            <motion.p
+              variants={fadeIn}
+              className="text-[10px] font-mono tracking-[0.22em] uppercase mb-3"
+              style={{ color: 'rgba(6,182,212,0.8)' }}
+            >
+              SYS.NODE.7 / MULTI-TENANT TOURNAMENT PROTOCOL
+            </motion.p>
+
+            {/* Main title */}
+            <motion.div variants={fadeUp} className="mb-4">
+              <NeonText
+                as="h1"
+                color="violet"
+                glitch
+                className="text-4xl sm:text-5xl md:text-6xl font-black leading-none tracking-[0.08em]"
+              >
+                LEGENDARY ESPORTS
+              </NeonText>
+            </motion.div>
+
+            {/* Subtitle */}
+            <motion.p
+              variants={fadeIn}
+              className="text-sm text-[#64748b] mb-10 leading-relaxed px-2 font-mono"
+            >
+              Command Control Gateway. Zero-trust tournament execution, roster attestation, and match engine.
+            </motion.p>
+
+            {/* Primary CTA */}
+            <motion.div variants={fadeUp} className="flex flex-col items-center gap-4 mb-6">
+              <GlowButton variant="cyber" size="lg" asChild>
+                <Link
+                  href="/api/auth/login"
+                  className="no-underline text-[#050508] font-bold w-full max-w-sm"
+                >
+                  CONTINUE WITH DISCORD →
+                </Link>
+              </GlowButton>
+
+              {/* Lock + hint */}
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#475569]">
+                <Lock size={10} aria-hidden="true" />
+                <span>Cryptographic handshake detects owned guilds automatically</span>
+              </div>
+            </motion.div>
+
+            {/* Divider */}
+            <motion.div variants={fadeIn} className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
+              <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-[#334155]">
+                ALTERNATE TERMINAL ROUTE
+              </span>
+              <div className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
+            </motion.div>
+
+            {/* CLI Token collapsible */}
+            <motion.div variants={fadeUp}>
+              <GlassCard className="overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setCliOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  aria-expanded={cliOpen}
+                >
+                  <span className="text-[11px] font-mono tracking-[0.15em] uppercase text-[#64748b]">
+                    System Administrator CLI Token
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-[#334155] transition-transform ${cliOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
+                <AnimatePresence>
+                  {cliOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        className="px-4 pb-4 pt-1 border-t"
+                        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                      >
+                        <p className="text-[11px] font-mono text-[#475569] mb-3">
+                          Paste your administrator JWT token to bypass OAuth flow.
+                        </p>
+                        <input
+                          type="password"
+                          placeholder="sk_admin_••••••••••••"
+                          className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-md px-3 py-2 text-xs font-mono text-[#94a3b8] placeholder:text-[#334155] focus:outline-none focus:border-[rgba(124,58,237,0.5)] focus:ring-1 focus:ring-[rgba(124,58,237,0.3)] transition-colors"
+                          autoComplete="off"
+                        />
+                        <GlowButton variant="ghost" size="sm" className="mt-3 w-full text-xs">
+                          Authenticate via Token
+                        </GlowButton>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </GlassCard>
+            </motion.div>
+
+            {/* Stats row */}
+            <motion.div
+              variants={staggerChildren}
+              className="grid grid-cols-3 gap-3 mt-8"
+            >
+              {stats.map((s) => (
+                <motion.div key={s.label} variants={fadeUp}>
+                  <GlassCard hud className="p-3 text-center">
+                    <p
+                      className="text-base font-black neon-text-cyan font-mono"
+                    >
+                      {s.value}
+                    </p>
+                    <p className="text-[8px] font-mono tracking-[0.15em] uppercase text-[#475569] mt-0.5">
+                      {s.label}
+                    </p>
+                  </GlassCard>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* ── Feature cards section ── */}
+        <section className="relative z-10 px-4 pb-24">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+              variants={staggerChildren}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-60px' }}
+            >
+              {featureCards.map((card) => {
+                const Icon = card.icon
+                return (
+                  <motion.div key={card.title} variants={fadeUp}>
+                    <GlassCard neonColor={card.color} scanline className="p-6 h-full relative">
+                      <span
+                        className="absolute top-3 right-3 text-[9px] font-mono text-white/20"
+                        aria-hidden="true"
+                      >
+                        {card.code}
+                      </span>
+                      <Icon
+                        size={20}
+                        className="mb-4"
+                        style={{
+                          color: card.color === 'violet' ? '#7c3aed' : '#06b6d4',
+                          filter: `drop-shadow(0 0 6px ${card.color === 'violet' ? 'rgba(124,58,237,0.8)' : 'rgba(6,182,212,0.8)'})`,
+                        }}
+                        aria-hidden="true"
+                      />
+                      <h3
+                        className="text-sm font-bold text-white mb-2"
+                        style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
+                      >
+                        {card.title}
+                      </h3>
+                      <p className="text-xs text-[#64748b] leading-relaxed">
+                        {card.description}
+                      </p>
+                    </GlassCard>
+                  </motion.div>
+                )
+              })}
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ── Bottom system badges ── */}
+        <footer
+          className="relative z-10 py-8 px-4"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
         >
-          <motion.p
-            variants={fadeIn}
-            className="text-xs font-mono uppercase tracking-widest text-[#22d3ee] mb-4"
-            style={{ fontFamily: 'var(--font-jetbrains, monospace)' }}
-          >
-            Multi-Server Esports Platform
-          </motion.p>
-
-          <motion.h1
-            variants={fadeUp}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-none"
-            style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-          >
-            LEGENDARY{' '}
-            <span className="text-[#7c3aed]">ESPORTS</span>
-          </motion.h1>
-
-          <motion.p
-            variants={fadeUp}
-            className="text-lg sm:text-xl text-[#94a3b8] mb-10 max-w-2xl mx-auto leading-relaxed"
-          >
-            Discord-native tournament management built for competitive communities. Run BGMI, Free Fire, and COD Mobile tournaments without ever leaving Discord.
-          </motion.p>
-
-          <motion.div
-            variants={fadeUp}
-            className="flex flex-col sm:flex-row gap-4 items-center justify-center"
-          >
-            <GlowButton variant="primary" size="lg" asChild>
-              <Link href="/api/auth/login" className="no-underline text-white">
-                Login with Discord
-              </Link>
-            </GlowButton>
-            <GlowButton variant="ghost" size="lg" asChild>
-              <Link href="/docs" className="no-underline text-white">
-                View Docs
-              </Link>
-            </GlowButton>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ── Section 2: Features ── */}
-      <section className="py-24 px-4" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-          >
-            <h2
-              className="text-3xl sm:text-4xl font-black text-white mb-4"
-              style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-            >
-              BUILT DIFFERENT
-            </h2>
-            <p className="text-[#94a3b8] max-w-xl mx-auto">
-              Every feature designed around how esports communities actually work.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            variants={staggerChildren}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-          >
-            {features.map((feature) => (
-              <motion.div key={feature.title} variants={fadeUp}>
-                <GlassCard className="p-8 h-full">
-                  <div className="text-4xl mb-4" aria-hidden="true">
-                    {feature.icon}
-                  </div>
-                  <h3
-                    className="text-xl font-bold text-white mb-3"
-                    style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-                  >
-                    {feature.title}
-                  </h3>
-                  <p className="text-[#94a3b8] leading-relaxed">{feature.description}</p>
-                </GlassCard>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Section 3: Games ── */}
-      <section className="py-24 px-4" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-          >
-            <h2
-              className="text-3xl sm:text-4xl font-black text-white mb-4"
-              style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-            >
-              SUPPORTED GAMES
-            </h2>
-            <p className="text-[#94a3b8] max-w-xl mx-auto">
-              Tailored tournament formats and scoring for each game.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            variants={staggerChildren}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-          >
-            {games.map((game) => (
-              <motion.div key={game.name} variants={fadeUp}>
-                <GlassCard
-                  className="p-8 h-full"
-                  style={{ background: game.gradient }}
-                >
-                  <div className="text-5xl mb-4" aria-hidden="true">
-                    {game.emoji}
-                  </div>
-                  <h3
-                    className="text-2xl font-black mb-3"
-                    style={{
-                      fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)',
-                      color: game.accentColor,
-                    }}
-                  >
-                    {game.name}
-                  </h3>
-                  <p className="text-[#94a3b8] text-sm">{game.modes}</p>
-                </GlassCard>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Section 4: How It Works ── */}
-      <section className="py-24 px-4" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-          >
-            <h2
-              className="text-3xl sm:text-4xl font-black text-white mb-4"
-              style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-            >
-              HOW IT WORKS
-            </h2>
-            <p className="text-[#94a3b8] max-w-xl mx-auto">
-              Three simple steps to run your first tournament.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="relative grid grid-cols-1 md:grid-cols-3 gap-8"
-            variants={staggerChildren}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-          >
-            {/* Horizontal connecting line (desktop only) */}
-            <div
-              className="hidden md:block absolute top-10 left-[calc(16.67%)] right-[calc(16.67%)] h-px"
-              style={{ background: 'linear-gradient(90deg, rgba(124,58,237,0.5), rgba(124,58,237,0.2), rgba(124,58,237,0.5))' }}
-              aria-hidden="true"
-            />
-
-            {steps.map((step) => (
-              <motion.div key={step.badge} variants={fadeUp} className="flex flex-col items-center text-center">
-                {/* Numbered badge */}
+          <div className="max-w-4xl mx-auto flex flex-col items-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3">
+              {systemBadges.map((badge) => (
                 <div
-                  className="relative z-10 w-20 h-20 rounded-full flex items-center justify-center mb-6 border-2 border-[#7c3aed]/40"
-                  style={{ background: 'rgba(124,58,237,0.15)' }}
+                  key={badge}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.03)]"
                 >
-                  <span
-                    className="text-2xl font-black text-[#7c3aed]"
-                    style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-                  >
-                    {step.badge}
+                  <StatusPulse variant="synced" className="w-1.5 h-1.5" />
+                  <span className="text-[10px] font-mono tracking-wide text-[#475569]">
+                    {badge}
                   </span>
                 </div>
-
-                <div className="text-3xl mb-3" aria-hidden="true">
-                  {step.icon}
-                </div>
-
-                <h3
-                  className="text-lg font-bold text-white mb-3"
-                  style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-                >
-                  {step.title}
-                </h3>
-                <p className="text-[#94a3b8] text-sm leading-relaxed max-w-xs">
-                  {step.description}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Section 5: Footer ── */}
-      <footer
-        className="py-16 px-4 border-t border-white/5"
-        style={{ backgroundColor: '#050508' }}
-      >
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center text-center gap-6">
-            {/* Brand */}
-            <span
-              className="text-2xl font-black tracking-widest text-white"
-              style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-            >
-              LEGENDARY <span className="text-[#7c3aed]">ESPORTS</span>
-            </span>
-
-            <p className="text-[#64748b] text-sm">
-              Built for competitive gaming communities
-            </p>
-
-            {/* Footer links */}
-            <nav aria-label="Footer navigation" className="flex flex-wrap gap-6 justify-center">
-              {[
-                { href: '/privacy', label: 'Privacy' },
-                { href: '/terms', label: 'Terms' },
-                { href: '/docs', label: 'Docs' },
-                { href: 'https://discord.gg', label: 'Discord' },
-              ].map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm text-[#64748b] hover:text-[#94a3b8] transition-colors"
-                  {...(link.href.startsWith('https') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                >
-                  {link.label}
-                </Link>
               ))}
-            </nav>
-
-            <p className="text-xs text-[#475569]">
-              © {new Date().getFullYear()} Legendary Esports. All rights reserved.
+            </div>
+            <p className="text-[10px] font-mono tracking-[0.15em] uppercase text-[#2d3748]">
+              © {new Date().getFullYear()} LEGENDARY ESPORTS — ALL RIGHTS RESERVED
             </p>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </>
   )
 }
