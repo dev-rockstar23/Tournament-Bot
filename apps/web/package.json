@@ -18,6 +18,7 @@
     "@esports/shared-types": "workspace:*",
     "@esports/tournament-engine": "workspace:*",
     "@hookform/resolvers": "^3.3.4",
+    "@prisma/client": "5.22.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.5",
