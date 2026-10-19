@@ -1723,12 +1723,12 @@ export class TournamentCommand extends Command {
         })
       }
 
-      const settings = await prisma.serverSettings.findUnique({ where: { guildId } })
-      const maxDelay  = settings?.maxDelayDays ?? 90
+      const settings          = await prisma.serverSettings.findUnique({ where: { guildId } })
+      const maxExtensionCalls = settings?.maxDelayDays ?? 90
 
-      if (tournament.extensionCount >= maxDelay) {
+      if (tournament.extensionCount >= maxExtensionCalls) {
         return interaction.editReply({
-          embeds: [errorEmbed(`Maximum extension limit (${maxDelay}) reached for this tournament.`)],
+          embeds: [errorEmbed(`Maximum extension count (${maxExtensionCalls}) reached for this tournament.`)],
         })
       }
 
