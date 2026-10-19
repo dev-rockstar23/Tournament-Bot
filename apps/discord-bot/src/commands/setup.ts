@@ -141,7 +141,8 @@ export class SetupCommand extends Command {
           .setTitle(e('warning'), 'Timezone Not Selected')
           .setDescription(
             [
-              'No timezone was selected within 2 minutes — defaulting to **UTC**.',
+              'No timezone was selected within 2 minutes.',
+              '✅ Your server has been saved with **UTC** as the default timezone.',
               '',
               'Run `/setup` again to choose a different timezone.',
               '',

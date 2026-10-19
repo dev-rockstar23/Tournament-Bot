@@ -660,14 +660,15 @@ export class TournamentCommand extends Command {
 
         const rawFee = feeSubmit.fields.getTextInputValue('entry_fee').trim()
         entryFeeValue = parseFloat(rawFee) || 0
-        // Acknowledge the fee modal without creating a new visible reply — keeps
-        // the interaction chain anchored to step3Submit's deferred reply.
-        // NOTE: ModalSubmitInteraction has no deferUpdate; use deferReply instead.
-        await feeSubmit.deferReply({ ephemeral: true })
+
+        // deferUpdate() keeps the wizard on step3Submit's existing deferred reply chain.
+        // Modal submissions spawned from a component interaction support deferUpdate().
+        await feeSubmit.deferUpdate()
 
         if (entryFeeValue <= 0) {
-          await feeSubmit.editReply({
-            embeds: [errorEmbed('Entry fee must be greater than ₹0. Please run `/tournament create` again and enter a valid fee.')],
+          await step3Submit.editReply({
+            embeds: [errorEmbed('Entry fee must be greater than ₹0. Run `/tournament create` again.')],
+            components: [],
           })
           return
         }

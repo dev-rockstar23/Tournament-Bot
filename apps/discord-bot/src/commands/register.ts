@@ -167,71 +167,83 @@ export class RegisterCommand extends Command {
       }
 
       // Atomic slot reservation
-      const registration = await prisma.$transaction(async tx => {
-        const rows = await tx.$queryRaw<
-          Array<{
-            id: string
-            team_capacity: number
-            accepted_count: number
-            auto_approve: boolean
-            waitlist_enabled: boolean
-            status: string
-          }>
-        >`SELECT id, team_capacity, accepted_count, auto_approve, waitlist_enabled, status FROM tournaments WHERE id = ${tournamentId} AND guild_id = ${guildId} FOR UPDATE`
+      let registration: { id: string; status: string; slotNumber: number | null }
+      try {
+        registration = await prisma.$transaction(async tx => {
+          const rows = await tx.$queryRaw<
+            Array<{
+              id: string
+              team_capacity: number
+              accepted_count: number
+              auto_approve: boolean
+              waitlist_enabled: boolean
+              status: string
+            }>
+          >`SELECT id, team_capacity, accepted_count, auto_approve, waitlist_enabled, status FROM tournaments WHERE id = ${tournamentId} AND guild_id = ${guildId} FOR UPDATE`
 
-        const row = rows[0]
-        if (!row) throw Object.assign(new Error('not_found'), { code: 'not_found' })
-        if (row.status !== 'REGISTRATION_OPEN') throw Object.assign(new Error('not_open'), { code: 'not_open' })
+          const row = rows[0]
+          if (!row) throw Object.assign(new Error('not_found'), { code: 'not_found' })
+          if (row.status !== 'REGISTRATION_OPEN') throw Object.assign(new Error('not_open'), { code: 'not_open' })
 
-        const { team_capacity, accepted_count, auto_approve, waitlist_enabled } = row
+          const { team_capacity, accepted_count, auto_approve, waitlist_enabled } = row
 
-        let regStatus: 'APPROVED' | 'PENDING' | 'WAITLISTED'
-        let slotNumber: number | null = null
-        let outboxType: string
+          let regStatus: 'APPROVED' | 'PENDING' | 'WAITLISTED'
+          let slotNumber: number | null = null
+          let outboxType: string
 
-        if (accepted_count < team_capacity) {
-          if (auto_approve) {
-            regStatus = 'APPROVED'
-            slotNumber = accepted_count + 1
-            outboxType = 'REGISTRATION_AUTO_APPROVED'
-            await tx.tournament.update({
-              where: { id: tournamentId },
-              data: { acceptedCount: { increment: 1 } },
-            })
+          if (accepted_count < team_capacity) {
+            if (auto_approve) {
+              regStatus = 'APPROVED'
+              slotNumber = accepted_count + 1
+              outboxType = 'REGISTRATION_AUTO_APPROVED'
+              await tx.tournament.update({
+                where: { id: tournamentId },
+                data: { acceptedCount: { increment: 1 } },
+              })
+            } else {
+              regStatus = 'PENDING'
+              outboxType = 'REGISTRATION_SUBMITTED'
+            }
+          } else if (waitlist_enabled) {
+            regStatus = 'WAITLISTED'
+            outboxType = 'REGISTRATION_WAITLISTED'
           } else {
-            regStatus = 'PENDING'
-            outboxType = 'REGISTRATION_SUBMITTED'
+            throw Object.assign(new Error('slots_full'), { code: 'slots_full' })
           }
-        } else if (waitlist_enabled) {
-          regStatus = 'WAITLISTED'
-          outboxType = 'REGISTRATION_WAITLISTED'
-        } else {
-          throw Object.assign(new Error('slots_full'), { code: 'slots_full' })
+
+          const reg = await tx.registration.create({
+            data: {
+              tournamentId,
+              guildId,
+              teamId: team!.id,
+              status: regStatus,
+              slotNumber,
+              submittedRaw: JSON.stringify({ teamName, igns }),
+            },
+            select: { id: true, status: true, slotNumber: true },
+          })
+
+          await tx.outboxEvent.create({
+            data: {
+              guildId,
+              type: outboxType,
+              payloadJson: { tournamentId, registrationId: reg.id, teamId: team!.id },
+              status: 'PENDING',
+            },
+          })
+
+          return reg
+        })
+      } catch (txErr: unknown) {
+        const code = (txErr as { code?: string }).code
+        if (code === 'slots_full') {
+          return modalSubmit.editReply({ embeds: [errorEmbed('Tournament is full and the waitlist is disabled.')] })
         }
-
-        const reg = await tx.registration.create({
-          data: {
-            tournamentId,
-            guildId,
-            teamId: team!.id,
-            status: regStatus,
-            slotNumber,
-            submittedRaw: JSON.stringify({ teamName, igns }),
-          },
-          select: { id: true, status: true, slotNumber: true },
-        })
-
-        await tx.outboxEvent.create({
-          data: {
-            guildId,
-            type: outboxType,
-            payloadJson: { tournamentId, registrationId: reg.id, teamId: team!.id },
-            status: 'PENDING',
-          },
-        })
-
-        return reg
-      })
+        if (code === 'not_open') {
+          return modalSubmit.editReply({ embeds: [errorEmbed('Registration is no longer open for this tournament.')] })
+        }
+        throw txErr
+      }
 
       const isAutoApproved = registration.status === 'APPROVED'
       const isWaitlisted = registration.status === 'WAITLISTED'
@@ -269,25 +281,11 @@ export class RegisterCommand extends Command {
           .build()
       }
 
-      return modalSubmit.editReply({
-        embeds: [replyEmbed],
-      })
+      return modalSubmit.editReply({ embeds: [replyEmbed] })
+
     } catch (err: unknown) {
-      const e = err as { code?: string }
-      if (e.code === 'slots_full') {
-        return interaction.followUp({
-          embeds: [errorEmbed('Tournament is full and the waitlist is disabled.')],
-          ephemeral: true,
-        })
-      }
-      if (e.code === 'not_open') {
-        return interaction.followUp({
-          embeds: [errorEmbed('Registration is no longer open for this tournament.')],
-          ephemeral: true,
-        })
-      }
       this.container.logger.error(`register error: ${err}`)
-      // Modal likely timed out — no-op for timeout
+      // Modal likely timed out — no-op
     }
   }
 }
