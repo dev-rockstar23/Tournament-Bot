@@ -9,27 +9,47 @@ import { REST, Routes } from 'discord.js'
 const commands = [
   {
     name: 'setup',
-    description: 'Run the server setup wizard to configure Legendary Esports Bot.',
+    description: 'Run the SHADØW server setup wizard to configure channels, roles and timezone.',
+  },
+  {
+    name: 'help',
+    description: 'View SHADØW command reference and usage guides.',
+  },
+  {
+    name: 'support',
+    description: 'Get support links, report a bug or request a feature.',
+  },
+  {
+    name: 'server',
+    description: 'Manage server settings, branding and role bindings.',
   },
   {
     name: 'tournament',
-    description: 'Manage tournaments.',
+    description: 'Create and manage tournaments (create, edit, publish, standings and more).',
   },
   {
     name: 'register',
-    description: 'Register for a tournament.',
+    description: 'Register your team for an open tournament.',
   },
   {
     name: 'match',
-    description: 'Match-related commands.',
+    description: 'Schedule, generate, result and dispute match management.',
   },
   {
     name: 'winners',
-    description: 'View tournament winners.',
+    description: 'View the winners podium for a concluded tournament.',
+  },
+  {
+    name: 'points',
+    description: 'Calculate and display live tournament standings.',
   },
   {
     name: 'analytics',
-    description: 'View server analytics.',
+    description: 'View server analytics summary or export tournament data as CSV.',
+  },
+  {
+    name: 'pt',
+    description: 'Prize template (PT) store, licensing and image generation.',
   },
 ]
 

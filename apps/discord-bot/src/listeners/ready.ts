@@ -8,7 +8,12 @@ export class ReadyListener extends Listener<typeof Events.ClientReady> {
 
   public async run(client: Client<true>) {
     const { username, id } = client.user
+    const guildCount = client.guilds.cache.size
+    this.container.logger.info(`╔══════════════════════════════════════════════╗`)
+    this.container.logger.info(`║     SHADØW TOURNAMENTS — BOT ONLINE          ║`)
+    this.container.logger.info(`╚══════════════════════════════════════════════╝`)
     this.container.logger.info(`✨ ${username} (${id}) is online and ready!`)
-    this.container.logger.info(`📡 Serving ${client.guilds.cache.size} server(s)`)
+    this.container.logger.info(`📡 Serving ${guildCount} server(s)`)
+    this.container.logger.info(`🌐 SHARD AP-SOUTH-1 • SHADØW TOURNAMENTS`)
   }
 }

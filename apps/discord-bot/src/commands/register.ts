@@ -8,6 +8,8 @@ import {
 } from 'discord.js'
 import prisma from '@esports/database'
 import { successEmbed, errorEmbed, genericErrorEmbed, notFoundEmbed } from '../utils/responses'
+import { ShadowEmbed } from '../utils/embed-builder'
+import { e } from '../utils/emojis'
 
 export class RegisterCommand extends Command {
   public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -234,17 +236,41 @@ export class RegisterCommand extends Command {
       const isAutoApproved = registration.status === 'APPROVED'
       const isWaitlisted = registration.status === 'WAITLISTED'
 
-      let replyText: string
+      let replyEmbed
       if (isAutoApproved) {
-        replyText = `✅ **Registered!** Your team **${teamName}** has been approved for **${tournament.name}**. Slot #${registration.slotNumber}.`
+        replyEmbed = new ShadowEmbed()
+          .setKind('success')
+          .setTitle(e('success'), 'registered', tournament.name)
+          .setDescription(
+            `Your team **${teamName}** has been approved for **${tournament.name}**.\nSlot **#${registration.slotNumber}** is confirmed!`,
+          )
+          .setFooter()
+          .setTimestamp()
+          .build()
       } else if (isWaitlisted) {
-        replyText = `📋 You've been added to the waitlist for **${tournament.name}**. You'll be notified if a slot opens up.`
+        replyEmbed = new ShadowEmbed()
+          .setKind('info')
+          .setTitle(e('waitlist'), 'waitlisted', tournament.name)
+          .setDescription(
+            `Your team **${teamName}** has been added to the waitlist for **${tournament.name}**.\nYou'll be notified if a slot opens up.`,
+          )
+          .setFooter()
+          .setTimestamp()
+          .build()
       } else {
-        replyText = `✍️ Registration submitted for **${tournament.name}**! Waiting for admin approval.`
+        replyEmbed = new ShadowEmbed()
+          .setKind('info')
+          .setTitle(e('pending'), 'registration submitted', tournament.name)
+          .setDescription(
+            `Your team **${teamName}** has been registered for **${tournament.name}**.\nWaiting for admin approval.`,
+          )
+          .setFooter()
+          .setTimestamp()
+          .build()
       }
 
       return modalSubmit.editReply({
-        embeds: [successEmbed('Registration Submitted', replyText)],
+        embeds: [replyEmbed],
       })
     } catch (err: unknown) {
       const e = err as { code?: string }

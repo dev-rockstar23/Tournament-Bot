@@ -9,7 +9,9 @@ export class GuildCreateListener extends Listener<typeof Events.GuildCreate> {
   }
 
   public async run(guild: Guild) {
-    this.container.logger.info(`✅ Joined guild: ${guild.name} (${guild.id})`)
+    this.container.logger.info(
+      `✅ SHADØW joined guild: ${guild.name} (${guild.id}) — ${guild.memberCount} members`,
+    )
 
     // Persist server record
     await prisma.discordServer.upsert({
@@ -39,6 +41,7 @@ export class GuildCreateListener extends Listener<typeof Events.GuildCreate> {
     }
 
     try {
+      // Rebranded ShadowEmbed welcome (via buildWelcomeEmbed which delegates to ShadowEmbed)
       await channel.send({ embeds: [buildWelcomeEmbed(guild.name)] })
       await channel.send({
         embeds:     [buildTimezonePromptEmbed()],
