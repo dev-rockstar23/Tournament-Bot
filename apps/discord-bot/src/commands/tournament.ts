@@ -626,8 +626,9 @@ export class TournamentCommand extends Command {
 
         const rawFee = feeSubmit.fields.getTextInputValue('entry_fee').trim()
         entryFeeValue = parseFloat(rawFee) || 0
-        // ModalSubmitInteraction has no deferUpdate — acknowledge with deferReply
-        await feeSubmit.deferReply({ ephemeral: true })
+        // Acknowledge the fee modal without creating a new visible reply — keeps
+        // the interaction chain anchored to step3Submit's deferred reply.
+        await feeSubmit.deferUpdate()
       } else {
         await entrySel.deferUpdate()
       }
