@@ -3231,10 +3231,427 @@ Need more help? → [Join Support Server]
 
 ---
 
-## 31. Alok GFX Points Table (PT) Collaboration System
+## 31. Alok GFX × SHADØW TOURNAMENTS — Points Table (PT) System
 
 ### Overview
-SHADØW TOURNAMENTS is partnering with **Alok GFX**, one of India's finest esports Points Table designers, to offer exclusive PT designs to tournament organizers. Users must purchase Alok GFX's PT designs at a **special discounted price** (exclusive to SHADØW TOURNAMENTS users), after which they can use them in their tournaments.
+
+SHADØW TOURNAMENTS is partnering with **Alok GFX**, one of India's finest esports Points Table designers. His PT designs are sold **exclusively inside our platform** — admins pay via Razorpay, unlock the design for one tournament, and then use our built-in web dashboard PT generator to fill in team data and produce the final Points Table image.
+
+**Key principles:**
+- No external store. Everything lives inside SHADØW TOURNAMENTS.
+- Admins purchase a PT design per tournament (1 design = 1 tournament unlock).
+- Free low-quality preview available before purchase.
+- After unlocking, admin fills a structured form → our system generates the PT image.
+- /pt bot commands for Discord-side PT posting and score entry.
+
+---
+
+### 31.1 How the PT System Works (End-to-End)
+
+```
+ADMIN visits /servers/[guildId]/admin/pt
+        ↓
+Browses Alok GFX designs (free low-quality preview)
+        ↓
+Selects a design for their tournament
+        ↓
+Pays via Razorpay (our platform collects, forwards to Alok GFX)
+        ↓
+Design unlocked for that specific tournament
+        ↓
+Admin fills PT form:
+  - Tournament name / logo
+  - Number of teams (up to 16/20)
+  - For each team: Team Name, Logo URL, Match-by-Match scores
+    (Placement per match + Kills per match)
+        ↓
+System calculates: Total POS pts + Total KILLS + TOTAL points
+        ↓
+Generates the PT image using Alok GFX's design template
+  (team names, logos, scores overlaid on his background)
+        ↓
+Admin downloads / shares / posts to Discord via /pt post
+```
+
+---
+
+### 31.2 PT Form — Data Input Structure
+
+When admin opens the PT generator, they fill this form:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TOURNAMENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tournament Title:    [BGMI PRO LEAGUE S4      ]
+Organizer Name:      [Mythic Warriors Esports ]
+Tournament Logo URL: [https://...             ]
+Total Matches:       [ 6 ]
+Scoring System:      [● BGMI BR  ○ FF  ○ CODM ○ Custom]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PLACEMENT POINTS TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1st Place (WWCD):  [15] pts
+2nd Place:         [12] pts
+3rd Place:         [10] pts
+4th Place:         [ 8] pts
+5th Place:         [ 6] pts
+6th Place:         [ 5] pts
+7th Place:         [ 4] pts
+8th Place:         [ 3] pts
+9th-12th Place:    [ 2] pts
+13th-16th Place:   [ 1] pts
+Kill Points:       [ 1] pt per kill
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TEAM DATA (repeat for each team)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEAM 1
+  Team Name:   [Team Soul          ]
+  Team Logo:   [https://...        ]  (optional)
+  Match 1:  Placement [  1 ]  Kills [14]
+  Match 2:  Placement [  3 ]  Kills [ 8]
+  Match 3:  Placement [  2 ]  Kills [11]
+  Match 4:  Placement [  1 ]  Kills [16]
+  Match 5:  Placement [  5 ]  Kills [ 6]
+  Match 6:  Placement [  4 ]  Kills [ 9]
+  → AUTO CALCULATED: POS 52 pts | KILLS 64 | TOTAL 116
+
+TEAM 2
+  Team Name:   [GodLike Esports    ]
+  ...
+
+[+ Add Team]   [- Remove Team]
+```
+
+**Auto-calculated columns (read-only, system fills):**
+- `WWC` — number of 1st place finishes
+- `POS` — sum of placement points across all matches
+- `KILLS` — total kills across all matches  
+- `TOTAL` — POS + KILLS
+- `RANK` — auto-sorted by TOTAL descending
+
+**Final output looks like Alok GFX's designs** (as seen in the screenshot):
+- RANK column
+- TEAM NAME with logo thumbnail
+- Per-match score bubbles (WWCD crown icon on wins)
+- POS | KILLS | TOTAL columns
+- Overlay on Alok GFX's premium background template
+
+---
+
+### 31.3 Database Schema
+
+```sql
+-- Alok GFX PT design catalog (admin-managed)
+pt_designs (
+  id            UUID PRIMARY KEY,
+  name          TEXT,              -- e.g. "Red Warriors Pack"
+  game          GAME_ENUM,         -- BGMI / FREE_FIRE / COD_MOBILE / ALL
+  description   TEXT,
+  preview_low_url  TEXT,           -- Free low-quality watermarked preview
+  preview_high_url TEXT,           -- High quality (shown after unlock)
+  template_config  JSONB,          -- Pixel coords for text/logo overlays
+  price_inr     DECIMAL,           -- Price in INR (e.g. 299)
+  is_active     BOOLEAN DEFAULT true,
+  display_order INT,
+  created_at    TIMESTAMP
+)
+
+-- Per-tournament purchase/unlock
+tournament_pt_unlocks (
+  id               UUID PRIMARY KEY,
+  tournament_id    UUID → tournaments,
+  guild_id         VARCHAR,
+  pt_design_id     UUID → pt_designs,
+  purchased_by     VARCHAR,         -- Discord user ID of admin who paid
+  razorpay_order_id  TEXT,
+  razorpay_payment_id TEXT,
+  amount_paid      DECIMAL,
+  status           ENUM(PENDING, PAID, FAILED, REFUNDED),
+  unlocked_at      TIMESTAMP,
+  created_at       TIMESTAMP
+)
+
+-- PT data filled by admin for a tournament
+tournament_pt_entries (
+  id              UUID PRIMARY KEY,
+  tournament_id   UUID → tournaments,
+  pt_unlock_id    UUID → tournament_pt_unlocks,
+  guild_id        VARCHAR,
+  title           TEXT,
+  organizer_name  TEXT,
+  logo_url        TEXT,
+  total_matches   INT,
+  scoring_config  JSONB,           -- placement table + kill points
+  teams_data      JSONB,           -- array of team objects with match scores
+  generated_image_url TEXT,        -- Final rendered PT image URL
+  last_generated_at TIMESTAMP,
+  created_at      TIMESTAMP,
+  updated_at      TIMESTAMP
+)
+```
+
+**`teams_data` JSONB structure:**
+```json
+[
+  {
+    "rank": 1,
+    "name": "Team Soul",
+    "logo_url": "https://...",
+    "matches": [
+      { "match": 1, "placement": 1, "kills": 14 },
+      { "match": 2, "placement": 3, "kills": 8 }
+    ],
+    "wwc": 2,
+    "total_pos": 52,
+    "total_kills": 64,
+    "total": 116
+  }
+]
+```
+
+---
+
+### 31.4 Website Pages
+
+**`/pt`** — Public landing page for the PT system
+```
+┌──────────────────────────────────────────────────────────┐
+│  🎨 POINTS TABLE DESIGNER                               │
+│  Powered by Alok GFX × SHADØW TOURNAMENTS               │
+│                                                          │
+│  Create professional tournament points tables in         │
+│  minutes. Choose a premium design by India's             │
+│  finest PT creator — Alok GFX.                          │
+│                                                          │
+│  [Browse Designs]  [How It Works]                       │
+└──────────────────────────────────────────────────────────┘
+
+AVAILABLE DESIGNS (4 cards from screenshot above)
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│ [Preview]│ │ [Preview]│ │ [Preview]│ │ [Preview]│
+│ Red Pack │ │ Blue Pack│ │ Purple   │ │ Violet   │
+│  BGMI    │ │  FF Max  │ │  ALL     │ │  CODM    │
+│ ₹299     │ │ ₹249     │ │ ₹349     │ │ ₹299     │
+│[Preview] │ │[Preview] │ │[Preview] │ │[Preview] │
+│[Unlock →]│ │[Unlock →]│ │[Unlock →]│ │[Unlock →]│
+└──────────┘ └──────────┘ └──────────┘ └──────────┘
+```
+
+**`/servers/[guildId]/admin/pt`** — Admin PT management for a server
+- Lists all PT unlocks for this server's tournaments
+- Shows which tournament each design is assigned to
+- "Create New PT" button
+
+**`/servers/[guildId]/admin/pt/[tournamentId]`** — PT Generator (main tool)
+- Full form with tournament details + team data entry
+- Live preview panel (right side, updates as you type)
+- "Generate PT" → renders and saves image
+- "Download PNG" → full quality download
+- "Post to Discord" → posts via bot to results channel
+
+---
+
+### 31.5 Purchase Flow (Razorpay)
+
+```
+Admin clicks "Unlock for Tournament X" on a design
+        ↓
+Payment modal opens showing:
+  Design: Red Warriors Pack
+  Tournament: BGMI Pro League S4
+  Price: ₹299
+  [Pay with Razorpay]
+        ↓
+Razorpay checkout opens (UPI / Cards / Netbanking)
+        ↓
+On payment.captured webhook:
+  - tournament_pt_unlocks.status → PAID
+  - unlocked_at = NOW()
+  - Admin gets DM: "PT Design unlocked for your tournament! 🎨"
+        ↓
+Admin redirected to PT Generator page
+```
+
+**Note on revenue:** Platform can take a cut (e.g. ₹50) and forward rest to Alok GFX manually, OR set up a Razorpay Route to auto-split. Keep simple for now — full amount to platform, manual settlement to Alok GFX.
+
+---
+
+### 31.6 PT Image Generation
+
+**How it works technically:**
+
+1. Admin submits team data form
+2. Backend receives `tournament_pt_entries` payload
+3. Server-side image generation using **`@napi-rs/canvas`** or **`sharp`**:
+   - Load Alok GFX's base template PNG (stored in Supabase Storage)
+   - For each team row: draw team name, logo thumbnail, match scores, totals
+   - Draw rank numbers, column headers
+   - Apply Alok GFX's font/color theme from `template_config.json`
+4. Save generated PNG to Supabase Storage → return URL
+5. Display in preview panel + enable Download / Post to Discord
+
+**Template config JSON structure:**
+```json
+{
+  "background": "supabase://pt-templates/red-warriors-pack.png",
+  "dimensions": { "width": 1920, "height": 1080 },
+  "title": { "x": 960, "y": 80, "font": "Orbitron", "size": 48, "color": "#FFD700" },
+  "columns": {
+    "rank":      { "x": 120,  "y_start": 280, "row_height": 58 },
+    "team_name": { "x": 280,  "y_start": 280, "row_height": 58 },
+    "team_logo": { "x": 240,  "y_start": 275, "size": 40 },
+    "wwc":       { "x": 900,  "y_start": 280, "row_height": 58 },
+    "pos":       { "x": 1200, "y_start": 280, "row_height": 58 },
+    "kills":     { "x": 1450, "y_start": 280, "row_height": 58 },
+    "total":     { "x": 1700, "y_start": 280, "row_height": 58 }
+  },
+  "match_cols": [
+    { "match": 1, "x": 680 },
+    { "match": 2, "x": 730 },
+    { "match": 3, "x": 780 }
+  ],
+  "branding": { "x": 960, "y": 1050, "text": "Design by @AlokGFX | SHADØW TOURNAMENTS" }
+}
+```
+
+---
+
+### 31.7 Bot Commands for PT
+
+| Command | Who | Description |
+|---------|-----|-------------|
+| `/pt view [tournament_id]` | VIEWER | Show current PT standings embed in Discord |
+| `/pt post [tournament_id]` | TOURNAMENT_MANAGER | Post PT image to results channel |
+| `/pt update [tournament_id]` | TOURNAMENT_MANAGER | Re-generate PT after new match data |
+| `/pt buy [tournament_id] [design_name]` | SERVER_ADMIN | Get payment link to unlock a design |
+
+When `/pt post` is run:
+- Fetches generated PT image URL from DB
+- Posts it as a full-width embed image to the configured results channel
+- Adds "Design by @AlokGFX" footer
+
+---
+
+### 31.8 Admin PT Generator UI (Web Dashboard)
+
+**Page:** `/servers/[guildId]/admin/pt/[tournamentId]`
+
+```
+┌──────────────────────────────────┬───────────────────────┐
+│  PT DATA ENTRY                   │  LIVE PREVIEW          │
+│                                  │                        │
+│  Design: Red Warriors Pack ✓     │  [PT image renders     │
+│  ──────────────────────────      │   here in real-time    │
+│  Tournament Title: [         ]   │   as admin types]      │
+│  Organizer: [              ]     │                        │
+│  Total Matches: [6]              │                        │
+│  ──────────────────────────      │                        │
+│  SCORING CONFIG                  │                        │
+│  1st: [15] 2nd: [12] 3rd: [10]   │                        │
+│  Kill pts: [1]                   │                        │
+│  ──────────────────────────      │                        │
+│  TEAMS                           │                        │
+│  ┌────────────────────────────┐  │                        │
+│  │ #1 Team Soul               │  │                        │
+│  │ Logo: [url]                │  │                        │
+│  │ M1: P[1] K[14]             │  │                        │
+│  │ M2: P[3] K[ 8]             │  │                        │
+│  │ M3: P[2] K[11]             │  │                        │
+│  │ → WWC:2 POS:52 KIL:64 T:116│  │                        │
+│  └────────────────────────────┘  │                        │
+│  [+ Add Team]                    │                        │
+│                                  │                        │
+│  [Generate PT]  [Download PNG]   │                        │
+│  [Post to Discord]               │                        │
+└──────────────────────────────────┴───────────────────────┘
+```
+
+---
+
+### 31.9 Environment Variables
+
+```env
+# PT System (Alok GFX)
+PT_TEMPLATE_BUCKET=pt-templates        # Supabase Storage bucket name
+PT_OUTPUT_BUCKET=pt-generated          # Where generated PTs are stored
+PT_ALOK_GFX_CREDIT="Design by @AlokGFX | SHADØW TOURNAMENTS"
+```
+
+No external store URL needed. Everything is inside the platform.
+
+---
+
+## 32. Points Calculator System
+
+### 32.1 Scoring Engine (Auto-calculation)
+
+The system auto-calculates whenever match data is entered:
+
+```typescript
+function calculateTeamScore(
+  matches: { placement: number; kills: number }[],
+  config: {
+    placementTable: Record<number, number>  // position → points
+    killPoints: number
+  }
+): { wwc: number; pos: number; kills: number; total: number } {
+  let wwc = 0, pos = 0, kills = 0
+  for (const m of matches) {
+    if (m.placement === 1) wwc++
+    pos += config.placementTable[m.placement] ?? 0
+    kills += m.kills
+  }
+  return { wwc, pos, kills, total: pos + (kills * config.killPoints) }
+}
+```
+
+### 32.2 Default Scoring Presets
+
+| Preset | Game | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th | 9-12 | 13-16 | Kill |
+|--------|------|-----|-----|-----|-----|-----|-----|-----|-----|------|-------|------|
+| BGMI Standard | BGMI | 15 | 12 | 10 | 8 | 6 | 5 | 4 | 3 | 2 | 1 | 1 |
+| FF Standard | Free Fire | 15 | 12 | 10 | 8 | 6 | 5 | 4 | 3 | 2 | 1 | 1 |
+| CODM Standard | COD Mobile | 10 | 8 | 6 | 5 | 4 | 3 | 2 | 1 | 0 | 0 | 2 |
+| Custom | Any | configurable | | | | | | | | | | |
+
+### 32.3 Web Dashboard Calculator
+
+**Route:** `/servers/[guildId]/admin/tournaments/[tournamentId]/points`
+
+Features:
+- Match-by-match data entry table (rows = teams, columns = matches)
+- Click any cell to enter placement + kills for that team in that match
+- Totals auto-calculate in real-time
+- "Export to PT" button — sends data to PT generator with Alok GFX design
+- "Post Standings" — posts current standings embed to Discord
+
+### 32.4 Bot Command
+
+`/points calc [tournament_id]` — shows live standings:
+
+```
+📊 LIVE STANDINGS — BGMI Pro League S4
+Matches: 3/6 | Scoring: BGMI Standard
+
+🥇 Team Soul        116 pts  (KILLS: 64 | WWC: 2)
+🥈 GodLike Esports   98 pts  (KILLS: 58 | WWC: 1)
+🥉 Blind Esports     85 pts  (KILLS: 47 | WWC: 0)
+ 4. Team XSpark      79 pts  (KILLS: 41 | WWC: 1)
+ 5. Global Esports   71 pts  (KILLS: 39 | WWC: 0)
+...
+
+[View Full PT on Dashboard →]
+[Design by @AlokGFX | SHADØW 🌑]
+```
+
+---
+
+*Last updated: October 2026*
+*Platform: shadow-tournaments.vercel.app*
+*Collaboration: Alok GFX × SHADØW TOURNAMENTS*
 
 ### Full System Architecture
 
