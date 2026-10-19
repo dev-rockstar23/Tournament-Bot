@@ -1,8 +1,14 @@
 import { Command } from '@sapphire/framework'
-import { EmbedBuilder, type ChatInputCommandInteraction } from 'discord.js'
+import {
+  ActionRowBuilder,
+  ComponentType,
+  EmbedBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  type ChatInputCommandInteraction,
+} from 'discord.js'
 import { ShadowEmbed } from '../utils/embed-builder'
 import { e } from '../utils/emojis'
-import { paginate, createPaginatorCollector } from '../utils/paginator'
 
 // ---------------------------------------------------------------------------
 // Command catalogue — used to build categorized help
@@ -36,7 +42,7 @@ const CATEGORIES: CommandCategory[] = [
     label: 'TOURNAMENTS',
     emoji: '🏆',
     commands: [
-      { name: '/tournament create',      description: 'Create a new tournament.' },
+      { name: '/tournament create',      description: 'Create a new tournament via the wizard.' },
       { name: '/tournament edit',        description: 'Edit tournament details.' },
       { name: '/tournament publish',     description: 'Open registration for a tournament.' },
       { name: '/tournament cancel',      description: 'Cancel a tournament.' },
@@ -99,66 +105,38 @@ const CATEGORIES: CommandCategory[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// Detailed per-command data for /help <command>
+// Build a module page embed for a single category
 // ---------------------------------------------------------------------------
-const COMMAND_DETAILS: Record<string, { description: string; options?: string[] }> = {
-  setup:           { description: 'Runs the server setup wizard. Upserts the server record and opens a timezone picker. Requires Manage Guild permission.', options: ['(none)'] },
-  'server status': { description: 'Displays system health: database connection, Redis status, outbox backlog, and last sync time.', options: ['(none)'] },
-  'server branding': { description: 'Updates server branding stored in server settings.', options: ['logo_url (optional)', 'accent_color (optional)', 'banner_url (optional)'] },
-  'server roles list': { description: 'Lists all Discord role → app role bindings for this guild.', options: ['(none)'] },
-  'server roles add': { description: 'Opens an interactive flow: select a Discord role, then select an app permission level.', options: ['(interactive select menus)'] },
-  'server roles remove': { description: 'Opens an interactive select to remove a role binding.', options: ['(interactive select menu)'] },
-  'server roles members': { description: 'Lists each bound Discord role with its member count.', options: ['(none)'] },
-  register: { description: 'Opens a modal to register your team for a tournament. Atomically reserves a slot.', options: ['tournament (required) — Tournament ID'] },
-  analytics: { description: 'Server analytics. Use `summary` or `export`.', options: ['game (optional) — filter by game'] },
-  winners:   { description: 'View tournament winners and podium.', options: ['tournament (required) — Tournament ID'] },
-  help:      { description: 'This help command! Optionally pass a command name for detailed info.', options: ['command (optional) — command name'] },
-  support:   { description: 'Display support links, documentation, and bug report instructions.', options: ['(none)'] },
-}
+function buildModulePage(category: CommandCategory, moduleIndex: number, total: number): EmbedBuilder {
+  const lines = category.commands.map(c => `\`${c.name}\`  —  ${c.description}`)
 
-function buildDetailEmbed(commandName: string): EmbedBuilder {
-  const detail = COMMAND_DETAILS[commandName]
-
-  if (!detail) {
-    return new ShadowEmbed()
-      .setKind('warning')
-      .setTitle(e('help'), `/${commandName}`)
-      .setDescription(`No detailed help found for \`/${commandName}\`.\n\nRun \`/help\` without arguments to see all commands.`)
-      .setFooter()
-      .build()
-  }
-
-  const builder = new ShadowEmbed()
-    .setKind('info')
-    .setTitle(e('help'), 'COMMAND HELP', `/${commandName}`)
-    .setDescription(detail.description)
-    .setFooter()
-    .setTimestamp()
-
-  if (detail.options && detail.options.length > 0) {
-    builder.addField('Options', detail.options.map(o => `• \`${o}\``).join('\n'), false)
-  }
-
-  return builder.build()
-}
-
-function buildCategoryPage(
-  categories: CommandCategory[],
-  pageIndex: number,
-  totalPages: number,
-): EmbedBuilder {
-  const builder = new ShadowEmbed()
+  return new ShadowEmbed()
     .setKind('info')
     .setTitle(e('help'), 'SHADØW TOURNAMENTS — Command Reference')
-    .setFooter(`Page ${pageIndex + 1} of ${totalPages}`)
+    .setDescription(`Module ${moduleIndex + 1}/${total} · ${category.label}`)
+    .addField(`${category.emoji} ${category.label}`, lines.join('\n'), false)
+    .setFooter(`Module ${moduleIndex + 1} of ${total}`)
     .setTimestamp()
+    .build()
+}
 
-  for (const cat of categories) {
-    const lines = cat.commands.map(c => `\`${c.name}\` — ${c.description}`)
-    builder.addField(`${cat.emoji} ${cat.label}`, lines.join('\n'), false)
-  }
+// ---------------------------------------------------------------------------
+// Build the dropdown select menu listing all categories
+// ---------------------------------------------------------------------------
+function buildModuleSelectRow(): ActionRowBuilder<StringSelectMenuBuilder> {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId('help_module')
+    .setPlaceholder('Select a command module…')
+    .addOptions(
+      CATEGORIES.map((cat, idx) =>
+        new StringSelectMenuOptionBuilder()
+          .setLabel(cat.label)
+          .setValue(String(idx))
+          .setEmoji(cat.emoji),
+      ),
+    )
 
-  return builder.build()
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu)
 }
 
 export class HelpCommand extends Command {
@@ -174,34 +152,55 @@ export class HelpCommand extends Command {
     registry.registerChatInputCommand(builder =>
       builder
         .setName('help')
-        .setDescription('Show the SHADØW TOURNAMENTS command reference.')
-        .addStringOption(opt =>
-          opt
-            .setName('command')
-            .setDescription('Command name for detailed help, e.g. "server status"')
-            .setRequired(false),
-        ),
+        .setDescription('Show the SHADØW TOURNAMENTS command reference.'),
     )
   }
 
   public override async chatInputRun(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true })
 
-    const commandName = interaction.options.getString('command')
+    const total = CATEGORIES.length
 
-    if (commandName) {
-      const embed = buildDetailEmbed(commandName.toLowerCase().trim())
-      return interaction.editReply({ embeds: [embed] })
-    }
+    // Show the first category immediately
+    const initialEmbed = buildModulePage(CATEGORIES[0]!, 0, total)
+    const selectRow    = buildModuleSelectRow()
 
-    // Build pages — group categories into pages of 5 each (≤25 fields per embed)
-    const PAGE_SIZE = 5
-    const { pages } = paginate(
-      CATEGORIES,
-      PAGE_SIZE,
-      (cats, idx, total) => buildCategoryPage(cats, idx, total),
-    )
+    const msg = await interaction.editReply({
+      embeds:     [initialEmbed],
+      components: [selectRow],
+    })
 
-    await createPaginatorCollector(interaction, pages, true)
+    // Listen for dropdown selections for 5 minutes
+    const collector = msg.createMessageComponentCollector({
+      componentType: ComponentType.StringSelect,
+      filter:        i => i.customId === 'help_module' && i.user.id === interaction.user.id,
+      time:          5 * 60 * 1000,
+    })
+
+    collector.on('collect', async sel => {
+      const idx      = parseInt(sel.values[0] ?? '0', 10)
+      const category = CATEGORIES[idx] ?? CATEGORIES[0]!
+      const embed    = buildModulePage(category, idx, total)
+      await sel.update({ embeds: [embed], components: [selectRow] })
+    })
+
+    collector.on('end', async () => {
+      // Disable the dropdown once the collector expires
+      const disabledMenu = new StringSelectMenuBuilder()
+        .setCustomId('help_module')
+        .setPlaceholder('Session expired — run /help again.')
+        .setDisabled(true)
+        .addOptions(
+          CATEGORIES.map((cat, idx) =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(cat.label)
+              .setValue(String(idx))
+              .setEmoji(cat.emoji),
+          ),
+        )
+
+      const disabledRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(disabledMenu)
+      await interaction.editReply({ components: [disabledRow] }).catch(() => null)
+    })
   }
 }

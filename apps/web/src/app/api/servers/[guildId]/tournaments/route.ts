@@ -18,11 +18,11 @@ export async function GET(
   // Always scope by guildId — non-negotiable
   const where: Record<string, unknown> = { guildId: params.guildId };
 
-  // Only show non-draft, non-archived tournaments publicly
+  // Show all statuses by default; only filter to a specific one when requested
   if (status) {
     where['status'] = status;
   } else {
-    where['status'] = { notIn: ['DRAFT', 'ARCHIVED'] };
+    where['status'] = { not: 'ARCHIVED' };
   }
 
   if (game) where['game'] = game;

@@ -317,94 +317,517 @@ export class TournamentCommand extends Command {
   }
 
   // ─── handleCreate ─────────────────────────────────────────────────────────
+  //
+  // Multi-step tournament creation wizard:
+  //   Step 1 — Modal: name, game, team_size, max_teams
+  //   Step 2 — Select: game mode
+  //   Step 3 — Modal: start_date, reg_close, prize_pool
+  //   Step 4 — Select: entry type (FREE/PAID); if PAID → fee modal
+  //   Step 5 — Confirmation embed with Publish / Save As Draft buttons
+  //
 
   private async handleCreate(interaction: ChatInputCommandInteraction) {
-    const modal = new ModalBuilder()
-      .setCustomId('tcreate_modal')
-      .setTitle('Create Tournament')
+    const guildId = interaction.guildId!
+    const userId  = interaction.user.id
 
-    const nameInput = new TextInputBuilder()
-      .setCustomId('tcreate_name')
-      .setLabel('Tournament Name')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true)
-      .setMaxLength(100)
-      .setPlaceholder('e.g. Season 5 BGMI Championship')
+    // ── Step 1 — Basic details modal ────────────────────────────────────────
+    const step1Modal = new ModalBuilder()
+      .setCustomId('create_step1')
+      .setTitle('Create Tournament — Step 1/4')
 
-    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput))
-    await interaction.showModal(modal)
+    step1Modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('tournament_name')
+          .setLabel('Tournament Name')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(100)
+          .setPlaceholder('e.g. Season 5 BGMI Championship'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('game')
+          .setLabel('Game')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setPlaceholder('BGMI / FREE_FIRE / COD_MOBILE'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('team_size')
+          .setLabel('Team Size')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setPlaceholder('SOLO / DUO / SQUAD'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('max_teams')
+          .setLabel('Max Teams')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setPlaceholder('e.g. 25'),
+      ),
+    )
 
-    let tournamentName = ''
+    await interaction.showModal(step1Modal)
+
+    let step1Submit: Awaited<ReturnType<typeof interaction.awaitModalSubmit>>
     try {
-      const modalSubmit = await interaction.awaitModalSubmit({
-        filter: i => i.customId === 'tcreate_modal' && i.user.id === interaction.user.id,
+      step1Submit = await interaction.awaitModalSubmit({
+        filter: i => i.customId === 'create_step1' && i.user.id === userId,
+        time: 300_000,
+      })
+    } catch {
+      // Modal timed out — nothing to do
+      return
+    }
+
+    const tournamentName = step1Submit.fields.getTextInputValue('tournament_name').trim()
+    const rawGame        = step1Submit.fields.getTextInputValue('game').trim().toUpperCase()
+    const rawTeamSize    = step1Submit.fields.getTextInputValue('team_size').trim().toUpperCase()
+    const rawMaxTeams    = step1Submit.fields.getTextInputValue('max_teams').trim()
+
+    const gameMap: Record<string, 'BGMI' | 'FREE_FIRE' | 'COD_MOBILE'> = {
+      BGMI:       'BGMI',
+      FREE_FIRE:  'FREE_FIRE',
+      'FREE FIRE':'FREE_FIRE',
+      FREEFIRE:   'FREE_FIRE',
+      COD_MOBILE: 'COD_MOBILE',
+      COD:        'COD_MOBILE',
+      CODMOBILE:  'COD_MOBILE',
+    }
+    const selectedGame = gameMap[rawGame]
+    if (!selectedGame) {
+      await step1Submit.reply({
+        embeds: [errorEmbed(`Unknown game: **${rawGame}**. Use BGMI, FREE_FIRE, or COD_MOBILE.`)],
+        ephemeral: true,
+      })
+      return
+    }
+
+    const teamSizeMap: Record<string, number> = { SOLO: 1, DUO: 2, SQUAD: 4 }
+    const teamSize = teamSizeMap[rawTeamSize] ?? parseInt(rawTeamSize, 10)
+    if (isNaN(teamSize) || teamSize < 1) {
+      await step1Submit.reply({
+        embeds: [errorEmbed(`Unknown team size: **${rawTeamSize}**. Use SOLO, DUO, or SQUAD.`)],
+        ephemeral: true,
+      })
+      return
+    }
+
+    const maxTeams = parseInt(rawMaxTeams, 10)
+    if (isNaN(maxTeams) || maxTeams < 2) {
+      await step1Submit.reply({
+        embeds: [errorEmbed('Max teams must be a number ≥ 2.')],
+        ephemeral: true,
+      })
+      return
+    }
+
+    await step1Submit.deferReply({ ephemeral: true })
+
+    // ── Step 2 — Game mode selection ────────────────────────────────────────
+    const gameModeChoices: Record<string, { label: string; value: string }[]> = {
+      BGMI:       [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Clash Squad', value: 'CLASH_SQUAD' }],
+      FREE_FIRE:  [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Clash Squad', value: 'CLASH_SQUAD' }],
+      COD_MOBILE: [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Multiplayer', value: 'MULTIPLAYER' }, { label: 'Ranked', value: 'BATTLE_ROYALE' }],
+    }
+
+    const modeOptions = gameModeChoices[selectedGame] ?? [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }]
+
+    const modeMenu = new StringSelectMenuBuilder()
+      .setCustomId('create_mode')
+      .setPlaceholder('Select game mode…')
+      .addOptions(
+        modeOptions.map(opt =>
+          new StringSelectMenuOptionBuilder().setLabel(opt.label).setValue(opt.value),
+        ),
+      )
+
+    const modeRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(modeMenu)
+
+    const step2Msg = await step1Submit.editReply({
+      embeds: [infoEmbed('⚔️ Step 2 — Game Mode', `Select the game mode for **${tournamentName}** (${selectedGame}):`)],
+      components: [modeRow],
+    })
+
+    let gameMode: string
+    try {
+      const modeSel = await step2Msg.awaitMessageComponent({
+        componentType: ComponentType.StringSelect,
+        filter: i => i.customId === 'create_mode' && i.user.id === userId,
         time: 120_000,
       })
-      tournamentName = modalSubmit.fields.getTextInputValue('tcreate_name').trim()
-      await modalSubmit.deferReply({ ephemeral: true })
+      gameMode = modeSel.values[0] ?? 'BATTLE_ROYALE'
+      await modeSel.deferUpdate()
+    } catch {
+      await step1Submit.editReply({
+        embeds: [infoEmbed('⚠️ Timed Out', 'No game mode selected. Run `/tournament create` again.')],
+        components: [],
+      })
+      return
+    }
 
-      // Game selection menu
-      const gameMenu = new StringSelectMenuBuilder()
-        .setCustomId('tcreate_game')
-        .setPlaceholder('Select the game…')
-        .addOptions(
-          new StringSelectMenuOptionBuilder().setLabel('BGMI').setValue('BGMI').setEmoji('🎮'),
-          new StringSelectMenuOptionBuilder().setLabel('Free Fire').setValue('FREE_FIRE').setEmoji('🔥'),
-          new StringSelectMenuOptionBuilder().setLabel('COD Mobile').setValue('COD_MOBILE').setEmoji('🎯'),
+    // ── Step 3 — Dates & prize pool modal ───────────────────────────────────
+    const step3Modal = new ModalBuilder()
+      .setCustomId('create_step3')
+      .setTitle('Create Tournament — Step 3/4')
+
+    step3Modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('start_date')
+          .setLabel('Tournament Start Date (IST)')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setPlaceholder('YYYY-MM-DD HH:MM'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('reg_close')
+          .setLabel('Registration Close Date (IST)')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setPlaceholder('YYYY-MM-DD HH:MM'),
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId('prize_pool')
+          .setLabel('Prize Pool (optional)')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false)
+          .setPlaceholder('e.g. 5000 or leave blank'),
+      ),
+    )
+
+    // We need a component interaction to show a new modal — use a "Next" button
+    const nextBtn = new ButtonBuilder()
+      .setCustomId('create_next_step3')
+      .setLabel('Next: Dates & Prize →')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('📅')
+
+    const nextRow = new ActionRowBuilder<ButtonBuilder>().addComponents(nextBtn)
+
+    await step1Submit.editReply({
+      embeds: [infoEmbed('✅ Mode Selected', `Game mode set to **${gameMode.replace(/_/g, ' ')}**. Click below to continue.`)],
+      components: [nextRow],
+    })
+
+    let step3Submit: import('discord.js').ModalSubmitInteraction
+    try {
+      const btnInt = await step2Msg.awaitMessageComponent({
+        componentType: ComponentType.Button,
+        filter: (i: import('discord.js').MessageComponentInteraction) => i.customId === 'create_next_step3' && i.user.id === userId,
+        time: 120_000,
+      })
+      await btnInt.showModal(step3Modal)
+      step3Submit = await btnInt.awaitModalSubmit({
+        filter: (i: import('discord.js').ModalSubmitInteraction) => i.customId === 'create_step3' && i.user.id === userId,
+        time: 300_000,
+      })
+    } catch {
+      await step1Submit.editReply({
+        embeds: [infoEmbed('⚠️ Timed Out', 'Wizard timed out. Run `/tournament create` again.')],
+        components: [],
+      })
+      return
+    }
+
+    const rawStartDate = step3Submit.fields.getTextInputValue('start_date').trim()
+    const rawRegClose  = step3Submit.fields.getTextInputValue('reg_close').trim()
+    const rawPrizePool = step3Submit.fields.getTextInputValue('prize_pool').trim()
+
+    // Parse IST dates (UTC+5:30 = subtract 330 min from IST to get UTC)
+    const parseISTDate = (str: string): Date | null => {
+      // Accept "YYYY-MM-DD HH:MM" or ISO string
+      const normalised = str.replace(' ', 'T')
+      const d = new Date(normalised.includes('Z') || normalised.includes('+') ? normalised : normalised + ':00+05:30')
+      return isNaN(d.getTime()) ? null : d
+    }
+
+    const parsedStartDate = parseISTDate(rawStartDate)
+    const parsedRegClose  = parseISTDate(rawRegClose)
+
+    if (!parsedStartDate) {
+      await step3Submit.reply({
+        embeds: [errorEmbed(`Invalid start date: **${rawStartDate}**. Use YYYY-MM-DD HH:MM.`)],
+        ephemeral: true,
+      })
+      return
+    }
+    if (!parsedRegClose) {
+      await step3Submit.reply({
+        embeds: [errorEmbed(`Invalid registration close date: **${rawRegClose}**. Use YYYY-MM-DD HH:MM.`)],
+        ephemeral: true,
+      })
+      return
+    }
+
+    const prizePoolValue = rawPrizePool ? parseFloat(rawPrizePool) || null : null
+
+    await step3Submit.deferReply({ ephemeral: true })
+
+    // ── Step 4 — Entry type selection ───────────────────────────────────────
+    const entryMenu = new StringSelectMenuBuilder()
+      .setCustomId('create_entry')
+      .setPlaceholder('Select entry type…')
+      .addOptions(
+        new StringSelectMenuOptionBuilder().setLabel('FREE').setValue('FREE').setEmoji('🆓').setDescription('No entry fee'),
+        new StringSelectMenuOptionBuilder().setLabel('PAID').setValue('PAID').setEmoji('💰').setDescription('Players pay an entry fee'),
+      )
+
+    const entryRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(entryMenu)
+
+    const step4Msg = await step3Submit.editReply({
+      embeds: [infoEmbed('💰 Step 4 — Entry Type', 'Select whether this tournament is free or paid:')],
+      components: [entryRow],
+    })
+
+    let entryType: 'FREE' | 'PAID'
+    let entryFeeValue = 0
+
+    try {
+      const entrySel = await step4Msg.awaitMessageComponent({
+        componentType: ComponentType.StringSelect,
+        filter: (i: import('discord.js').MessageComponentInteraction) => i.customId === 'create_entry' && i.user.id === userId,
+        time: 120_000,
+      })
+      entryType = (entrySel.values[0] ?? 'FREE') as 'FREE' | 'PAID'
+
+      if (entryType === 'PAID') {
+        // Show entry fee modal
+        const feeModal = new ModalBuilder()
+          .setCustomId('create_fee')
+          .setTitle('Entry Fee')
+
+        feeModal.addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(
+            new TextInputBuilder()
+              .setCustomId('entry_fee')
+              .setLabel('Entry Fee (INR)')
+              .setStyle(TextInputStyle.Short)
+              .setRequired(true)
+              .setPlaceholder('e.g. 100'),
+          ),
         )
 
-      const menuRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(gameMenu)
-      const msg = await modalSubmit.editReply({
-        embeds: [infoEmbed('🎮 Select Game', `Select the game for **${tournamentName}**:`)],
-        components: [menuRow],
+        await entrySel.showModal(feeModal)
+
+        const feeSubmit = await entrySel.awaitModalSubmit({
+          filter: (i: import('discord.js').ModalSubmitInteraction) => i.customId === 'create_fee' && i.user.id === userId,
+          time: 120_000,
+        })
+
+        const rawFee = feeSubmit.fields.getTextInputValue('entry_fee').trim()
+        entryFeeValue = parseFloat(rawFee) || 0
+        await feeSubmit.deferUpdate()
+      } else {
+        await entrySel.deferUpdate()
+      }
+    } catch {
+      await step3Submit.editReply({
+        embeds: [infoEmbed('⚠️ Timed Out', 'Wizard timed out. Run `/tournament create` again.')],
+        components: [],
+      })
+      return
+    }
+
+    // ── Step 5 — Confirmation ───────────────────────────────────────────────
+    const gameModeLabel = gameMode.replace(/_/g, ' ')
+    const teamSizeLabel = rawTeamSize
+
+    const confirmEmbed = new ShadowEmbed()
+      .setKind('tournament')
+      .setTitle('🏆', 'CONFIRM TOURNAMENT', tournamentName)
+      .addInlineFields([
+        { name: 'Game',       value: selectedGame.replace(/_/g, ' ') },
+        { name: 'Mode',       value: gameModeLabel                   },
+        { name: 'Team Size',  value: teamSizeLabel                   },
+        { name: 'Max Teams',  value: String(maxTeams)                },
+        { name: 'Start Date', value: `<t:${Math.floor(parsedStartDate.getTime() / 1000)}:F>` },
+        { name: 'Reg. Close', value: `<t:${Math.floor(parsedRegClose.getTime() / 1000)}:F>` },
+      ])
+      .addField('Prize Pool', prizePoolValue ? `₹${prizePoolValue}` : '—', true)
+      .addField('Entry',      entryType === 'PAID' ? `₹${entryFeeValue}` : 'FREE', true)
+      .setFooter('Review details before publishing.')
+      .setTimestamp()
+      .build()
+
+    const publishBtn = new ButtonBuilder()
+      .setCustomId('create_publish')
+      .setLabel('PUBLISH NOW')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('🚀')
+
+    const draftBtn = new ButtonBuilder()
+      .setCustomId('create_draft')
+      .setLabel('SAVE AS DRAFT')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('📝')
+
+    const confirmRow = new ActionRowBuilder<ButtonBuilder>().addComponents(publishBtn, draftBtn)
+
+    const confirmMsg = await step3Submit.editReply({
+      embeds: [confirmEmbed],
+      components: [confirmRow],
+    })
+
+    let confirmAction: 'create_publish' | 'create_draft'
+    try {
+      const confirmInt = await confirmMsg.awaitMessageComponent({
+        componentType: ComponentType.Button,
+        filter: (i: import('discord.js').MessageComponentInteraction) =>
+          (i.customId === 'create_publish' || i.customId === 'create_draft') &&
+          i.user.id === userId,
+        time: 300_000,
+      })
+      confirmAction = confirmInt.customId as 'create_publish' | 'create_draft'
+      await confirmInt.deferUpdate()
+    } catch {
+      await step3Submit.editReply({
+        embeds: [infoEmbed('⚠️ Timed Out', 'Wizard timed out. Run `/tournament create` again.')],
+        components: [],
+      })
+      return
+    }
+
+    // ── Save to database ────────────────────────────────────────────────────
+    const isPublish = confirmAction === 'create_publish'
+    const status    = isPublish ? 'REGISTRATION_OPEN' : 'DRAFT'
+
+    try {
+      // Ensure the DiscordServer record exists
+      const server = await prisma.discordServer.findUnique({
+        where: { guildId },
+        select: { id: true, settings: { select: { announcementChannelId: true } } },
       })
 
-      let selectedGame = ''
-      try {
-        const sel = await msg.awaitMessageComponent({
-          componentType: ComponentType.StringSelect,
-          filter: i => i.customId === 'tcreate_game' && i.user.id === interaction.user.id,
-          time: 60_000,
-        })
-        selectedGame = sel.values[0] ?? 'BGMI'
-        await sel.deferUpdate()
-      } catch {
-        await modalSubmit.editReply({
-          embeds: [infoEmbed('⚠️ Timed Out', 'No game selected. Run `/tournament create` again.')],
+      if (!server) {
+        await step3Submit.editReply({
+          embeds: [errorEmbed('This server has not been set up yet. Run `/setup` first.')],
           components: [],
         })
         return
       }
 
-      const guildId = interaction.guildId!
-      try {
-        const tournament = await prisma.tournament.create({
+      const tournament = await prisma.tournament.create({
+        data: {
+          guildId,
+          name:                tournamentName,
+          game:                selectedGame,
+          mode:                gameMode as 'BATTLE_ROYALE' | 'CLASH_SQUAD' | 'MULTIPLAYER',
+          teamCapacity:        maxTeams,
+          rosterMin:           teamSize,
+          rosterMax:           teamSize === 1 ? 1 : teamSize,
+          substituteAllowed:   teamSize > 1 ? 1 : 0,
+          status,
+          startAt:             parsedStartDate,
+          registrationCloseAt: parsedRegClose,
+          entryType,
+          entryPrice:          entryFeeValue > 0 ? entryFeeValue : null,
+          ...(prizePoolValue ? {} : {}), // prizePool is not a Tournament field — stored elsewhere
+          ...(isPublish ? { registrationOpenAt: new Date() } : {}),
+        },
+        select: {
+          id:                  true,
+          name:                true,
+          game:                true,
+          mode:                true,
+          status:              true,
+          teamCapacity:        true,
+          acceptedCount:       true,
+          startAt:             true,
+          registrationOpenAt:  true,
+          registrationCloseAt: true,
+          entryType:           true,
+          entryPrice:          true,
+          bannerUrl:           true,
+          description:         true,
+          registrationFormat:  true,
+        },
+      })
+
+      // Post announcement if publishing
+      if (isPublish && server.settings?.announcementChannelId) {
+        try {
+          const channel = await interaction.client.channels.fetch(server.settings.announcementChannelId)
+          if (channel?.isTextBased()) {
+            const annEmbed = new ShadowEmbed()
+              .setKind('tournament')
+              .setTitle('🏆', 'NEW TOURNAMENT', tournament.name)
+              .setDescription(
+                [
+                  `📌 **${tournament.name}** is now open for registration!`,
+                  `🎮 **Game:** ${selectedGame.replace(/_/g, ' ')} — ${gameModeLabel}`,
+                  `👥 **Teams:** ${maxTeams} max  |  **Size:** ${teamSizeLabel}`,
+                  `💰 **Entry:** ${entryType === 'PAID' ? `₹${entryFeeValue}` : 'FREE'}`,
+                  `📅 **Starts:** <t:${Math.floor(parsedStartDate.getTime() / 1000)}:F>`,
+                  `⏰ **Reg. Closes:** <t:${Math.floor(parsedRegClose.getTime() / 1000)}:F>`,
+                  '',
+                  `Use \`/register tournament:${tournament.id}\` to register your team!`,
+                ].join('\n'),
+              )
+              .setFooter()
+              .setTimestamp()
+              .build()
+
+            await (channel as import('discord.js').TextChannel).send({ embeds: [annEmbed] })
+          }
+        } catch {
+          // Announcement failure is non-fatal
+        }
+      }
+
+      if (isPublish) {
+        await prisma.outboxEvent.create({
           data: {
             guildId,
-            name: tournamentName,
-            game: selectedGame as 'BGMI' | 'FREE_FIRE' | 'COD_MOBILE',
-            mode: 'BATTLE_ROYALE',
-            status: 'DRAFT',
-            teamCapacity: 16,
+            type:        'TOURNAMENT_PUBLISHED',
+            payloadJson: { tournamentId: tournament.id },
+            status:      'PENDING',
           },
-        })
-
-        const dashBtn = new ButtonBuilder()
-          .setLabel('Open Dashboard')
-          .setStyle(ButtonStyle.Link)
-          .setURL(`${WEB_BASE}/servers/${guildId}/tournaments/${tournament.id}`)
-          .setEmoji('🌐')
-
-        await modalSubmit.editReply({
-          embeds: [legendaryTournamentEmbed({ ...tournament, acceptedCount: 0 })],
-          components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
-        })
-      } catch (err) {
-        this.container.logger.error(`tournament create DB error: ${err}`)
-        await modalSubmit.editReply({ embeds: [genericErrorEmbed()], components: [] })
+        }).catch(() => null)
       }
-    } catch {
-      // Modal timed out — no interaction to reply to
+
+      await prisma.auditLog.create({
+        data: {
+          guildId,
+          actorId:    userId,
+          action:     isPublish ? 'TOURNAMENT_CREATED_AND_PUBLISHED' : 'TOURNAMENT_CREATED',
+          targetType: 'TOURNAMENT',
+          targetId:   tournament.id,
+        },
+      }).catch(() => null)
+
+      const dashBtn = new ButtonBuilder()
+        .setLabel('Open Dashboard')
+        .setStyle(ButtonStyle.Link)
+        .setURL(`${WEB_BASE}/servers/${guildId}/tournaments/${tournament.id}`)
+        .setEmoji('🌐')
+
+      const successTitle = isPublish ? '🚀 Tournament Published!' : '📝 Tournament Saved as Draft'
+      const successDesc  = isPublish
+        ? `**${tournament.name}** is now open for registration!\n\`/register tournament:${tournament.id}\``
+        : `**${tournament.name}** has been saved. Publish it with \`/tournament publish id:${tournament.id}\` when ready.`
+
+      await step3Submit.editReply({
+        embeds: [
+          new ShadowEmbed()
+            .setKind('success')
+            .setTitle(e('success'), successTitle)
+            .setDescription(successDesc)
+            .setFooter()
+            .setTimestamp()
+            .build(),
+        ],
+        components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
+      })
+    } catch (err) {
+      this.container.logger.error(`tournament create DB error: ${err}`)
+      await step3Submit.editReply({ embeds: [genericErrorEmbed()], components: [] })
     }
   }
 

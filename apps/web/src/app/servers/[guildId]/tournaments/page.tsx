@@ -13,7 +13,7 @@ export default async function TournamentsPage({ params }: PageProps) {
   const tournaments = await prisma.tournament.findMany({
     where: {
       guildId: params.guildId,
-      status: { notIn: ['DRAFT', 'ARCHIVED'] },
+      status: { not: 'ARCHIVED' },
     },
     orderBy: { startAt: 'asc' },
     select: {
