@@ -84,6 +84,9 @@ export class SetupCommand extends Command {
 
         const selectedTz = tzInteraction.values[0]!
 
+        // Acknowledge immediately — must happen within 3 seconds
+        await tzInteraction.deferUpdate()
+
         try {
           await prisma.serverSettings.upsert({
             where:  { guildId: interaction.guildId! },
@@ -115,7 +118,8 @@ export class SetupCommand extends Command {
           .setTimestamp()
           .build()
 
-        await tzInteraction.update({
+        // Use editReply on the original interaction since we deferred the component
+        await interaction.editReply({
           embeds:     [successEmbed],
           components: [],
         })

@@ -1,7 +1,7 @@
 import { Listener, Events } from '@sapphire/framework'
 import type { Guild } from 'discord.js'
 import prisma from '@esports/database'
-import { buildWelcomeEmbed, buildTimezonePromptEmbed, buildTimezoneSelectMenu } from '../utils/embeds'
+import { buildWelcomeEmbed } from '../utils/embeds'
 
 export class GuildCreateListener extends Listener<typeof Events.GuildCreate> {
   public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -20,35 +20,39 @@ export class GuildCreateListener extends Listener<typeof Events.GuildCreate> {
       create: { guildId: guild.id, name: guild.name, icon: guild.icon, ownerId: guild.ownerId },
     })
 
-    // Persist default settings — timezone defaults to UTC, not yet configured
+    // Persist default settings
     await prisma.serverSettings.upsert({
       where:  { guildId: guild.id },
       update: {},
       create: { guildId: guild.id, timezone: 'UTC', timezoneConfigured: false },
     })
 
-    // Find a channel to post into
-    const me = guild.members.me
-    const channel =
-      guild.systemChannel ??
-      (guild.channels.cache.find(
-        c => c.isTextBased() && (me ? c.permissionsFor(me)?.has('SendMessages') ?? false : false),
-      ) as import('discord.js').TextChannel | undefined)
-
-    if (!channel || !channel.isTextBased()) {
-      this.container.logger.warn(`⚠️ No suitable channel found in ${guild.name} (${guild.id})`)
-      return
-    }
-
+    // DM the server owner — never post in a public channel
     try {
-      // Rebranded ShadowEmbed welcome (via buildWelcomeEmbed which delegates to ShadowEmbed)
-      await channel.send({ embeds: [buildWelcomeEmbed(guild.name)] })
-      await channel.send({
-        embeds:     [buildTimezonePromptEmbed()],
-        components: [buildTimezoneSelectMenu()],
+      const owner = await guild.fetchOwner()
+      const dmChannel = await owner.createDM()
+      await dmChannel.send({
+        embeds: [buildWelcomeEmbed(guild.name)],
       })
+      this.container.logger.info(`📩 Welcome DM sent to owner ${owner.user.tag} for ${guild.name}`)
     } catch (err) {
-      this.container.logger.error(`Failed to send welcome message in ${guild.name}: ${err}`)
+      // Owner has DMs disabled — fall back to system channel silently
+      this.container.logger.warn(
+        `⚠️ Could not DM owner of ${guild.name} (${guild.id}): ${err}. Falling back to system channel.`,
+      )
+
+      const me = guild.members.me
+      const channel =
+        guild.systemChannel ??
+        (guild.channels.cache.find(
+          c =>
+            c.isTextBased() &&
+            (me ? (c.permissionsFor(me)?.has('SendMessages') ?? false) : false),
+        ) as import('discord.js').TextChannel | undefined)
+
+      if (channel?.isTextBased()) {
+        await channel.send({ embeds: [buildWelcomeEmbed(guild.name)] }).catch(() => null)
+      }
     }
   }
 }
