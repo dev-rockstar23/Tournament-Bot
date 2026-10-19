@@ -42,7 +42,19 @@ import { e } from '../utils/emojis'
 
 const PAGE_SIZE = 8
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Resolve an internal User.id (CUID) from a Discord snowflake id.
+ * Returns null if the user has never signed up on the platform.
+ */
+async function resolveActorId(discordId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { discordId },
+    select: { id: true },
+  })
+  return user?.id ?? null
+}
 
 /** Build a paginated component row with prev/next buttons. */
 function paginationRow(page: number, totalPages: number): ActionRowBuilder<ButtonBuilder> {
@@ -545,9 +557,22 @@ export class TournamentCommand extends Command {
 
     // Parse IST dates (UTC+5:30 = subtract 330 min from IST to get UTC)
     const parseISTDate = (str: string): Date | null => {
-      // Accept "YYYY-MM-DD HH:MM" or ISO string
+      // Accept "YYYY-MM-DD HH:MM" or ISO string; zero-pad single-digit month/day/hour
       const normalised = str.replace(' ', 'T')
-      const d = new Date(normalised.includes('Z') || normalised.includes('+') ? normalised : normalised + ':00+05:30')
+      if (normalised.includes('Z') || normalised.includes('+')) {
+        const d = new Date(normalised)
+        return isNaN(d.getTime()) ? null : d
+      }
+      // Pad each component to ISO 8601 spec (YYYY-MM-DDTHH:MM)
+      const [datePart = '', timePart = ''] = normalised.split('T')
+      const dateParts = datePart.split('-')
+      const year   = dateParts[0] ?? ''
+      const month  = (dateParts[1] ?? '').padStart(2, '0')
+      const day    = (dateParts[2] ?? '').padStart(2, '0')
+      const [hh = '', mm = ''] = timePart.split(':')
+      const paddedTime = `${hh.padStart(2, '0')}:${mm.padStart(2, '0')}`
+      const isoStr = `${year}-${month}-${day}T${paddedTime}:00+05:30`
+      const d = new Date(isoStr)
       return isNaN(d.getTime()) ? null : d
     }
 
@@ -564,6 +589,15 @@ export class TournamentCommand extends Command {
     if (!parsedRegClose) {
       await step3Submit.reply({
         embeds: [errorEmbed(`Invalid registration close date: **${rawRegClose}**. Use YYYY-MM-DD HH:MM.`)],
+        ephemeral: true,
+      })
+      return
+    }
+
+    // Validate date ordering: registration must close before the tournament starts
+    if (parsedRegClose >= parsedStartDate) {
+      await step3Submit.reply({
+        embeds: [errorEmbed('Registration close date must be **before** the tournament start date.')],
         ephemeral: true,
       })
       return
@@ -628,7 +662,15 @@ export class TournamentCommand extends Command {
         entryFeeValue = parseFloat(rawFee) || 0
         // Acknowledge the fee modal without creating a new visible reply — keeps
         // the interaction chain anchored to step3Submit's deferred reply.
-        await feeSubmit.deferUpdate()
+        // NOTE: ModalSubmitInteraction has no deferUpdate; use deferReply instead.
+        await feeSubmit.deferReply({ ephemeral: true })
+
+        if (entryFeeValue <= 0) {
+          await feeSubmit.editReply({
+            embeds: [errorEmbed('Entry fee must be greater than ₹0. Please run `/tournament create` again and enter a valid fee.')],
+          })
+          return
+        }
       } else {
         await entrySel.deferUpdate()
       }
@@ -948,15 +990,18 @@ export class TournamentCommand extends Command {
           data: { name: newName, teamCapacity: newCapacity },
         })
 
-        await prisma.auditLog.create({
-          data: {
-            guildId,
-            actorId: interaction.user.id,
-            action: 'TOURNAMENT_EDITED',
-            targetType: 'TOURNAMENT',
-            targetId: id,
-          },
-        })
+        const actorId = await resolveActorId(interaction.user.id)
+        if (actorId) {
+          await prisma.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action: 'TOURNAMENT_EDITED',
+              targetType: 'TOURNAMENT',
+              targetId: id,
+            },
+          })
+        }
 
         await ms.reply({
           embeds: [successEmbed('Tournament Updated', `**${newName}** has been updated.\nCapacity: **${newCapacity}**`)],
@@ -999,6 +1044,7 @@ export class TournamentCommand extends Command {
       assertTournamentTransition('DRAFT', 'REGISTRATION_OPEN')
 
       const now = new Date()
+      const actorId = await resolveActorId(interaction.user.id)
       const updated = await prisma.$transaction(async tx => {
         const t = await tx.tournament.update({
           where: { id },
@@ -1017,15 +1063,17 @@ export class TournamentCommand extends Command {
           },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId: interaction.user.id,
-            action: 'TOURNAMENT_PUBLISHED',
-            targetType: 'TOURNAMENT',
-            targetId: id,
-          },
-        })
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action: 'TOURNAMENT_PUBLISHED',
+              targetType: 'TOURNAMENT',
+              targetId: id,
+            },
+          })
+        }
 
         return t
       })
@@ -1082,6 +1130,7 @@ export class TournamentCommand extends Command {
       assertTournamentTransition(tournament.status, 'CANCELLED')
 
       const now = new Date()
+      const actorId = await resolveActorId(interaction.user.id)
       await prisma.$transaction(async tx => {
         await tx.tournament.update({
           where: { id },
@@ -1097,16 +1146,18 @@ export class TournamentCommand extends Command {
           },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId: interaction.user.id,
-            action: 'TOURNAMENT_CANCELLED',
-            targetType: 'TOURNAMENT',
-            targetId: id,
-            reason: reason,
-          },
-        })
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action: 'TOURNAMENT_CANCELLED',
+              targetType: 'TOURNAMENT',
+              targetId: id,
+              reason: reason,
+            },
+          })
+        }
       })
 
       return interaction.editReply({
@@ -1157,19 +1208,22 @@ export class TournamentCommand extends Command {
       await prisma.$transaction(async tx => {
         await tx.tournament.update({
           where: { id },
-          data: { status: 'CANCELLED', cancelledAt: now },
+          data: { status: 'ARCHIVED', archivedAt: now },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId: interaction.user.id,
-            action: 'TOURNAMENT_DELETED',
-            targetType: 'TOURNAMENT',
-            targetId: id,
-            reason: 'Draft deleted by admin.',
-          },
-        })
+        const actorId = await resolveActorId(interaction.user.id)
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action: 'TOURNAMENT_DELETED',
+              targetType: 'TOURNAMENT',
+              targetId: id,
+              reason: 'Draft deleted by admin.',
+            },
+          })
+        }
       })
 
       return interaction.editReply({
@@ -1668,15 +1722,18 @@ export class TournamentCommand extends Command {
           },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId: interaction.user.id,
-            action: 'TOURNAMENT_REOPENED',
-            targetType: 'TOURNAMENT',
-            targetId: id,
-          },
-        })
+        const actorId = await resolveActorId(interaction.user.id)
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action: 'TOURNAMENT_REOPENED',
+              targetType: 'TOURNAMENT',
+              targetId: id,
+            },
+          })
+        }
       })
 
       return interaction.editReply({
@@ -1749,16 +1806,19 @@ export class TournamentCommand extends Command {
           },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId: interaction.user.id,
-            action: 'TOURNAMENT_EXTENDED',
-            targetType: 'TOURNAMENT',
-            targetId: id,
-            reason: `Extended by ${days} day(s).`,
-          },
-        })
+        const actorId = await resolveActorId(interaction.user.id)
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action: 'TOURNAMENT_EXTENDED',
+              targetType: 'TOURNAMENT',
+              targetId: id,
+              reason: `Extended by ${days} day(s).`,
+            },
+          })
+        }
       })
 
       return interaction.editReply({
@@ -1900,6 +1960,7 @@ export class TournamentCommand extends Command {
 
       const now = new Date()
 
+      const actorId = await resolveActorId(interaction.user.id)
       await prisma.$transaction(async tx => {
         // Create WinnerRecord rows for top 3
         const placements: Array<{ rank: number; awardType: 'CHAMPION' | 'RUNNER_UP' | 'THIRD_PLACE' }> = [
@@ -1943,15 +2004,17 @@ export class TournamentCommand extends Command {
           },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId:    interaction.user.id,
-            action:     'TOURNAMENT_FINALIZED',
-            targetType: 'TOURNAMENT',
-            targetId:   id,
-          },
-        })
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action:     'TOURNAMENT_FINALIZED',
+              targetType: 'TOURNAMENT',
+              targetId:   id,
+            },
+          })
+        }
       })
 
       return interaction.editReply({
@@ -1990,21 +2053,24 @@ export class TournamentCommand extends Command {
       assertTournamentTransition('COMPLETED', 'ARCHIVED')
 
       const now = new Date()
+      const actorId = await resolveActorId(interaction.user.id)
       await prisma.$transaction(async tx => {
         await tx.tournament.update({
           where: { id },
           data: { status: 'ARCHIVED', archivedAt: now },
         })
 
-        await tx.auditLog.create({
-          data: {
-            guildId,
-            actorId:    interaction.user.id,
-            action:     'TOURNAMENT_ARCHIVED',
-            targetType: 'TOURNAMENT',
-            targetId:   id,
-          },
-        })
+        if (actorId) {
+          await tx.auditLog.create({
+            data: {
+              guildId,
+              actorId,
+              action:     'TOURNAMENT_ARCHIVED',
+              targetType: 'TOURNAMENT',
+              targetId:   id,
+            },
+          })
+        }
       })
 
       return interaction.editReply({
