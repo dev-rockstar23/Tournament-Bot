@@ -432,7 +432,7 @@ export class TournamentCommand extends Command {
     const gameModeChoices: Record<string, { label: string; value: string }[]> = {
       BGMI:       [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Clash Squad', value: 'CLASH_SQUAD' }],
       FREE_FIRE:  [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Clash Squad', value: 'CLASH_SQUAD' }],
-      COD_MOBILE: [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Multiplayer', value: 'MULTIPLAYER' }, { label: 'Ranked', value: 'BATTLE_ROYALE' }],
+      COD_MOBILE: [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }, { label: 'Multiplayer', value: 'MULTIPLAYER' }],
     }
 
     const modeOptions = gameModeChoices[selectedGame] ?? [{ label: 'Battle Royale', value: 'BATTLE_ROYALE' }]
@@ -516,9 +516,12 @@ export class TournamentCommand extends Command {
       components: [nextRow],
     })
 
+    // Refetch the reply to get a stable message reference after the component update
+    const step3ButtonMsg = await step1Submit.fetchReply()
+
     let step3Submit: import('discord.js').ModalSubmitInteraction
     try {
-      const btnInt = await step2Msg.awaitMessageComponent({
+      const btnInt = await step3ButtonMsg.awaitMessageComponent({
         componentType: ComponentType.Button,
         filter: (i: import('discord.js').MessageComponentInteraction) => i.customId === 'create_next_step3' && i.user.id === userId,
         time: 120_000,
@@ -623,7 +626,8 @@ export class TournamentCommand extends Command {
 
         const rawFee = feeSubmit.fields.getTextInputValue('entry_fee').trim()
         entryFeeValue = parseFloat(rawFee) || 0
-        await feeSubmit.deferUpdate()
+        // ModalSubmitInteraction has no deferUpdate — acknowledge with deferReply
+        await feeSubmit.deferReply({ ephemeral: true })
       } else {
         await entrySel.deferUpdate()
       }
@@ -728,7 +732,8 @@ export class TournamentCommand extends Command {
           registrationCloseAt: parsedRegClose,
           entryType,
           entryPrice:          entryFeeValue > 0 ? entryFeeValue : null,
-          ...(prizePoolValue ? {} : {}), // prizePool is not a Tournament field — stored elsewhere
+          // prize pool is not a Tournament schema column — encode it in description
+          description:         prizePoolValue ? `Prize Pool: ₹${prizePoolValue}` : undefined,
           ...(isPublish ? { registrationOpenAt: new Date() } : {}),
         },
         select: {

@@ -14,7 +14,7 @@ import { e } from '../utils/emojis'
 import { WEB_BASE } from '../utils/constants'
 import prisma from '@esports/database'
 
-const FIVE_MINUTES = 5 * 60 * 1000
+const TWO_MINUTES = 2 * 60 * 1000
 
 export class SetupCommand extends Command {
   public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -79,7 +79,7 @@ export class SetupCommand extends Command {
         const tzInteraction = await tzMessage.awaitMessageComponent({
           componentType: ComponentType.StringSelect,
           filter:        i => i.customId === 'setup_timezone' && i.user.id === interaction.user.id,
-          time:          FIVE_MINUTES,
+          time:          TWO_MINUTES,
         })
 
         const selectedTz = tzInteraction.values[0]!
@@ -141,9 +141,9 @@ export class SetupCommand extends Command {
           .setTitle(e('warning'), 'Timezone Not Selected')
           .setDescription(
             [
-              'No timezone was selected — defaulting to **UTC**.',
+              'No timezone was selected within 2 minutes — defaulting to **UTC**.',
               '',
-              'Run `/setup` again to change your timezone.',
+              'Run `/setup` again to choose a different timezone.',
               '',
               `${e('link')} **Dashboard:** ${WEB_BASE}`,
             ].join('\n'),
