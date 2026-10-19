@@ -4,20 +4,21 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } from 'discord.js'
+import { ShadowEmbed } from './embed-builder'
+import { WEB_BASE } from './constants'
+import { discordTs } from './time'
 import { e } from './emojis'
-
-const BRAND_COLOR = 0x7c3aed
 
 // ---------------------------------------------------------------------------
 // Welcome embed — shown when the bot first joins a server
 // ---------------------------------------------------------------------------
 export function buildWelcomeEmbed(serverName: string): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle(`Hey ${serverName}! Your new tournament companion has arrived.`)
+  return new ShadowEmbed()
+    .setKind('tournament')
+    .setTitle(e('trophy'), 'welcome', serverName)
     .setDescription(
       [
-        `${e('trophy')} **Legendary Esports Bot** is here and ready to power your competitive scene.`,
+        `${e('trophy')} **SHADØW** is here and ready to power your competitive scene.`,
         '',
         '**Supported games**',
         `${e('bgmi')} BGMI  •  ${e('freeFire')} Free Fire  •  ${e('codm')} COD Mobile`,
@@ -27,13 +28,14 @@ export function buildWelcomeEmbed(serverName: string): EmbedBuilder {
         '• Role-based access control so your admins, referees and players each see the right commands',
         '• Automatic announcements, live standings and winner showcases',
         '',
-        `${e('lightning')} **Get started now:** run \`/server setup\` to configure channels, roles and your timezone.`,
+        `${e('lightning')} **Get started now:** run \`/setup\` to configure channels, roles and your timezone.`,
         '',
-        '🌐 Visit the web dashboard for advanced tournament settings and analytics: **https://legendary-esports.gg**',
+        `🌐 Visit the web dashboard for advanced settings and analytics: **${WEB_BASE}**`,
       ].join('\n'),
     )
-    .setFooter({ text: 'Legendary Esports' })
+    .setFooter()
     .setTimestamp()
+    .build()
 }
 
 // ---------------------------------------------------------------------------
@@ -41,8 +43,8 @@ export function buildWelcomeEmbed(serverName: string): EmbedBuilder {
 // ---------------------------------------------------------------------------
 function gameEmoji(game: string): string {
   const map: Record<string, string> = {
-    BGMI: e('bgmi'),
-    FREE_FIRE: e('freeFire'),
+    BGMI:       e('bgmi'),
+    FREE_FIRE:  e('freeFire'),
     COD_MOBILE: e('codm'),
   }
   return map[game] ?? e('trophy')
@@ -50,14 +52,14 @@ function gameEmoji(game: string): string {
 
 function statusBadge(status: string): string {
   const map: Record<string, string> = {
-    DRAFT: `${e('draft')} Draft`,
-    REGISTRATION_OPEN: `${e('register')} Registration Open`,
-    REGISTRATION_CLOSED: `${e('upcoming')} Registration Closed`,
-    CHECK_IN: `${e('checkin')} Check-in`,
-    LIVE: `${e('live')} Live`,
-    COMPLETED: `${e('completed')} Completed`,
-    CANCELLED: `${e('cancelled')} Cancelled`,
-    ARCHIVED: '📦 Archived',
+    DRAFT:                `${e('draft')} Draft`,
+    REGISTRATION_OPEN:    `${e('register')} Registration Open`,
+    REGISTRATION_CLOSED:  `${e('upcoming')} Registration Closed`,
+    CHECK_IN:             `${e('checkin')} Check-in`,
+    LIVE:                 `${e('live')} Live`,
+    COMPLETED:            `${e('completed')} Completed`,
+    CANCELLED:            `${e('cancelled')} Cancelled`,
+    ARCHIVED:             '📦 Archived',
   }
   return map[status] ?? status
 }
@@ -67,40 +69,35 @@ function blockBar(filled: number, total: number, width = 10): string {
   return '█'.repeat(ratio) + '░'.repeat(width - ratio)
 }
 
-function discordTs(date: unknown): string {
-  if (!date) return '—'
-  const d = date instanceof Date ? date : new Date(date as string)
-  return `<t:${Math.floor(d.getTime() / 1000)}:F>`
-}
-
 export function buildTournamentEmbed(tournament: Record<string, unknown>): EmbedBuilder {
-  const game       = String(tournament.game ?? '')
-  const name       = String(tournament.name ?? 'Tournament')
-  const status     = String(tournament.status ?? '')
-  const accepted   = Number(tournament.acceptedCount ?? 0)
-  const capacity   = Number(tournament.teamCapacity ?? 0)
-  const startAt    = tournament.startAt
-  const endAt      = tournament.endAt
-  const regOpen    = tournament.registrationOpenAt
-  const regClose   = tournament.registrationCloseAt
+  const game     = String(tournament.game ?? '')
+  const name     = String(tournament.name ?? 'Tournament')
+  const status   = String(tournament.status ?? '')
+  const accepted = Number(tournament.acceptedCount ?? 0)
+  const capacity = Number(tournament.teamCapacity ?? 0)
+  const startAt  = (tournament.startAt ?? null) as Date | string | null
+  const endAt    = (tournament.endAt ?? null) as Date | string | null
+  const regOpen  = (tournament.registrationOpenAt ?? null) as Date | string | null
+  const regClose = (tournament.registrationCloseAt ?? null) as Date | string | null
 
-  const embed = new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle(`${gameEmoji(game)} ${name}`)
-    .addFields(
-      { name: 'Status',        value: statusBadge(status),                    inline: true  },
-      { name: 'Game',          value: game.replace(/_/g, ' '),                 inline: true  },
-      { name: 'Capacity',      value: `${accepted}/${capacity}\n${blockBar(accepted, capacity)}`, inline: true  },
-      { name: 'Starts',        value: discordTs(startAt),                      inline: true  },
-      { name: 'Ends',          value: discordTs(endAt),                        inline: true  },
-      { name: 'Registration',  value: `${discordTs(regOpen)} → ${discordTs(regClose)}`, inline: false },
-    )
+  const builder = new ShadowEmbed()
+    .setKind('tournament')
+    .setTitle(gameEmoji(game), name)
+    .addInlineFields([
+      { name: 'Status',   value: statusBadge(status)                                      },
+      { name: 'Game',     value: game.replace(/_/g, ' ')                                  },
+      { name: 'Capacity', value: `${accepted}/${capacity}\n${blockBar(accepted, capacity)}` },
+      { name: 'Starts',   value: discordTs(startAt)                                       },
+      { name: 'Ends',     value: discordTs(endAt)                                         },
+    ])
+    .addField('Registration', `${discordTs(regOpen)} → ${discordTs(regClose)}`, false)
+    .setFooter()
     .setTimestamp()
 
-  if (tournament.bannerUrl) embed.setImage(String(tournament.bannerUrl))
-  if (tournament.description) embed.setDescription(String(tournament.description))
+  if (tournament.bannerUrl) builder.setBanner(String(tournament.bannerUrl))
+  if (tournament.description) builder.setDescription(String(tournament.description))
 
-  return embed
+  return builder.build()
 }
 
 // ---------------------------------------------------------------------------
@@ -110,17 +107,19 @@ export function buildMatchEmbed(match: Record<string, unknown>): EmbedBuilder {
   const num       = Number(match.number ?? 0)
   const status    = String(match.status ?? '')
   const map       = String(match.map ?? 'TBD')
-  const scheduled = match.scheduledStart
+  const scheduled = (match.scheduledStart ?? null) as Date | string | null
 
-  return new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle(`${e('room')} Match #${num}`)
-    .addFields(
-      { name: 'Status',    value: statusBadge(status), inline: true  },
-      { name: 'Map',       value: map,                  inline: true  },
-      { name: 'Scheduled', value: discordTs(scheduled), inline: false },
-    )
+  return new ShadowEmbed()
+    .setKind('tournament')
+    .setTitle(e('room'), `Match #${num}`)
+    .addInlineFields([
+      { name: 'Status',    value: statusBadge(status) },
+      { name: 'Map',       value: map                 },
+      { name: 'Scheduled', value: discordTs(scheduled)},
+    ])
+    .setFooter()
     .setTimestamp()
+    .build()
 }
 
 // ---------------------------------------------------------------------------
@@ -136,11 +135,13 @@ export function buildStandingsEmbed(
     return `${prefix} **${teamName}** — ${points} pts • ${kills} kills`
   })
 
-  return new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle(`${e('trophy')} Standings`)
+  return new ShadowEmbed()
+    .setKind('tournament')
+    .setTitle(e('trophy'), 'Standings')
     .setDescription(rows.length ? rows.join('\n') : 'No standings yet.')
+    .setFooter()
     .setTimestamp()
+    .build()
 }
 
 // ---------------------------------------------------------------------------
@@ -156,25 +157,27 @@ export function buildHealthEmbed(health: {
   const redisStatus = health.redis    === 'connected' ? '✅ Connected' : '❌ Disconnected'
   const lastSync    = health.lastSync ? discordTs(health.lastSync) : '—'
 
-  return new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle(`${e('bot')} System Health`)
-    .addFields(
-      { name: 'Database',      value: dbStatus,                          inline: true  },
-      { name: 'Redis',         value: redisStatus,                       inline: true  },
-      { name: 'Outbox Backlog', value: String(health.outboxBacklog),     inline: true  },
-      { name: 'Last Sync',     value: lastSync,                          inline: false },
-    )
+  return new ShadowEmbed()
+    .setKind('neutral')
+    .setTitle(e('bot'), 'System Health')
+    .addInlineFields([
+      { name: 'Database', value: dbStatus    },
+      { name: 'Redis',    value: redisStatus },
+      { name: 'Outbox Backlog', value: String(health.outboxBacklog) },
+    ])
+    .addField('Last Sync', lastSync, false)
+    .setFooter()
     .setTimestamp()
+    .build()
 }
 
 // ---------------------------------------------------------------------------
 // Timezone prompt embed
 // ---------------------------------------------------------------------------
 export function buildTimezonePromptEmbed(): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(BRAND_COLOR)
-    .setTitle('🌏 Set Your Server Timezone')
+  return new ShadowEmbed()
+    .setKind('info')
+    .setTitle('🌏', 'Set Your Server Timezone')
     .setDescription(
       [
         'Choosing the right timezone means all tournament schedules, match times and announcements',
@@ -194,10 +197,11 @@ export function buildTimezonePromptEmbed(): EmbedBuilder {
         'Use the select menu below to pick your timezone.',
       ].join('\n'),
     )
+    .build()
 }
 
 // ---------------------------------------------------------------------------
-// Timezone select menu
+// Timezone select menu — unchanged
 // ---------------------------------------------------------------------------
 export function buildTimezoneSelectMenu(): ActionRowBuilder<StringSelectMenuBuilder> {
   const timezones: Array<{ label: string; value: string; emoji: string }> = [

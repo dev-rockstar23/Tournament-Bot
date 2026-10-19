@@ -184,6 +184,8 @@ model DiscordServer {
   errorLogs          ErrorLog[]
   bridgeHealthChecks BridgeHealthCheck[]
   paymentConfigs     OrganizerPaymentConfig[]
+  ptDesigns          PtDesign[]
+  ptLicenses         PtLicense[]
 
   @@map("discord_servers")
 }
@@ -377,6 +379,7 @@ model Tournament {
   awards          Award[]
   messageBindings DiscordMessageBinding[]
   scheduledJobs   ScheduledJob[]
+  ptLicenses      PtLicense[]
 
   @@index([guildId, status])
   @@map("tournaments")
@@ -885,3 +888,51 @@ model BridgeHealthCheck {
   @@index([guildId, checkedAt])
   @@map("bridge_health_checks")
 }
+
+// ============================================================
+// PT DESIGN AND LICENSING
+// ============================================================
+
+model PtDesign {
+  id           String   @id @default(cuid())
+  guildId      String   @map("guild_id")
+  name         String
+  game         Game
+  designerName String   @map("designer_name")
+  previewUrl   String?  @map("preview_url")
+  price        Decimal? @map("price") @db.Decimal(10, 2)
+  currency     String   @default("INR")
+  isActive     Boolean  @default(true) @map("is_active")
+  metadataJson Json     @default("{}") @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  server   DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  licenses PtLicense[]
+
+  @@map("pt_designs")
+}
+
+model PtLicense {
+  id              String    @id @default(cuid())
+  tournamentId    String    @map("tournament_id")
+  designId        String    @map("design_id")
+  guildId         String    @map("guild_id")
+  status          String    @default("PENDING")
+  purchaseOrderId String?   @map("purchase_order_id")
+  grantedBy       String?   @map("granted_by")
+  grantedAt       DateTime? @map("granted_at")
+  revokedBy       String?   @map("revoked_by")
+  revokedAt       DateTime? @map("revoked_at")
+  revokedReason   String?   @map("revoked_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  tournament Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  design     PtDesign      @relation(fields: [designId], references: [id], onDelete: Cascade)
+  server     DiscordServer @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([tournamentId, designId])
+  @@map("pt_licenses")
+}
+
