@@ -744,10 +744,105 @@ export class TournamentCommand extends Command {
       return
     }
 
-    // ── Save to database ────────────────────────────────────────────────────
+    // ── Channel Configuration (Required for Both Draft and Publish) ──────────
     const isPublish = confirmAction === 'create_publish'
     const status    = isPublish ? 'REGISTRATION_OPEN' : 'DRAFT'
 
+    let regChannelId: string | null = null
+    let approvedChannelId: string | null = null
+
+    try {
+      // Step: Registration channel selector
+      const regChannelMenu = new ChannelSelectMenuBuilder()
+        .setCustomId('create_reg_channel')
+        .setPlaceholder('Select the registration channel…')
+        .setChannelTypes(ChannelType.GuildText)
+
+      const regChannelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
+        regChannelMenu,
+      )
+
+      const regChannelEmbed = new ShadowEmbed()
+        .setKind('info')
+        .setTitle('📋', 'Select Registration Channel')
+        .setDescription(
+          [
+            '**1️⃣ Registration Channel**',
+            '',
+            'This is where players will post their team registrations for this tournament.',
+            'The bot will validate each message and react with ✅ or ❌.',
+            '',
+            'Select a text channel below:',
+          ].join('\n'),
+        )
+        .setFooter()
+        .build()
+
+      const regChannelMsg = await step3Submit.editReply({
+        embeds: [regChannelEmbed],
+        components: [regChannelRow],
+      })
+
+      const regChannelInt = await regChannelMsg.awaitMessageComponent({
+        componentType: ComponentType.ChannelSelect,
+        filter: i => i.customId === 'create_reg_channel' && i.user.id === userId,
+        time: 120_000,
+      })
+
+      regChannelId = regChannelInt.values[0]!
+
+      await regChannelInt.deferUpdate()
+
+      // Step: Approved channel selector
+      const approvedChannelMenu = new ChannelSelectMenuBuilder()
+        .setCustomId('create_approved_channel')
+        .setPlaceholder('Select the approved registrations channel…')
+        .setChannelTypes(ChannelType.GuildText)
+
+      const approvedChannelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
+        approvedChannelMenu,
+      )
+
+      const approvedChannelEmbed = new ShadowEmbed()
+        .setKind('info')
+        .setTitle('✅', 'Select Approved Channel')
+        .setDescription(
+          [
+            '**2️⃣ Approved Registrations Channel**',
+            '',
+            'This is where the bot will post approved team registrations for this tournament.',
+            'Only approved teams will appear here.',
+            '',
+            'Select a text channel below:',
+          ].join('\n'),
+        )
+        .setFooter()
+        .build()
+
+      const approvedChannelMsg = await step3Submit.editReply({
+        embeds: [approvedChannelEmbed],
+        components: [approvedChannelRow],
+      })
+
+      const approvedChannelInt = await approvedChannelMsg.awaitMessageComponent({
+        componentType: ComponentType.ChannelSelect,
+        filter: i => i.customId === 'create_approved_channel' && i.user.id === userId,
+        time: 120_000,
+      })
+
+      approvedChannelId = approvedChannelInt.values[0]!
+
+      await approvedChannelInt.deferUpdate()
+    } catch {
+      // Channel selection timed out — cannot proceed
+      await step3Submit.editReply({
+        embeds: [infoEmbed('⚠️ Timed Out', 'Channel selection timed out. Run `/tournament create` again.')],
+        components: [],
+      })
+      return
+    }
+
+    // ── Save to database ────────────────────────────────────────────────────
     try {
       // Ensure the DiscordServer record exists
       const server = await prisma.discordServer.findUnique({
@@ -766,20 +861,22 @@ export class TournamentCommand extends Command {
       const tournament = await prisma.tournament.create({
         data: {
           guildId,
-          name:                tournamentName,
-          game:                selectedGame,
-          mode:                gameMode as 'BATTLE_ROYALE' | 'CLASH_SQUAD' | 'MULTIPLAYER',
-          teamCapacity:        maxTeams,
-          rosterMin:           teamSize,
-          rosterMax:           teamSize === 1 ? 1 : teamSize,
-          substituteAllowed:   teamSize > 1 ? 1 : 0,
+          name:                   tournamentName,
+          game:                   selectedGame,
+          mode:                   gameMode as 'BATTLE_ROYALE' | 'CLASH_SQUAD' | 'MULTIPLAYER',
+          teamCapacity:           maxTeams,
+          rosterMin:              teamSize,
+          rosterMax:              teamSize === 1 ? 1 : teamSize,
+          substituteAllowed:      teamSize > 1 ? 1 : 0,
           status,
-          startAt:             parsedStartDate,
-          registrationCloseAt: parsedRegClose,
+          startAt:                parsedStartDate,
+          registrationCloseAt:    parsedRegClose,
           entryType,
-          entryPrice:          entryFeeValue > 0 ? entryFeeValue : null,
+          entryPrice:             entryFeeValue > 0 ? entryFeeValue : null,
           // prize pool is not a Tournament schema column — encode it in description
-          description:         prizePoolValue ? `Prize Pool: ₹${prizePoolValue}` : undefined,
+          description:            prizePoolValue ? `Prize Pool: ₹${prizePoolValue}` : undefined,
+          registrationChannelId:  regChannelId,
+          approvedRegChannelId:   approvedChannelId,
           ...(isPublish ? { registrationOpenAt: new Date() } : {}),
         },
         select: {
@@ -859,229 +956,49 @@ export class TournamentCommand extends Command {
         .setURL(`${WEB_BASE}/servers/${guildId}/tournaments/${tournament.id}`)
         .setEmoji('🌐')
 
-      // ── Channel Selection (for DRAFT tournaments) ────────────────────────────
-      if (!isPublish) {
-        // Show "Setup Channels" or "Skip for Now" buttons
-        const setupChannelsBtn = new ButtonBuilder()
-          .setCustomId('create_setup_channels')
-          .setLabel('Setup Channels')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('📋')
+      // ── Success Message ─────────────────────────────────────────────────────
+      if (isPublish) {
+        const successEmbed = new ShadowEmbed()
+          .setKind('success')
+          .setTitle(e('success'), '🚀 Tournament Published!')
+          .setDescription(
+            [
+              `**${tournament.name}** is now open for registration!`,
+              '',
+              `**Registration Channel:** <#${regChannelId}>`,
+              `**Approved Channel:** <#${approvedChannelId}>`,
+              '',
+              `Players can register using \`/register tournament:${tournament.id}\``,
+            ].join('\n'),
+          )
+          .setFooter()
+          .setTimestamp()
+          .build()
 
-        const skipChannelsBtn = new ButtonBuilder()
-          .setCustomId('create_skip_channels')
-          .setLabel('Skip for Now')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('⏭️')
-
-        const channelChoiceRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          setupChannelsBtn,
-          skipChannelsBtn,
-        )
-
-        const channelPromptEmbed = new ShadowEmbed()
-          .setKind('info')
-          .setTitle('📋', 'Setup Registration Channels')
+        await step3Submit.editReply({
+          embeds: [successEmbed],
+          components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
+        })
+      } else {
+        const successEmbed = new ShadowEmbed()
+          .setKind('success')
+          .setTitle(e('success'), '📝 Tournament Created & Channels Configured')
           .setDescription(
             [
               `**${tournament.name}** has been saved as DRAFT.`,
               '',
-              'Before publishing, you need to configure two channels:',
+              `**Registration Channel:** <#${regChannelId}>`,
+              `**Approved Channel:** <#${approvedChannelId}>`,
               '',
-              '**1️⃣ Registration Channel** — Players post their registrations here',
-              '**2️⃣ Approved Channel** — Bot posts approved registrations here',
-              '',
-              'Click **Setup Channels** to configure them now, or **Skip** to configure later via `/tournament edit`.',
+              `Publish it with \`/tournament publish id:${tournament.id}\` when ready.`,
             ].join('\n'),
           )
           .setFooter()
+          .setTimestamp()
           .build()
 
-        const channelPromptMsg = await step3Submit.editReply({
-          embeds: [channelPromptEmbed],
-          components: [channelChoiceRow],
-        })
-
-        try {
-          const choiceInt = await channelPromptMsg.awaitMessageComponent({
-            componentType: ComponentType.Button,
-            filter: i =>
-              (i.customId === 'create_setup_channels' || i.customId === 'create_skip_channels') &&
-              i.user.id === userId,
-            time: 120_000,
-          })
-
-          if (choiceInt.customId === 'create_skip_channels') {
-            await choiceInt.deferUpdate()
-
-            const successTitle = '📝 Tournament Saved as Draft'
-            const successDesc = `**${tournament.name}** has been saved. Configure channels before publishing with \`/tournament publish id:${tournament.id}\`.`
-
-            await step3Submit.editReply({
-              embeds: [
-                new ShadowEmbed()
-                  .setKind('success')
-                  .setTitle(e('success'), successTitle)
-                  .setDescription(successDesc)
-                  .setFooter()
-                  .setTimestamp()
-                  .build(),
-              ],
-              components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
-            })
-            return
-          }
-
-          // User chose "Setup Channels"
-          await choiceInt.deferUpdate()
-
-          // Step: Registration channel selector
-          const regChannelMenu = new ChannelSelectMenuBuilder()
-            .setCustomId('create_reg_channel')
-            .setPlaceholder('Select the registration channel…')
-            .setChannelTypes(ChannelType.GuildText)
-
-          const regChannelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
-            regChannelMenu,
-          )
-
-          const regChannelEmbed = new ShadowEmbed()
-            .setKind('info')
-            .setTitle('📋', 'Select Registration Channel')
-            .setDescription(
-              [
-                '**1️⃣ Registration Channel**',
-                '',
-                'This is where players will post their team registrations for this tournament.',
-                'The bot will validate each message and react with ✅ or ❌.',
-                '',
-                'Select a text channel below:',
-              ].join('\n'),
-            )
-            .setFooter()
-            .build()
-
-          const regChannelMsg = await step3Submit.editReply({
-            embeds: [regChannelEmbed],
-            components: [regChannelRow],
-          })
-
-          const regChannelInt = await regChannelMsg.awaitMessageComponent({
-            componentType: ComponentType.ChannelSelect,
-            filter: i => i.customId === 'create_reg_channel' && i.user.id === userId,
-            time: 120_000,
-          })
-
-          const regChannelId = regChannelInt.values[0]!
-
-          await regChannelInt.deferUpdate()
-
-          // Step: Approved channel selector
-          const approvedChannelMenu = new ChannelSelectMenuBuilder()
-            .setCustomId('create_approved_channel')
-            .setPlaceholder('Select the approved registrations channel…')
-            .setChannelTypes(ChannelType.GuildText)
-
-          const approvedChannelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
-            approvedChannelMenu,
-          )
-
-          const approvedChannelEmbed = new ShadowEmbed()
-            .setKind('info')
-            .setTitle('✅', 'Select Approved Channel')
-            .setDescription(
-              [
-                '**2️⃣ Approved Registrations Channel**',
-                '',
-                'This is where the bot will post approved team registrations for this tournament.',
-                'Only approved teams will appear here.',
-                '',
-                'Select a text channel below:',
-              ].join('\n'),
-            )
-            .setFooter()
-            .build()
-
-          const approvedChannelMsg = await step3Submit.editReply({
-            embeds: [approvedChannelEmbed],
-            components: [approvedChannelRow],
-          })
-
-          const approvedChannelInt = await approvedChannelMsg.awaitMessageComponent({
-            componentType: ComponentType.ChannelSelect,
-            filter: i => i.customId === 'create_approved_channel' && i.user.id === userId,
-            time: 120_000,
-          })
-
-          const approvedChannelId = approvedChannelInt.values[0]!
-
-          await approvedChannelInt.deferUpdate()
-
-          // Save both channels to the tournament
-          await prisma.tournament.update({
-            where: { id: tournament.id },
-            data: {
-              registrationChannelId: regChannelId,
-              approvedRegChannelId: approvedChannelId,
-            },
-          })
-
-          const finalSuccessEmbed = new ShadowEmbed()
-            .setKind('success')
-            .setTitle(e('success'), '📝 Tournament Created & Channels Configured')
-            .setDescription(
-              [
-                `**${tournament.name}** has been saved as DRAFT.`,
-                '',
-                `**Registration Channel:** <#${regChannelId}>`,
-                `**Approved Channel:** <#${approvedChannelId}>`,
-                '',
-                `Publish it with \`/tournament publish id:${tournament.id}\` when ready.`,
-              ].join('\n'),
-            )
-            .setFooter()
-            .setTimestamp()
-            .build()
-
-          await step3Submit.editReply({
-            embeds: [finalSuccessEmbed],
-            components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
-          })
-        } catch {
-          // Channel setup timed out
-          const timeoutEmbed = new ShadowEmbed()
-            .setKind('info')
-            .setTitle(e('warning'), 'Channel Setup Timed Out')
-            .setDescription(
-              [
-                `**${tournament.name}** has been saved as DRAFT, but channels were not configured.`,
-                '',
-                `Configure channels before publishing with \`/tournament edit id:${tournament.id}\`.`,
-              ].join('\n'),
-            )
-            .setFooter()
-            .build()
-
-          await step3Submit.editReply({
-            embeds: [timeoutEmbed],
-            components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
-          })
-        }
-      } else {
-        // Published immediately — no channel setup flow
-        const successTitle = '🚀 Tournament Published!'
-        const successDesc = `**${tournament.name}** is now open for registration!\n\`/register tournament:${tournament.id}\``
-
         await step3Submit.editReply({
-          embeds: [
-            new ShadowEmbed()
-              .setKind('success')
-              .setTitle(e('success'), successTitle)
-              .setDescription(successDesc)
-              .setFooter()
-              .setTimestamp()
-              .build(),
-          ],
+          embeds: [successEmbed],
           components: [new ActionRowBuilder<ButtonBuilder>().addComponents(dashBtn)],
         })
       }
