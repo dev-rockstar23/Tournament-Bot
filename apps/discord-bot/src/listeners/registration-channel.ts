@@ -38,17 +38,28 @@ export class RegistrationChannelListener extends Listener<typeof Events.MessageC
 
     const guildId = message.guild.id
 
-    // Check if this message is in the configured registration channel
-    const settings = await prisma.serverSettings.findUnique({
-      where: { guildId },
-      select: {
-        registrationChannelId: true,
-        approvedRegChannelId:  true,
+    // Find the active tournament for this guild (REGISTRATION_OPEN)
+    const activeTournament = await prisma.tournament.findFirst({
+      where: {
+        guildId,
+        status: 'REGISTRATION_OPEN',
       },
+      select: {
+        id: true,
+        name: true,
+        rosterMin: true,
+        rosterMax: true,
+        registrationChannelId: true,
+        approvedRegChannelId: true,
+      },
+      orderBy: { createdAt: 'desc' },
     }).catch(() => null)
 
-    if (!settings?.registrationChannelId) return
-    if (message.channelId !== settings.registrationChannelId) return
+    if (!activeTournament) return
+
+    // Check if this message is in the tournament's registration channel
+    if (!activeTournament.registrationChannelId) return
+    if (message.channelId !== activeTournament.registrationChannelId) return
 
     // ── Parse the registration message ──────────────────────────────────────
     const content = message.content.trim()
@@ -100,27 +111,7 @@ export class RegistrationChannelListener extends Listener<typeof Events.MessageC
     const teamNameLine = lines.find(l => !l.match(/^(<@!?\d+>\s*)+$/))
     const teamName = teamNameLine ?? `${message.author.username}'s Team`
 
-    // ── Check for existing registrations (duplicate player check) ────────────
-    // Find the active tournament for this guild (REGISTRATION_OPEN)
-    const activeTournament = await prisma.tournament.findFirst({
-      where: {
-        guildId,
-        status: 'REGISTRATION_OPEN',
-      },
-      select: { id: true, name: true, rosterMin: true, rosterMax: true },
-      orderBy: { createdAt: 'desc' },
-    }).catch(() => null)
-
-    if (!activeTournament) {
-      await this.reject(
-        message,
-        '**No active tournament.** There is no tournament with open registration right now.\n' +
-        'Please wait for an admin to open registrations.',
-      )
-      return
-    }
-
-    // Check roster min/max against tournament config
+    // ── Check roster min/max against tournament config ──────────────────────
     const rosterMin = activeTournament.rosterMin ?? 2
     const rosterMax = activeTournament.rosterMax ?? 5
 
@@ -142,8 +133,8 @@ export class RegistrationChannelListener extends Listener<typeof Events.MessageC
       return
     }
 
-    // Check if any mentioned user is already in a pending/approved registration
-    // We store mentions in submittedRaw JSON
+    // ── Check for existing registrations (duplicate player check) ────────────
+    // Find registrations for this specific tournament
     const existingRegistrations = await prisma.registration.findMany({
       where: {
         tournamentId: activeTournament.id,
@@ -255,9 +246,9 @@ export class RegistrationChannelListener extends Listener<typeof Events.MessageC
       await message.react('✅').catch(() => null)
 
       // Post to approved registrations channel
-      if (settings.approvedRegChannelId) {
+      if (activeTournament.approvedRegChannelId) {
         const approvedChannel = await message.guild!.channels
-          .fetch(settings.approvedRegChannelId)
+          .fetch(activeTournament.approvedRegChannelId)
           .catch(() => null)
 
         if (approvedChannel?.isTextBased()) {

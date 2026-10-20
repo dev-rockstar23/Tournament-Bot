@@ -81,18 +81,6 @@ export class ServerCommand extends Command {
             )
             .addChannelOption(opt =>
               opt
-                .setName('registration_channel')
-                .setDescription('Channel where players post their registrations.')
-                .setRequired(false),
-            )
-            .addChannelOption(opt =>
-              opt
-                .setName('approved_channel')
-                .setDescription('Channel where approved registrations are posted.')
-                .setRequired(false),
-            )
-            .addChannelOption(opt =>
-              opt
                 .setName('announcement_channel')
                 .setDescription('Channel for tournament announcements.')
                 .setRequired(false),
@@ -205,21 +193,17 @@ export class ServerCommand extends Command {
     const logoUrl              = interaction.options.getString('logo_url')     ?? null
     const accentColor          = interaction.options.getString('accent_color') ?? null
     const bannerUrl            = interaction.options.getString('banner_url')   ?? null
-    const registrationChannel  = interaction.options.getChannel('registration_channel') ?? null
-    const approvedChannel      = interaction.options.getChannel('approved_channel') ?? null
     const announcementChannel  = interaction.options.getChannel('announcement_channel') ?? null
     const resultsChannel       = interaction.options.getChannel('results_channel') ?? null
 
     const hasAnyOption = logoUrl || accentColor || bannerUrl ||
-      registrationChannel || approvedChannel || announcementChannel || resultsChannel
+      announcementChannel || resultsChannel
 
     if (!hasAnyOption) {
       // Show current settings
       const settings = await prisma.serverSettings.findUnique({
         where: { guildId: interaction.guildId! },
         select: {
-          registrationChannelId: true,
-          approvedRegChannelId:  true,
           announcementChannelId: true,
           resultsChannelId:      true,
           accentColor:           true,
@@ -230,8 +214,6 @@ export class ServerCommand extends Command {
         .setKind('info')
         .setTitle(e('design'), 'SERVER CONFIGURATION')
         .setDescription('Current channel and branding settings. Use the options to update.')
-        .addField('Registration Channel', settings?.registrationChannelId ? `<#${settings.registrationChannelId}>` : 'Not set', true)
-        .addField('Approved Channel',     settings?.approvedRegChannelId  ? `<#${settings.approvedRegChannelId}>`  : 'Not set', true)
         .addField('Announcement Channel', settings?.announcementChannelId ? `<#${settings.announcementChannelId}>` : 'Not set', true)
         .addField('Results Channel',      settings?.resultsChannelId      ? `<#${settings.resultsChannelId}>`      : 'Not set', true)
         .addField('Accent Color',         settings?.accentColor ?? 'Not set', true)
@@ -246,8 +228,6 @@ export class ServerCommand extends Command {
       if (logoUrl             !== null) data['logoUrl']              = logoUrl
       if (accentColor         !== null) data['accentColor']          = accentColor
       if (bannerUrl           !== null) data['bannerUrl']            = bannerUrl
-      if (registrationChannel !== null) data['registrationChannelId'] = registrationChannel.id
-      if (approvedChannel     !== null) data['approvedRegChannelId']  = approvedChannel.id
       if (announcementChannel !== null) data['announcementChannelId'] = announcementChannel.id
       if (resultsChannel      !== null) data['resultsChannelId']      = resultsChannel.id
 
@@ -264,8 +244,6 @@ export class ServerCommand extends Command {
         .setFooter()
         .setTimestamp()
 
-      if (registrationChannel) previewBuilder.addField('Registration Channel', `<#${registrationChannel.id}>`, true)
-      if (approvedChannel)     previewBuilder.addField('Approved Channel',     `<#${approvedChannel.id}>`,     true)
       if (announcementChannel) previewBuilder.addField('Announcement Channel', `<#${announcementChannel.id}>`, true)
       if (resultsChannel)      previewBuilder.addField('Results Channel',      `<#${resultsChannel.id}>`,      true)
       if (accentColor)         previewBuilder.addField('Accent Color', accentColor, true)

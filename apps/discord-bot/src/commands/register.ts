@@ -30,20 +30,24 @@ export class RegisterCommand extends Command {
 
     const guildId = interaction.guildId!
 
-    const settings = await prisma.serverSettings.findUnique({
-      where: { guildId },
-      select: { registrationChannelId: true },
-    }).catch(() => null)
-
     const activeTournament = await prisma.tournament.findFirst({
       where: { guildId, status: 'REGISTRATION_OPEN' },
-      select: { id: true, name: true, game: true, rosterMin: true, rosterMax: true, teamCapacity: true, acceptedCount: true },
+      select: {
+        id: true,
+        name: true,
+        game: true,
+        rosterMin: true,
+        rosterMax: true,
+        teamCapacity: true,
+        acceptedCount: true,
+        registrationChannelId: true,
+      },
       orderBy: { registrationOpenAt: 'desc' },
     }).catch(() => null)
 
-    const channelMention = settings?.registrationChannelId
-      ? `<#${settings.registrationChannelId}>`
-      : '*(not configured — ask an admin to run `/server branding`)*'
+    const channelMention = activeTournament?.registrationChannelId
+      ? `<#${activeTournament.registrationChannelId}>`
+      : '*(not configured — ask an admin to configure tournament channels)*'
 
     const embed = new EmbedBuilder()
       .setColor(0x7c3aed)
