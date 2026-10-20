@@ -57,7 +57,8 @@ const captainBasedSchema = z.object({
 
 const playerRow = z.object({
   ign: z.string().min(1, 'IGN required'),
-  uid: z.string().min(1, 'UID required'),
+  uid: z.string().regex(/^\d+$/, 'UID must contain only numbers').min(1, 'UID required'),
+  discordId: z.string().regex(/^\d{17,19}$/, 'Discord User ID must be 17-19 digits').min(17, 'Discord User ID required'),
   isCaptain: z.boolean().optional(),
   isSubstitute: z.boolean().optional(),
 })
@@ -158,6 +159,7 @@ function FullDetailsForm({
       players: Array.from({ length: playerCount }, (_, i) => ({
         ign: '',
         uid: '',
+        discordId: '',
         isCaptain: i === 0,
         isSubstitute: withSubstitute && i === playerCount - 1,
       })),
@@ -166,7 +168,11 @@ function FullDetailsForm({
   const { fields } = useFieldArray({ control, name: 'players' })
 
   const formErrors = errors as {
-    players?: Array<{ ign?: { message?: string }; uid?: { message?: string } }>
+    players?: Array<{ 
+      ign?: { message?: string }
+      uid?: { message?: string }
+      discordId?: { message?: string }
+    }>
     teamName?: { message?: string }
   }
 
@@ -191,11 +197,18 @@ function FullDetailsForm({
               placeholder="IGN"
             />
           </Field>
-          <Field label="UID" error={formErrors.players?.[idx]?.uid?.message}>
+          <Field label="Game UID" error={formErrors.players?.[idx]?.uid?.message}>
             <input
               {...register(`players.${idx}.uid`)}
               className={inputClass}
               placeholder="Game UID"
+            />
+          </Field>
+          <Field label="Discord User ID" error={formErrors.players?.[idx]?.discordId?.message}>
+            <input
+              {...register(`players.${idx}.discordId`)}
+              className={inputClass}
+              placeholder="123456789012345678"
             />
           </Field>
         </div>
