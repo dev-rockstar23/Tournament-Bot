@@ -53,6 +53,7 @@ export async function GET(
         bannerUrl: true,
         rulesUrl: true,
         guildId: true,
+        tournamentCode: true,
       },
     }),
     prisma.tournament.count({ where }),

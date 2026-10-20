@@ -56,6 +56,7 @@ export default async function AdminTournamentsPage({ params }: PageProps) {
       description: true,
       createdAt: true,
       updatedAt: true,
+      tournamentCode: true,
       stages: {
         select: { name: true, status: true },
         orderBy: { order: 'asc' },

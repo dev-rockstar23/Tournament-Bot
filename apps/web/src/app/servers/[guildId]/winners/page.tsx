@@ -38,7 +38,7 @@ export default async function WinnersPage({ params }: PageProps) {
     orderBy: [{ createdAt: 'desc' }, { placement: 'asc' }],
     take: 30,
     include: {
-      tournament: { select: { id: true, name: true, game: true, endAt: true } },
+      tournament: { select: { id: true, name: true, game: true, endAt: true, tournamentCode: true } },
       team: { select: { name: true, tag: true } },
     },
   })
@@ -50,7 +50,7 @@ export default async function WinnersPage({ params }: PageProps) {
       guildId,
       status: 'COMPLETED',
     },
-    select: { id: true, name: true, game: true, endAt: true },
+    select: { id: true, name: true, game: true, endAt: true, tournamentCode: true },
     orderBy: { endAt: 'desc' },
   })
   const completedSet = new Set(completedTournaments.map((t) => t.id))

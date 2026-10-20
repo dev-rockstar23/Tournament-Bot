@@ -28,6 +28,7 @@ export async function GET(
       bannerUrl: true,
       rulesUrl: true,
       guildId: true,
+      tournamentCode: true,
       // Approved registrations with team names only — no personal info
       registrations: {
         where: { status: 'APPROVED' },

@@ -23,6 +23,7 @@ interface TournamentItem {
   startAt: string | null
   endAt: string | null
   bannerUrl: string | null
+  tournamentCode?: number | null
   [key: string]: unknown
 }
 

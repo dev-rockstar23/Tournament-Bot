@@ -57,6 +57,7 @@ export const GET = withPermission(
           createdAt: true,
           updatedAt: true,
           organizerId: true,
+          tournamentCode: true,
         },
       }),
       prisma.tournament.count({ where }),

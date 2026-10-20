@@ -23,7 +23,7 @@ export async function GET(
     take: limit,
     include: {
       tournament: {
-        select: { id: true, name: true, game: true, completedAt: true },
+        select: { id: true, name: true, game: true, completedAt: true, tournamentCode: true },
       },
       team: { select: { name: true, tag: true } },
     },

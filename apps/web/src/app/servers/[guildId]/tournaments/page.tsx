@@ -31,6 +31,7 @@ export default async function TournamentsPage({ params }: PageProps) {
       endAt: true,
       bannerUrl: true,
       guildId: true,
+      tournamentCode: true,
     },
     take: 100,
   })
@@ -53,6 +54,7 @@ export default async function TournamentsPage({ params }: PageProps) {
     startAt: t.startAt?.toISOString() ?? null,
     endAt: t.endAt?.toISOString() ?? null,
     bannerUrl: t.bannerUrl,
+    tournamentCode: t.tournamentCode,
   }))
 
   return <TournamentCatalogue tournaments={normalized} guildId={params.guildId} />

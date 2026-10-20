@@ -46,6 +46,7 @@ export interface AdminTournament {
   description: string | null
   createdAt: string
   updatedAt: string
+  tournamentCode?: number | null
   stages?: Array<{ name: string; status: string }>
 }
 
@@ -386,12 +387,19 @@ export function TournamentAdminTable({
         header: 'Name',
         cell: ({ row }) => (
           <div className="space-y-0.5">
-            <a
-              href={`/servers/${guildId}/admin/tournaments/${row.original.id}`}
-              className="font-medium text-white hover:text-violet-300 transition-colors"
-            >
-              {row.original.name}
-            </a>
+            <div className="flex items-center gap-2">
+              {row.original.tournamentCode && (
+                <span className="font-mono text-xs text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/30">
+                  #{row.original.tournamentCode}
+                </span>
+              )}
+              <a
+                href={`/servers/${guildId}/admin/tournaments/${row.original.id}`}
+                className="font-medium text-white hover:text-violet-300 transition-colors"
+              >
+                {row.original.name}
+              </a>
+            </div>
             <p className="text-xs text-white/40">
               {gameLabel(row.original.game)} · {row.original.mode.replace(/_/g, ' ')}
             </p>

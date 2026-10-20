@@ -18,6 +18,7 @@ interface TournamentCardProps {
   registrationClose: string | null
   startAt: string | null
   bannerUrl: string | null
+  tournamentCode?: number | null
   href?: string
 }
 
@@ -92,6 +93,7 @@ export function TournamentCard({
   registrationClose,
   startAt,
   bannerUrl,
+  tournamentCode,
   href,
 }: TournamentCardProps) {
   const destination = href ?? `/servers/${guildId}/tournaments/${id}`
@@ -137,12 +139,19 @@ export function TournamentCard({
           <div className="p-4 flex flex-col gap-3">
             {/* Title + mode */}
             <div>
-              <h3
-                className="font-display text-base font-bold text-white leading-tight line-clamp-2"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {name}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                {tournamentCode && (
+                  <span className="font-mono text-xs text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/30">
+                    #{tournamentCode}
+                  </span>
+                )}
+                <h3
+                  className="font-display text-base font-bold text-white leading-tight line-clamp-2 flex-1"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {name}
+                </h3>
+              </div>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{mode}</p>
             </div>
 
