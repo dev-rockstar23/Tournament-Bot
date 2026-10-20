@@ -19,3 +19,8 @@ export {
   SlotUnavailableError,
   TournamentFullError,
 } from './registration';
+
+export {
+  generateTournamentCode,
+  validateTournamentCode,
+} from './tournament-code-generator';

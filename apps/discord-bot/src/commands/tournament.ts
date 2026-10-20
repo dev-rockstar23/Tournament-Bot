@@ -23,6 +23,8 @@ import {
   MaxDelayExceededError,
   InvalidDelayError,
   InvalidTransitionError,
+  generateTournamentCode,
+  validateTournamentCode,
 } from '@esports/tournament-engine'
 import { computeTournamentStandings } from '@esports/scoring'
 import {
@@ -82,7 +84,7 @@ export class TournamentCommand extends Command {
       ...options,
       name: 'tournament',
       description: 'Manage tournaments for this server.',
-      preconditions: ['GuildOnly'],
+      preconditions: ['GuildOnly', 'TournamentManagerOrAdmin'],
     })
   }
 
@@ -301,6 +303,28 @@ export class TournamentCommand extends Command {
             .addStringOption(opt =>
               opt.setName('id').setDescription('Tournament ID').setRequired(true),
             ),
+        )
+        // ── terminate ───────────────────────────────────────────────────────
+        .addSubcommand(sub =>
+          sub
+            .setName('terminate')
+            .setDescription('Pause or permanently delete a tournament.')
+            .addStringOption(opt =>
+              opt.setName('id').setDescription('Tournament ID or Code').setRequired(true),
+            )
+            .addStringOption(opt =>
+              opt
+                .setName('action')
+                .setDescription('Action to take')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Pause (Recoverable)',     value: 'PAUSE'  },
+                  { name: 'Delete (Permanent)',      value: 'DELETE' },
+                ),
+            )
+            .addStringOption(opt =>
+              opt.setName('reason').setDescription('Reason for termination').setRequired(false),
+            ),
         ),
     )
   }
@@ -325,6 +349,7 @@ export class TournamentCommand extends Command {
       case 'slots':        return this.handleSlots(interaction)
       case 'finalize':     return this.handleFinalize(interaction)
       case 'archive':      return this.handleArchive(interaction)
+      case 'terminate':    return this.handleTerminate(interaction)
       default:
         return interaction.reply({ embeds: [errorEmbed('Unknown subcommand.')], ephemeral: true })
     }
@@ -858,44 +883,51 @@ export class TournamentCommand extends Command {
         return
       }
 
-      const tournament = await prisma.tournament.create({
-        data: {
-          guildId,
-          name:                   tournamentName,
-          game:                   selectedGame,
-          mode:                   gameMode as 'BATTLE_ROYALE' | 'CLASH_SQUAD' | 'MULTIPLAYER',
-          teamCapacity:           maxTeams,
-          rosterMin:              teamSize,
-          rosterMax:              teamSize === 1 ? 1 : teamSize,
-          substituteAllowed:      teamSize > 1 ? 1 : 0,
-          status,
-          startAt:                parsedStartDate,
-          registrationCloseAt:    parsedRegClose,
-          entryType,
-          entryPrice:             entryFeeValue > 0 ? entryFeeValue : null,
-          // prize pool is not a Tournament schema column — encode it in description
-          description:            prizePoolValue ? `Prize Pool: ₹${prizePoolValue}` : undefined,
-          registrationChannelId:  regChannelId,
-          approvedRegChannelId:   approvedChannelId,
-          ...(isPublish ? { registrationOpenAt: new Date() } : {}),
-        },
-        select: {
-          id:                  true,
-          name:                true,
-          game:                true,
-          mode:                true,
-          status:              true,
-          teamCapacity:        true,
-          acceptedCount:       true,
-          startAt:             true,
-          registrationOpenAt:  true,
-          registrationCloseAt: true,
-          entryType:           true,
-          entryPrice:          true,
-          bannerUrl:           true,
-          description:         true,
-          registrationFormat:  true,
-        },
+      const tournament = await prisma.$transaction(async (tx) => {
+        // Generate unique tournament code
+        const tournamentCode = await generateTournamentCode(guildId, tx)
+
+        return await tx.tournament.create({
+          data: {
+            guildId,
+            name:                   tournamentName,
+            game:                   selectedGame,
+            mode:                   gameMode as 'BATTLE_ROYALE' | 'CLASH_SQUAD' | 'MULTIPLAYER',
+            teamCapacity:           maxTeams,
+            rosterMin:              teamSize,
+            rosterMax:              teamSize === 1 ? 1 : teamSize,
+            substituteAllowed:      teamSize > 1 ? 1 : 0,
+            status,
+            startAt:                parsedStartDate,
+            registrationCloseAt:    parsedRegClose,
+            entryType,
+            entryPrice:             entryFeeValue > 0 ? entryFeeValue : null,
+            // prize pool is not a Tournament schema column — encode it in description
+            description:            prizePoolValue ? `Prize Pool: ₹${prizePoolValue}` : undefined,
+            registrationChannelId:  regChannelId,
+            approvedRegChannelId:   approvedChannelId,
+            tournamentCode,
+            ...(isPublish ? { registrationOpenAt: new Date() } : {}),
+          },
+          select: {
+            id:                  true,
+            name:                true,
+            game:                true,
+            mode:                true,
+            status:              true,
+            teamCapacity:        true,
+            acceptedCount:       true,
+            startAt:             true,
+            registrationOpenAt:  true,
+            registrationCloseAt: true,
+            entryType:           true,
+            entryPrice:          true,
+            bannerUrl:           true,
+            description:         true,
+            registrationFormat:  true,
+            tournamentCode:      true,
+          },
+        })
       })
 
       // Post announcement if publishing
@@ -905,10 +937,11 @@ export class TournamentCommand extends Command {
           if (channel?.isTextBased()) {
             const annEmbed = new ShadowEmbed()
               .setKind('tournament')
-              .setTitle('🏆', 'NEW TOURNAMENT', tournament.name)
+              .setTitle('🏆', 'NEW TOURNAMENT', `#${tournament.tournamentCode} - ${tournament.name}`)
               .setDescription(
                 [
                   `📌 **${tournament.name}** is now open for registration!`,
+                  `🏷️ **Tournament Code:** #${tournament.tournamentCode}`,
                   `🎮 **Game:** ${selectedGame.replace(/_/g, ' ')} — ${gameModeLabel}`,
                   `👥 **Teams:** ${maxTeams} max  |  **Size:** ${teamSizeLabel}`,
                   `💰 **Entry:** ${entryType === 'PAID' ? `₹${entryFeeValue}` : 'FREE'}`,
@@ -963,8 +996,9 @@ export class TournamentCommand extends Command {
           .setTitle(e('success'), '🚀 Tournament Published!')
           .setDescription(
             [
-              `**${tournament.name}** is now open for registration!`,
+              `**${tournament.name}** (#${tournament.tournamentCode}) is now open for registration!`,
               '',
+              `🏷️ **Tournament Code:** #${tournament.tournamentCode}`,
               `**Registration Channel:** <#${regChannelId}>`,
               `**Approved Channel:** <#${approvedChannelId}>`,
               '',
@@ -985,8 +1019,9 @@ export class TournamentCommand extends Command {
           .setTitle(e('success'), '📝 Tournament Created & Channels Configured')
           .setDescription(
             [
-              `**${tournament.name}** has been saved as DRAFT.`,
+              `**${tournament.name}** (#${tournament.tournamentCode}) has been saved as DRAFT.`,
               '',
+              `🏷️ **Tournament Code:** #${tournament.tournamentCode}`,
               `**Registration Channel:** <#${regChannelId}>`,
               `**Approved Channel:** <#${approvedChannelId}>`,
               '',
@@ -1413,6 +1448,7 @@ export class TournamentCommand extends Command {
           entryPrice: true,
           mode: true,
           registrationFormat: true,
+          tournamentCode: true,
         },
       })
 
@@ -1428,7 +1464,8 @@ export class TournamentCommand extends Command {
         const rows  = slice.map(t => {
           const icon  = statusIcon(String(t.status))
           const start = t.startAt ? discordTs(t.startAt, 'F') : '—'
-          return `${icon} **${t.name}** \`${t.id}\`\n> ${String(t.game).replace(/_/g, ' ')} • ${t.acceptedCount}/${t.teamCapacity} teams • Starts: ${start}`
+          const code  = t.tournamentCode ? `#${t.tournamentCode}` : ''
+          return `${icon} **${t.name}** ${code ? `(${code})` : ''} \`${t.id}\`\n> ${String(t.game).replace(/_/g, ' ')} • ${t.acceptedCount}/${t.teamCapacity} teams • Starts: ${start}`
         })
 
         const embed = new ShadowEmbed()
@@ -2227,7 +2264,221 @@ export class TournamentCommand extends Command {
       return interaction.editReply({ embeds: [genericErrorEmbed()] })
     }
   }
+
+  // ─── handleTerminate ──────────────────────────────────────────────────────
+
+  private async handleTerminate(interaction: ChatInputCommandInteraction) {
+    await interaction.deferReply({ ephemeral: true })
+
+    const idOrCode = interaction.options.getString('id', true)
+    const action   = interaction.options.getString('action', true) as 'PAUSE' | 'DELETE'
+    const reason   = interaction.options.getString('reason', false)
+    const guildId  = interaction.guildId!
+    const userId   = interaction.user.id
+
+    try {
+      // Try to resolve tournament by ID or code
+      let tournament
+      const validation = validateTournamentCode(idOrCode)
+      
+      if (validation.valid && validation.code) {
+        // Search by tournament code
+        tournament = await prisma.tournament.findFirst({
+          where: { 
+            guildId, 
+            tournamentCode: validation.code,
+          },
+          select: { 
+            id: true, 
+            name: true, 
+            status: true, 
+            tournamentCode: true,
+            acceptedCount: true,
+          },
+        })
+      } else {
+        // Search by CUID
+        tournament = await prisma.tournament.findFirst({
+          where: { id: idOrCode, guildId },
+          select: { 
+            id: true, 
+            name: true, 
+            status: true, 
+            tournamentCode: true,
+            acceptedCount: true,
+          },
+        })
+      }
+
+      if (!tournament) {
+        return interaction.editReply({ 
+          embeds: [errorEmbed(`No tournament found with ID or code: ${idOrCode}`)] 
+        })
+      }
+
+      const actorId = await resolveActorId(userId)
+      const tournamentDisplay = `**${tournament.name}** (#${tournament.tournamentCode || 'N/A'})`
+
+      // ── PAUSE Action ─────────────────────────────────────────────────────
+      if (action === 'PAUSE') {
+        // Update status to CANCELLED
+        const now = new Date()
+        await prisma.$transaction(async tx => {
+          await tx.tournament.update({
+            where: { id: tournament.id },
+            data: { 
+              status: 'CANCELLED', 
+              cancelledAt: now,
+            },
+          })
+
+          if (actorId) {
+            await tx.auditLog.create({
+              data: {
+                guildId,
+                actorId,
+                action:     'TOURNAMENT_TERMINATED',
+                targetType: 'TOURNAMENT',
+                targetId:   tournament.id,
+                metadata:   {
+                  tournamentCode: tournament.tournamentCode,
+                  name: tournament.name,
+                  action: 'PAUSE',
+                  reason: reason || 'No reason provided',
+                },
+              },
+            })
+          }
+        })
+
+        return interaction.editReply({
+          embeds: [
+            successEmbed(
+              'Tournament Paused',
+              `${tournamentDisplay} has been paused.\n\n` +
+              `**Reason:** ${reason || 'No reason provided'}\n` +
+              `**Status:** CANCELLED\n\n` +
+              `You can reopen it later with \`/tournament reopen\`.`,
+            ),
+          ],
+        })
+      }
+
+      // ── DELETE Action ────────────────────────────────────────────────────
+      if (action === 'DELETE') {
+        // Show warning embed with confirmation
+        const warningEmbed = new ShadowEmbed()
+          .setKind('error')
+          .setTitle('⚠️', 'PERMANENT DELETION WARNING')
+          .setDescription(
+            [
+              `You are about to **permanently delete** ${tournamentDisplay}.`,
+              '',
+              '**This action will remove:**',
+              `• Tournament and all configuration`,
+              `• ${tournament.acceptedCount} team registrations`,
+              `• All matches and results`,
+              `• All related data (cannot be recovered)`,
+              '',
+              '**This cannot be undone!**',
+              '',
+              reason ? `**Reason:** ${reason}` : '',
+            ].join('\n'),
+          )
+          .setFooter('Click "DELETE PERMANENTLY" to confirm, or "Cancel" to abort.')
+          .setTimestamp()
+          .build()
+
+        const confirmBtn = new ButtonBuilder()
+          .setCustomId('terminate_confirm')
+          .setLabel('⚠️ DELETE PERMANENTLY')
+          .setStyle(ButtonStyle.Danger)
+
+        const cancelBtn = new ButtonBuilder()
+          .setCustomId('terminate_cancel')
+          .setLabel('Cancel')
+          .setStyle(ButtonStyle.Secondary)
+
+        const confirmRow = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmBtn, cancelBtn)
+
+        const warningMsg = await interaction.editReply({
+          embeds: [warningEmbed],
+          components: [confirmRow],
+        })
+
+        // Wait for confirmation
+        try {
+          const confirmInt = await warningMsg.awaitMessageComponent({
+            componentType: ComponentType.Button,
+            filter: i => 
+              (i.customId === 'terminate_confirm' || i.customId === 'terminate_cancel') &&
+              i.user.id === userId,
+            time: 60_000,
+          })
+
+          await confirmInt.deferUpdate()
+
+          if (confirmInt.customId === 'terminate_cancel') {
+            return interaction.editReply({
+              embeds: [infoEmbed('Cancelled', 'Deletion cancelled. No changes made.')],
+              components: [],
+            })
+          }
+
+          // User confirmed - proceed with deletion
+          // Log before deletion (can't log after record is gone)
+          if (actorId) {
+            await prisma.auditLog.create({
+              data: {
+                guildId,
+                actorId,
+                action:     'TOURNAMENT_DELETED',
+                targetType: 'TOURNAMENT',
+                targetId:   tournament.id,
+                metadata:   {
+                  tournamentCode: tournament.tournamentCode,
+                  name: tournament.name,
+                  action: 'DELETE',
+                  reason: reason || 'No reason provided',
+                  deleteConfirmed: true,
+                },
+              },
+            })
+          }
+
+          // Hard delete tournament (CASCADE will handle related records)
+          await prisma.tournament.delete({
+            where: { id: tournament.id },
+          })
+
+          return interaction.editReply({
+            embeds: [
+              successEmbed(
+                'Tournament Deleted',
+                `${tournamentDisplay} and all related data have been permanently deleted.`,
+              ),
+            ],
+            components: [],
+          })
+        } catch {
+          // Timeout - cancel deletion
+          return interaction.editReply({
+            embeds: [infoEmbed('⏱️ Timed Out', 'Deletion cancelled due to timeout. No changes made.')],
+            components: [],
+          })
+        }
+      }
+
+      return interaction.editReply({
+        embeds: [errorEmbed('Invalid action. Must be PAUSE or DELETE.')],
+      })
+    } catch (err) {
+      this.container.logger.error(`tournament terminate error: ${err}`)
+      return interaction.editReply({ embeds: [genericErrorEmbed()] })
+    }
+  }
 }
+
 
 // ─── Module-level helpers ─────────────────────────────────────────────────────
 

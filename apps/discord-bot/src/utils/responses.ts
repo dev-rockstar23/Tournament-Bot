@@ -98,6 +98,7 @@ export function legendaryTournamentEmbed(tournament: Record<string, unknown>): E
   const regClose   = (tournament.registrationCloseAt ?? null) as Date | string | null
   const startAt    = (tournament.startAt ?? null) as Date | string | null
   const id         = String(tournament.id ?? '')
+  const code       = tournament.tournamentCode ? Number(tournament.tournamentCode) : null
 
   const statusBadge: Record<string, string> = {
     DRAFT:                `${e('draft')} Draft`,
@@ -110,11 +111,14 @@ export function legendaryTournamentEmbed(tournament: Record<string, unknown>): E
     ARCHIVED:             '📦 Archived',
   }
 
+  const title = code ? `#${code} - ${name}` : name
+
   const builder = new ShadowEmbed()
     .setKind('tournament')
-    .setTitle(e('trophy'), 'tournament', name)
+    .setTitle(e('trophy'), 'tournament', title)
     .setGameThumbnail(game)
     .addInlineFields([
+      { name: 'CODE',       value: code ? `#${code}` : '—'    },
       { name: 'GAME',       value: gameLabel(game)             },
       { name: 'FORMAT',     value: format                      },
       { name: 'CAPACITY',   value: `${accepted} / ${capacity}` },

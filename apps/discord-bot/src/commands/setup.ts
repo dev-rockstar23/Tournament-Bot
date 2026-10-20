@@ -23,7 +23,7 @@ export class SetupCommand extends Command {
       ...options,
       name: 'setup',
       description: 'Run the SHADØW TOURNAMENTS server setup wizard.',
-      preconditions: ['GuildOnly'],
+      preconditions: ['GuildOnly', 'TournamentManagerOrAdmin'],
     })
   }
 

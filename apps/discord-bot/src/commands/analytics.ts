@@ -21,7 +21,7 @@ export class AnalyticsCommand extends Command {
       ...options,
       name: 'analytics',
       description: 'View server analytics and export data.',
-      preconditions: ['GuildOnly'],
+      preconditions: ['GuildOnly', 'TournamentManagerOrAdmin'],
     })
   }
 

@@ -54,7 +54,7 @@ export class MatchCommand extends Command {
       ...options,
       name: 'match',
       description: 'Manage matches for this tournament server.',
-      preconditions: ['GuildOnly'],
+      preconditions: ['GuildOnly', 'TournamentManagerOrAdmin'],
     })
   }
 

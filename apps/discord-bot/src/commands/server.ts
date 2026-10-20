@@ -40,7 +40,7 @@ export class ServerCommand extends Command {
       ...options,
       name: 'server',
       description: 'Server management commands for SHADØW TOURNAMENTS.',
-      preconditions: ['GuildOnly'],
+      preconditions: ['GuildOnly', 'TournamentManagerOrAdmin'],
     })
   }
 

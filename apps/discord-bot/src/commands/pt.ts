@@ -32,7 +32,7 @@ export class PtCommand extends Command {
       ...options,
       name: 'pt',
       description: 'Prize template (PT) store and licensing.',
-      preconditions: ['GuildOnly'],
+      preconditions: ['GuildOnly', 'TournamentManagerOrAdmin'],
     })
   }
 
