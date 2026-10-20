@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-@import './components/ui/LiquidBackground.css';
+@import '../components/ui/LiquidBackground.css';
 
 :root {
   /* ── Background tokens ───────────────────────────────────────── */

@@ -31,6 +31,10 @@
       "esbuild",
       "unrs-resolver",
       "msgpackr-extract"
-    ]
+    ],
+    "overrides": {
+      "glob": "^10.3.12",
+      "fast-glob": "^3.3.2"
+    }
   }
 }
