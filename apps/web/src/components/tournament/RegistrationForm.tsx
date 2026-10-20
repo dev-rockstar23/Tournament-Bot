@@ -346,6 +346,16 @@ export function RegistrationForm({ tournament, guildId }: RegistrationFormProps)
         details?: unknown
       }
 
+      // Handle authentication error
+      if (res.status === 401) {
+        setServerError('Your session has expired. Please sign in again to register.')
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          window.location.href = `/?next=/servers/${guildId}/tournaments/${tournament.id}/register`
+        }, 2000)
+        return
+      }
+
       if (res.status === 409) {
         switch (body.error) {
           case 'already_registered':
