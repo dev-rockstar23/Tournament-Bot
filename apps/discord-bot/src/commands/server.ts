@@ -60,7 +60,7 @@ export class ServerCommand extends Command {
         .addSubcommand(sub =>
           sub
             .setName('branding')
-            .setDescription('Configure server branding (logo, accent color, banner).')
+            .setDescription('Configure server branding and channels.')
             .addStringOption(opt =>
               opt
                 .setName('logo_url')
@@ -77,6 +77,30 @@ export class ServerCommand extends Command {
               opt
                 .setName('banner_url')
                 .setDescription('URL of the server banner image.')
+                .setRequired(false),
+            )
+            .addChannelOption(opt =>
+              opt
+                .setName('registration_channel')
+                .setDescription('Channel where players post their registrations.')
+                .setRequired(false),
+            )
+            .addChannelOption(opt =>
+              opt
+                .setName('approved_channel')
+                .setDescription('Channel where approved registrations are posted.')
+                .setRequired(false),
+            )
+            .addChannelOption(opt =>
+              opt
+                .setName('announcement_channel')
+                .setDescription('Channel for tournament announcements.')
+                .setRequired(false),
+            )
+            .addChannelOption(opt =>
+              opt
+                .setName('results_channel')
+                .setDescription('Channel for match results and standings.')
                 .setRequired(false),
             ),
         )
@@ -178,24 +202,54 @@ export class ServerCommand extends Command {
   private async handleBranding(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true })
 
-    const logoUrl     = interaction.options.getString('logo_url')     ?? null
-    const accentColor = interaction.options.getString('accent_color') ?? null
-    const bannerUrl   = interaction.options.getString('banner_url')   ?? null
+    const logoUrl              = interaction.options.getString('logo_url')     ?? null
+    const accentColor          = interaction.options.getString('accent_color') ?? null
+    const bannerUrl            = interaction.options.getString('banner_url')   ?? null
+    const registrationChannel  = interaction.options.getChannel('registration_channel') ?? null
+    const approvedChannel      = interaction.options.getChannel('approved_channel') ?? null
+    const announcementChannel  = interaction.options.getChannel('announcement_channel') ?? null
+    const resultsChannel       = interaction.options.getChannel('results_channel') ?? null
 
-    if (!logoUrl && !accentColor && !bannerUrl) {
-      return interaction.editReply({
-        embeds: [infoEmbed(
-          `${e('design')} Server Branding`,
-          'Provide at least one of `logo_url`, `accent_color`, or `banner_url` to update branding.',
-        )],
+    const hasAnyOption = logoUrl || accentColor || bannerUrl ||
+      registrationChannel || approvedChannel || announcementChannel || resultsChannel
+
+    if (!hasAnyOption) {
+      // Show current settings
+      const settings = await prisma.serverSettings.findUnique({
+        where: { guildId: interaction.guildId! },
+        select: {
+          registrationChannelId: true,
+          approvedRegChannelId:  true,
+          announcementChannelId: true,
+          resultsChannelId:      true,
+          accentColor:           true,
+        },
       })
+
+      const embed = new ShadowEmbed()
+        .setKind('info')
+        .setTitle(e('design'), 'SERVER CONFIGURATION')
+        .setDescription('Current channel and branding settings. Use the options to update.')
+        .addField('Registration Channel', settings?.registrationChannelId ? `<#${settings.registrationChannelId}>` : 'Not set', true)
+        .addField('Approved Channel',     settings?.approvedRegChannelId  ? `<#${settings.approvedRegChannelId}>`  : 'Not set', true)
+        .addField('Announcement Channel', settings?.announcementChannelId ? `<#${settings.announcementChannelId}>` : 'Not set', true)
+        .addField('Results Channel',      settings?.resultsChannelId      ? `<#${settings.resultsChannelId}>`      : 'Not set', true)
+        .addField('Accent Color',         settings?.accentColor ?? 'Not set', true)
+        .setFooter()
+        .build()
+
+      return interaction.editReply({ embeds: [embed] })
     }
 
     try {
       const data: Record<string, string | null> = {}
-      if (logoUrl     !== null) data['logoUrl']     = logoUrl
-      if (accentColor !== null) data['accentColor'] = accentColor
-      if (bannerUrl   !== null) data['bannerUrl']   = bannerUrl
+      if (logoUrl             !== null) data['logoUrl']              = logoUrl
+      if (accentColor         !== null) data['accentColor']          = accentColor
+      if (bannerUrl           !== null) data['bannerUrl']            = bannerUrl
+      if (registrationChannel !== null) data['registrationChannelId'] = registrationChannel.id
+      if (approvedChannel     !== null) data['approvedRegChannelId']  = approvedChannel.id
+      if (announcementChannel !== null) data['announcementChannelId'] = announcementChannel.id
+      if (resultsChannel      !== null) data['resultsChannelId']      = resultsChannel.id
 
       await prisma.serverSettings.upsert({
         where:  { guildId: interaction.guildId! },
@@ -205,18 +259,18 @@ export class ServerCommand extends Command {
 
       const previewBuilder = new ShadowEmbed()
         .setKind('success')
-        .setTitle(e('design'), 'BRANDING UPDATED')
-        .setDescription('Server branding has been updated successfully.')
+        .setTitle(e('design'), 'SERVER CONFIGURATION UPDATED')
+        .setDescription('Settings updated successfully.')
         .setFooter()
         .setTimestamp()
 
-      if (logoUrl)   previewBuilder.setThumbnail(logoUrl)
-      if (bannerUrl) previewBuilder.setBanner(bannerUrl)
-
-      // Show field summary of what changed
-      if (logoUrl)     previewBuilder.addField('Logo URL',     logoUrl,     false)
-      if (accentColor) previewBuilder.addField('Accent Color', accentColor, true)
-      if (bannerUrl)   previewBuilder.addField('Banner URL',   bannerUrl,   false)
+      if (registrationChannel) previewBuilder.addField('Registration Channel', `<#${registrationChannel.id}>`, true)
+      if (approvedChannel)     previewBuilder.addField('Approved Channel',     `<#${approvedChannel.id}>`,     true)
+      if (announcementChannel) previewBuilder.addField('Announcement Channel', `<#${announcementChannel.id}>`, true)
+      if (resultsChannel)      previewBuilder.addField('Results Channel',      `<#${resultsChannel.id}>`,      true)
+      if (accentColor)         previewBuilder.addField('Accent Color', accentColor, true)
+      if (logoUrl)             previewBuilder.addField('Logo URL',     logoUrl,     false)
+      if (bannerUrl)           previewBuilder.addField('Banner URL',   bannerUrl,   false)
 
       return interaction.editReply({ embeds: [previewBuilder.build()] })
     } catch (err) {

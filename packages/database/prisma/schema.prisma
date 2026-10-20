@@ -203,6 +203,7 @@ model ServerSettings {
   disputesChannelId     String?  @map("disputes_channel_id")
   adminChannelId        String?  @map("admin_channel_id")
   registrationChannelId String?  @map("registration_channel_id")
+  approvedRegChannelId  String?  @map("approved_reg_channel_id")
   overlayToken          String?  @map("overlay_token")
   controlPanelMessageId String?  @map("control_panel_message_id")
   refundOnCancel        Boolean  @default(false) @map("refund_on_cancel")
