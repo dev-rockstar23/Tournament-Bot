@@ -1,11 +1,11 @@
 'use client'
-import { ReactNode } from 'react'
+import { ReactNode, HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 type NeonColor = 'violet' | 'cyan' | 'red' | 'green'
 type NeonAs = 'h1' | 'h2' | 'h3' | 'p' | 'span'
 
-interface NeonTextProps {
+interface NeonTextProps extends HTMLAttributes<HTMLElement> {
   as?: NeonAs
   color: NeonColor
   /** Adds glitch-text class and data-text attribute for CSS glitch layers */
@@ -36,6 +36,8 @@ export function NeonText({
   glitch = false,
   children,
   className,
+  style,
+  ...props
 }: NeonTextProps) {
   return (
     <Tag
@@ -45,8 +47,10 @@ export function NeonText({
         glitch && 'glitch-text',
         className
       )}
+      style={style}
       // glitch CSS layer reads data-text to duplicate text content
       {...(glitch && typeof children === 'string' ? { 'data-text': children } : {})}
+      {...props}
     >
       {children}
     </Tag>

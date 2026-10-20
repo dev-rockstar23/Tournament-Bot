@@ -5,9 +5,9 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Menu, X, ChevronDown } from 'lucide-react'
-import { GlowButton } from './GlowButton'
+import { LiquidButton } from './LiquidButton'
 import { NeonText } from './NeonText'
-import { GlassCard } from './GlassCard'
+import { LiquidCard } from './LiquidCard'
 import { StatusPulse } from './StatusPulse'
 import { cn } from '@/lib/utils'
 
@@ -61,7 +61,7 @@ export default function Navigation() {
   return (
     <>
       <nav
-        className="sticky top-0 z-50 w-full"
+        className="sticky top-0 z-50 w-full relative"
         style={{
           backdropFilter: 'blur(16px)',
           backgroundColor: 'rgba(5,5,8,0.95)',
@@ -72,12 +72,12 @@ export default function Navigation() {
       >
         {/* Animated scan line — plays once on mount */}
         {!scanDone && (
-          <div
+          <motion.div
             className="absolute bottom-0 left-0 h-px w-full pointer-events-none"
-            style={{
-              background: 'rgba(6,182,212,0.6)',
-              animation: 'hud-slide-in 0.5s ease-out forwards',
-            }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            style={{ background: 'rgba(6,182,212,0.6)', transformOrigin: 'left' }}
             aria-hidden="true"
           />
         )}
@@ -88,7 +88,7 @@ export default function Navigation() {
             {/* ── LEFT: Logo ── */}
             <Link
               href="/"
-              className="flex items-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md"
+              className="flex items-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md liquid-button"
               aria-label="SHADØW TOURNAMENTS home"
             >
               <Image
@@ -97,7 +97,7 @@ export default function Navigation() {
                 width={32}
                 height={32}
                 unoptimized
-                className="rounded"
+                className="rounded drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]"
               />
               <span
                 className="font-bold text-white"
@@ -121,14 +121,14 @@ export default function Navigation() {
             {/* ── CENTER: Desktop nav links ── */}
             <div className="hidden lg:flex items-center gap-1" role="list">
               {navLinks.map((link) => {
-              const isActive = pathname?.startsWith(link.href) ?? false
+                const isActive = pathname?.startsWith(link.href) ?? false
                 return (
                   <Link
                     key={link.label}
                     href={link.href}
                     role="listitem"
                     className={cn(
-                      'relative px-3 py-1.5 text-xs font-mono tracking-widest uppercase transition-colors duration-150 rounded-sm',
+                      'relative px-3 py-1.5 text-xs font-mono tracking-widest uppercase transition-colors duration-150 rounded-sm liquid-button',
                       isActive
                         ? 'text-[#7c3aed]'
                         : 'text-[#64748b] hover:text-white'
@@ -141,11 +141,15 @@ export default function Navigation() {
                   >
                     {link.label}
                     {isActive && (
-                      <span
+                      <motion.span
                         className="absolute -bottom-0.5 left-0 right-0 h-px rounded-full"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
                         style={{
                           background: '#7c3aed',
                           boxShadow: '0 0 8px rgba(124,58,237,0.9)',
+                          transformOrigin: 'left',
                         }}
                         aria-hidden="true"
                       />
@@ -162,14 +166,16 @@ export default function Navigation() {
                 <button
                   type="button"
                   onClick={() => setNotifOpen((v) => !v)}
-                  className="relative p-2 rounded-md text-[#64748b] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
+                  className="relative p-2 rounded-md text-[#64748b] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] liquid-button"
                   aria-label="Notifications"
                   aria-expanded={notifOpen}
                 >
                   <Bell size={16} aria-hidden="true" />
                   {/* Unread dot */}
-                  <span
-                    className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#7c3aed] animate-pulse"
+                  <motion.span
+                    className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#7c3aed]"
+                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
                     aria-hidden="true"
                   />
                 </button>
@@ -183,13 +189,13 @@ export default function Navigation() {
                       transition={{ duration: 0.15 }}
                       className="absolute right-0 mt-2 w-64"
                     >
-                      <GlassCard neonColor="violet" className="py-3 rounded-xl overflow-hidden shadow-xl">
+                      <LiquidCard liquid magnetic neonColor="violet" className="py-3 rounded-xl overflow-hidden shadow-xl">
                         <p className="px-4 py-1 text-[10px] font-mono tracking-widest uppercase text-[#7c3aed]">
                           Notifications
                         </p>
                         <div className="border-t border-white/5 my-1" />
                         <p className="px-4 py-2 text-xs text-[#64748b]">No new notifications</p>
-                      </GlassCard>
+                      </LiquidCard>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -201,7 +207,7 @@ export default function Navigation() {
                   <button
                     type="button"
                     onClick={() => setDropdownOpen((v) => !v)}
-                    className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-full"
+                    className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-full liquid-button p-1"
                     aria-haspopup="true"
                     aria-expanded={dropdownOpen}
                   >
@@ -239,14 +245,14 @@ export default function Navigation() {
                         transition={{ duration: 0.15 }}
                         className="absolute right-0 mt-2 w-44"
                       >
-                        <GlassCard neonColor="violet" className="py-1 rounded-xl overflow-hidden shadow-xl">
+                        <LiquidCard liquid magnetic neonColor="violet" className="py-1 rounded-xl overflow-hidden shadow-xl">
                           <div className="px-4 py-2 border-b border-white/5">
                             <p className="text-xs font-semibold text-white truncate">{user.username}</p>
                             <p className="text-[10px] text-[#64748b] font-mono">#{user.discriminator}</p>
                           </div>
                           <Link
                             href="/servers"
-                            className="block px-4 py-2 text-xs text-[#94a3b8] hover:text-white hover:bg-white/5 transition-colors font-mono tracking-wide"
+                            className="block px-4 py-2 text-xs text-[#94a3b8] hover:text-white hover:bg-white/5 transition-colors font-mono tracking-wide liquid-button"
                             onClick={() => setDropdownOpen(false)}
                           >
                             My Servers
@@ -254,28 +260,28 @@ export default function Navigation() {
                           <div className="border-t border-white/5 my-1" />
                           <Link
                             href="/api/auth/logout"
-                            className="block px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors font-mono tracking-wide"
+                            className="block px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors font-mono tracking-wide liquid-button"
                             onClick={() => setDropdownOpen(false)}
                           >
                             Log Out
                           </Link>
-                        </GlassCard>
+                        </LiquidCard>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               ) : (
-                <GlowButton variant="primary" size="sm" asChild>
+                <LiquidButton variant="cyber" size="sm" asChild magnetic ripple>
                   <Link href="/api/auth/login" className="no-underline text-white text-xs">
                     Login with Discord
                   </Link>
-                </GlowButton>
+                </LiquidButton>
               )}
 
               {/* Mobile hamburger */}
               <button
                 type="button"
-                className="lg:hidden p-2 rounded-md text-[#64748b] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
+                className="lg:hidden p-2 rounded-md text-[#64748b] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] liquid-button"
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileOpen}
@@ -309,7 +315,7 @@ export default function Navigation() {
                       key={link.label}
                       href={link.href}
                       className={cn(
-                        'text-xs font-mono tracking-widest uppercase px-3 py-2.5 rounded-sm transition-colors border-l-2',
+                        'text-xs font-mono tracking-widest uppercase px-3 py-2.5 rounded-sm transition-colors border-l-2 liquid-button',
                         isActive
                           ? 'text-[#7c3aed] border-[#7c3aed] bg-[rgba(124,58,237,0.08)]'
                           : 'text-[#64748b] hover:text-white border-transparent hover:bg-white/5'
@@ -324,17 +330,17 @@ export default function Navigation() {
                   {user ? (
                     <Link
                       href="/api/auth/logout"
-                      className="text-xs font-mono tracking-widest uppercase px-3 py-2.5 text-red-400 hover:text-red-300"
+                      className="text-xs font-mono tracking-widest uppercase px-3 py-2.5 text-red-400 hover:text-red-300 liquid-button"
                       onClick={() => setMobileOpen(false)}
                     >
                       Log Out
                     </Link>
                   ) : (
-                    <GlowButton variant="primary" size="sm" asChild>
+                    <LiquidButton variant="cyber" size="sm" asChild magnetic ripple>
                       <Link href="/api/auth/login" className="no-underline text-white text-xs" onClick={() => setMobileOpen(false)}>
                         Login with Discord
                       </Link>
-                    </GlowButton>
+                    </LiquidButton>
                   )}
                 </div>
               </div>

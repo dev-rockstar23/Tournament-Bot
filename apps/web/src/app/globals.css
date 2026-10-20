@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import './components/ui/LiquidBackground.css';
 
 :root {
   /* ── Background tokens ───────────────────────────────────────── */
@@ -310,4 +311,386 @@ h1, h2, h3 { font-family: var(--font-display); }
   animation: glitch-clip 0.4s steps(2, end) infinite reverse;
   clip-path: inset(50% 0 0 0);
   transform: translate(1px, 0);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LIQUID UI ANIMATIONS & UTILITIES
+════════════════════════════════════════════════════════════════ */
+
+@property --liquid-radius-1 {
+  syntax: '<percentage>';
+  initial-value: 50%;
+  inherits: false;
+}
+@property --liquid-radius-2 {
+  syntax: '<percentage>';
+  initial-value: 50%;
+  inherits: false;
+}
+@property --liquid-radius-3 {
+  syntax: '<percentage>';
+  initial-value: 50%;
+  inherits: false;
+}
+@property --liquid-radius-4 {
+  syntax: '<percentage>';
+  initial-value: 50%;
+  inherits: false;
+}
+
+@keyframes liquid-morph {
+  0%, 100% {
+    --liquid-radius-1: 60%;
+    --liquid-radius-2: 40%;
+    --liquid-radius-3: 30%;
+    --liquid-radius-4: 70%;
+  }
+  25% {
+    --liquid-radius-1: 40%;
+    --liquid-radius-2: 60%;
+    --liquid-radius-3: 70%;
+    --liquid-radius-4: 30%;
+  }
+  50% {
+    --liquid-radius-1: 70%;
+    --liquid-radius-2: 30%;
+    --liquid-radius-3: 40%;
+    --liquid-radius-4: 60%;
+  }
+  75% {
+    --liquid-radius-1: 30%;
+    --liquid-radius-2: 70%;
+    --liquid-radius-3: 60%;
+    --liquid-radius-4: 40%;
+  }
+}
+
+@keyframes liquid-shimmer {
+  0% { background-position: -200% 0; opacity: 0; }
+  50% { opacity: 1; }
+  100% { background-position: 200% 0; opacity: 0; }
+}
+
+@keyframes liquid-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(20px, -15px, 0) scale(1.03); }
+  66% { transform: translate3d(-15px, 20px, 0) scale(0.97); }
+}
+
+@keyframes liquid-pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px var(--glow-color), 0 0 40px var(--glow-color); opacity: 0.4; }
+  50% { box-shadow: 0 0 40px var(--glow-color), 0 0 80px var(--glow-color); opacity: 0.8; }
+}
+
+@keyframes liquid-border-rotate {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+
+@keyframes liquid-reveal {
+  0% { clip-path: inset(100% 0 0 0); opacity: 0; }
+  100% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+@keyframes liquid-slide-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes liquid-scale-in {
+  0% { transform: scale(0.8); opacity: 0; border-radius: 50%; }
+  100% { transform: scale(1); opacity: 1; border-radius: 16px; }
+}
+
+/* Liquid card utilities */
+.liquid-card {
+  position: relative;
+  overflow: hidden;
+}
+.liquid-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: conic-gradient(from var(--gradient-angle, 0deg), var(--liquid-color-1), var(--liquid-color-2), var(--liquid-color-3), var(--liquid-color-1));
+  animation: liquid-border-rotate 8s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.liquid-card:hover::before {
+  opacity: 1;
+}
+.liquid-card.liquid-active::before {
+  opacity: 0.5;
+}
+
+/* Liquid button base */
+.liquid-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.liquid-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+  transform: translateX(-120%) skewX(-15deg);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.liquid-button:hover::after {
+  transform: translateX(120%) skewX(-15deg);
+}
+
+/* Liquid magnetic tilt */
+.liquid-magnetic {
+  transition: transform 0.1s ease-out;
+  transform-style: preserve-3d;
+}
+
+/* Liquid ripple */
+.liquid-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: liquid-ripple 0.6s ease-out forwards;
+}
+
+@keyframes liquid-ripple {
+  to { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+}
+
+/* Liquid text gradient */
+.liquid-text {
+  background: linear-gradient(135deg, var(--color-neon-violet), var(--color-neon-cyan), var(--color-neon-green));
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: liquid-gradient-shift 4s ease-in-out infinite;
+}
+
+@keyframes liquid-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Liquid focus ring */
+.liquid-focus:focus-visible {
+  outline: none;
+  ring: 2px;
+  ring-offset: 2px;
+  ring-offset-color: var(--color-bg-primary);
+}
+.liquid-focus:focus-visible::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--color-neon-cyan);
+  animation: liquid-pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes liquid-pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* Liquid scrollbar */
+.liquid-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.liquid-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: 3px;
+}
+.liquid-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-neon-violet), var(--color-neon-cyan));
+  border-radius: 3px;
+}
+.liquid-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--color-neon-cyan), var(--color-neon-violet));
+}
+
+/* Liquid selection */
+::selection {
+  background: rgba(124, 58, 237, 0.4);
+  color: white;
+}
+
+/* Liquid loading skeleton */
+.liquid-skeleton {
+  background: linear-gradient(90deg, 
+    var(--color-bg-card) 25%, 
+    var(--color-bg-elevated) 50%, 
+    var(--color-bg-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: liquid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* Liquid tooltip */
+.liquid-tooltip {
+  position: relative;
+}
+.liquid-tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px) scale(0.9);
+  padding: 8px 12px;
+  background: rgba(10, 10, 20, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 100;
+  box-shadow: 0 10px 40px rgba(124, 58, 237, 0.2);
+}
+.liquid-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  border: 6px solid transparent;
+  border-top-color: rgba(124, 58, 237, 0.3);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.liquid-tooltip:hover::before,
+.liquid-tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-8px) scale(1);
+}
+
+/* Liquid badge */
+.liquid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-neon-violet);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(124, 58, 237, 0.2) 50%, transparent 60%);
+  transform: translateX(-120%);
+  animation: liquid-shimmer 2s ease-in-out infinite;
+}
+
+/* Liquid progress */
+.liquid-progress {
+  position: relative;
+  height: 6px;
+  background: var(--color-bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.liquid-progress::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--color-neon-violet), var(--color-neon-cyan));
+  background-size: 200% 100%;
+  animation: liquid-gradient-shift 2s ease-in-out infinite;
+  border-radius: 3px;
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: liquid-progress-fill 1s ease-out forwards, liquid-gradient-shift 2s ease-in-out infinite;
+}
+
+@keyframes liquid-progress-fill {
+  to { transform: scaleX(1); }
+}
+
+/* Liquid tab indicator */
+.liquid-tab-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-neon-violet), var(--color-neon-cyan));
+  border-radius: 2px 2px 0 0;
+  transform-origin: left;
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), width 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Liquid input */
+.liquid-input {
+  background: rgba(17, 17, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+.liquid-input:focus {
+  outline: none;
+  border-color: var(--color-neon-cyan);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+  background: rgba(17, 17, 39, 0.8);
+}
+.liquid-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Liquid dropdown/menu */
+.liquid-dropdown {
+  background: rgba(17, 17, 39, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(124, 58, 237, 0.1);
+  animation: liquid-slide-up 0.2s ease-out, liquid-scale-in 0.3s ease-out;
+  overflow: hidden;
+}
+
+/* Liquid table row hover */
+.liquid-table-row {
+  transition: background 0.2s ease;
+}
+.liquid-table-row:hover {
+  background: linear-gradient(90deg, 
+    rgba(124, 58, 237, 0.05) 0%, 
+    rgba(6, 182, 212, 0.05) 100%
+  );
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-card::before,
+  .liquid-button::after,
+  .liquid-text,
+  .liquid-badge::before,
+  .liquid-progress::after,
+  .liquid-skeleton {
+    animation: none !important;
+  }
+  .liquid-card::before { opacity: 0.3; }
+  .liquid-magnetic { transition: none !important; }
 }

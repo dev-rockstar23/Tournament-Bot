@@ -2,6 +2,7 @@
 import { useEffect, useState, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { StatusPulse } from './StatusPulse'
+import { LiquidCard } from './LiquidCard'
 
 interface StatusBarProps {
   /** Whether the shard (server) is considered online */
@@ -33,14 +34,13 @@ export function StatusBar({ shardOnline = true, children, className }: StatusBar
   }, [])
 
   return (
-    <div
+    <LiquidCard
+      hud
       className={cn(
         'fixed bottom-0 left-0 right-0 z-50',
-        'hud-grid-bg',
-        'border-t border-[var(--color-neon-cyan)]',
         'animate-[hud-slide-in_0.3s_ease-out]',
         'flex items-center justify-between',
-        'px-4 py-1 gap-4',
+        'px-4 py-1.5 gap-4',
         'text-[10px] font-mono text-[var(--color-text-secondary)]',
         'tracking-widest uppercase',
         className
@@ -66,7 +66,7 @@ export function StatusBar({ shardOnline = true, children, className }: StatusBar
         {/* TICK counter */}
         <span className="flex items-center gap-1.5">
           <span className="text-[var(--color-text-muted)]">TICK</span>
-          <span className="text-[var(--color-neon-cyan)]">
+          <span className="text-[var(--color-neon-cyan)] font-mono tabular-nums">
             {pad(tick, 6)}
           </span>
         </span>
@@ -78,8 +78,8 @@ export function StatusBar({ shardOnline = true, children, className }: StatusBar
         </span>
 
         {/* UTC clock */}
-        <span className="text-[var(--color-neon-violet)]">{time}</span>
+        <span className="text-[var(--color-neon-violet)] font-mono tabular-nums">{time}</span>
       </div>
-    </div>
+    </LiquidCard>
   )
 }

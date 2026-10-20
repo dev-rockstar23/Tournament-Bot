@@ -1,15 +1,16 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 import { prisma } from '@esports/database'
 import type { Game, TournamentStatus } from '@esports/database'
 import Navigation from '@/components/ui/Navigation'
 import { Badge } from '@/components/ui/Badge'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { LiquidCard } from '@/components/ui/LiquidCard'
 import { NeonText } from '@/components/ui/NeonText'
 import { StatusBar } from '@/components/ui/StatusBar'
 import { StatusPulse } from '@/components/ui/StatusPulse'
-import { GlowButton } from '@/components/ui/GlowButton'
+import { LiquidButton } from '@/components/ui/LiquidButton'
 import { CyberBreadcrumb } from '@/components/ui/CyberBreadcrumb'
 import { createClient } from '@/lib/supabase/server'
 
@@ -83,10 +84,15 @@ function TournamentOperationCard({ t, guildId }: { t: Tournament; guildId: strin
     ? Math.min((t.acceptedCount / t.teamCapacity) * 100, 100)
     : 0
 
+  const isLive = t.status === 'LIVE'
+  const neonColor = isLive ? 'red' : t.status === 'REGISTRATION_OPEN' ? 'cyan' : 'violet'
+
   return (
-    <GlassCard
-      neonColor={t.status === 'LIVE' ? 'red' : 'violet'}
-      className={`p-4 flex flex-col gap-3 ${t.status === 'LIVE' ? 'border-red-500/50' : ''}`}
+    <LiquidCard
+      liquid
+      magnetic
+      neonColor={neonColor as any}
+      className={`p-4 flex flex-col gap-3 ${isLive ? 'border-red-500/50' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div
@@ -110,20 +116,21 @@ function TournamentOperationCard({ t, guildId }: { t: Tournament; guildId: strin
           <span>SLOTS</span>
           <span className="text-[var(--color-neon-cyan)]">{t.acceptedCount}/{t.teamCapacity}</span>
         </div>
-        <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden relative">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[var(--color-neon-violet)] to-[var(--color-neon-cyan)] transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-[var(--color-neon-violet)] via-[var(--color-neon-cyan)] to-[var(--color-neon-green)] transition-all duration-500"
             style={{ width: `${fillPct}%` }}
           />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
         </div>
       </div>
       <Link
         href={`/servers/${guildId}/tournaments/${t.id}`}
-        className="text-xs font-mono text-[var(--color-neon-cyan)] hover:text-white transition-colors tracking-widest uppercase"
+        className="liquid-button text-xs font-mono text-[var(--color-neon-cyan)] hover:text-white transition-colors tracking-widest uppercase"
       >
         VIEW DETAILS →
       </Link>
-    </GlassCard>
+    </LiquidCard>
   )
 }
 
@@ -200,16 +207,30 @@ export default async function ServerPage({
       style={{ '--color-accent': accentColor, backgroundColor: 'var(--color-bg-primary)' } as React.CSSProperties}
       className="min-h-screen pb-16"
     >
-      <div className="scanline-overlay" aria-hidden="true" />
+      {/* Liquid animated background - CSS-based for server pages */}
+      <div
+        className="liquid-bg-container liquid-bg-tournament fixed inset-0 z-0 pointer-events-none"
+        aria-hidden="true"
+      >
+        <div className="liquid-aurora" />
+        <div className="liquid-blob violet" style={{ width: 500, height: 500, top: '-100px', left: '-150px' }} />
+        <div className="liquid-blob cyan" style={{ width: 400, height: 400, bottom: '-100px', right: '-150px' }} />
+        <div className="liquid-blob emerald" style={{ width: 300, height: 300, top: '20%', left: '50%', transform: 'translateX(-50%)' }} />
+        <div className="liquid-shimmer" />
+        <div className="liquid-grid" />
+        <div className="liquid-scanline" />
+        <div className="liquid-particles" />
+      </div>
+
       <Navigation />
 
-      <main className="min-h-screen">
+      <main className="relative z-10 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Breadcrumb */}
           <CyberBreadcrumb labels={{ servers: 'Servers', [guildId]: server.name }} className="mb-6" />
 
           {/* Server header */}
-          <GlassCard hud className="p-6 mb-8">
+          <LiquidCard liquid magnetic hud className="p-6 mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               {/* Guild icon */}
               <div className="relative flex-shrink-0">
@@ -237,7 +258,7 @@ export default async function ServerPage({
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1 flex-wrap">
-                  <NeonText as="h1" color="violet" className="text-2xl sm:text-3xl font-black tracking-wider">
+                  <NeonText as="h1" color="violet" className="text-2xl sm:text-3xl font-black tracking-wider liquid-text">
                     {server.name}
                   </NeonText>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono text-[var(--color-neon-cyan)] border border-[var(--color-neon-cyan)]/40 bg-[var(--color-neon-cyan)]/5">
@@ -263,7 +284,7 @@ export default async function ServerPage({
                 </Link>
               )}
             </div>
-          </GlassCard>
+          </LiquidCard>
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -290,7 +311,7 @@ export default async function ServerPage({
                 color: 'green' as const,
               },
             ].map(({ label, value, color, pulse }) => (
-              <GlassCard key={label} neonColor={color} className="p-4 text-center">
+              <LiquidCard key={label} liquid neonColor={color} className="p-4 text-center" magnetic>
                 <div className={`text-3xl font-black font-display mb-1 ${
                   color === 'violet' ? 'neon-text-violet' :
                   color === 'cyan' ? 'neon-text-cyan' :
@@ -301,7 +322,7 @@ export default async function ServerPage({
                   {value}
                 </div>
                 <p className="text-xs font-mono text-[var(--color-text-muted)] tracking-widest uppercase">{label}</p>
-              </GlassCard>
+              </LiquidCard>
             ))}
           </div>
 
@@ -320,7 +341,7 @@ export default async function ServerPage({
                 className={[
                   'px-3 py-1.5 rounded-full text-xs font-mono font-bold whitespace-nowrap tracking-widest uppercase transition-all',
                   activeTab === tab
-                    ? 'bg-[var(--color-neon-violet)] text-black'
+                    ? 'bg-gradient-to-r from-[var(--color-neon-violet)] to-[var(--color-neon-cyan)] text-black shadow-[0_0_20px_rgba(124,58,237,0.4)]'
                     : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5 border border-white/10',
                 ].join(' ')}
               >
@@ -333,13 +354,19 @@ export default async function ServerPage({
           {featuredLive && (
             <section className="mb-8">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-1 h-6 bg-red-500 rounded-full animate-pulse" aria-hidden="true" />
+                <motion.div
+                  className="w-1 h-6 rounded-full"
+                  style={{ background: '#ef4444' }}
+                  animate={{ scaleY: [1, 1.5, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  aria-hidden="true"
+                />
                 <h2 className="font-display text-sm font-bold text-white tracking-widest uppercase">
                   FEATURED LIVE TOURNAMENT
                 </h2>
                 <StatusPulse variant="live" />
               </div>
-              <GlassCard neonColor="red" className="p-6 border-red-500/40 relative overflow-hidden">
+              <LiquidCard liquid magnetic neonColor="red" className="p-6 border-red-500/40 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent" aria-hidden="true" />
                 <div className="relative z-10">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -353,7 +380,7 @@ export default async function ServerPage({
                           {gameLabel(featuredLive.game)}
                         </span>
                       </div>
-                      <NeonText as="h3" color="violet" className="text-2xl font-black tracking-wide mb-1">
+                      <NeonText as="h3" color="violet" className="text-2xl font-black tracking-wide mb-1 liquid-text">
                         {featuredLive.name}
                       </NeonText>
                       <p className="text-xs font-mono text-[var(--color-text-muted)] tracking-widest">
@@ -363,21 +390,19 @@ export default async function ServerPage({
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <Link
                         href={`/servers/${guildId}/tournaments/${featuredLive.id}/bracket`}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold tracking-widest uppercase text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
+                        className="liquid-button inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold tracking-widest uppercase text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
                       >
                         👁 WATCH BROADCAST
                       </Link>
-                      <Link
-                        href={`/servers/${guildId}/tournaments/${featuredLive.id}`}
-                      >
-                        <GlowButton variant="primary" size="sm">
+                      <Link href={`/servers/${guildId}/tournaments/${featuredLive.id}`}>
+                        <LiquidButton variant="primary" size="sm" magnetic ripple>
                           VIEW STANDINGS
-                        </GlowButton>
+                        </LiquidButton>
                       </Link>
                     </div>
                   </div>
                 </div>
-              </GlassCard>
+              </LiquidCard>
             </section>
           )}
 
@@ -386,14 +411,21 @@ export default async function ServerPage({
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-1 h-6 bg-[var(--color-neon-violet)] rounded-full" aria-hidden="true" />
+                  <motion.div
+                    className="w-1 h-6 rounded-full"
+                    style={{ background: 'var(--color-neon-violet)' }}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.4 }}
+                    aria-hidden="true"
+                  />
                   <h2 className="font-display text-sm font-bold text-white tracking-widest uppercase">
                     TOURNAMENT OPERATIONS DECK
                   </h2>
                 </div>
                 <Link
                   href={`/servers/${guildId}/tournaments`}
-                  className="text-xs font-mono text-[var(--color-neon-cyan)] hover:text-white transition-colors tracking-widest uppercase"
+                  className="liquid-button text-xs font-mono text-[var(--color-neon-cyan)] hover:text-white transition-colors tracking-widest uppercase"
                 >
                   VIEW ALL →
                 </Link>
@@ -411,21 +443,28 @@ export default async function ServerPage({
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-1 h-6 bg-amber-500 rounded-full" aria-hidden="true" />
+                  <motion.div
+                    className="w-1 h-6 rounded-full"
+                    style={{ background: '#f59e0b' }}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.4, delay: 0.2 }}
+                    aria-hidden="true"
+                  />
                   <h2 className="font-display text-sm font-bold text-white tracking-widest uppercase">
                     HALL OF CHAMPIONS
                   </h2>
                 </div>
                 <Link
                   href={`/servers/${guildId}/winners`}
-                  className="text-xs font-mono text-[var(--color-neon-cyan)] hover:text-white transition-colors tracking-widest uppercase"
+                  className="liquid-button text-xs font-mono text-[var(--color-neon-cyan)] hover:text-white transition-colors tracking-widest uppercase"
                 >
                   FULL HALL →
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {(recentWinners as WinnerRecord[]).map((w) => (
-                  <GlassCard key={w.id} neonColor="cyan" className="p-4 flex items-center gap-3">
+                  <LiquidCard key={w.id} liquid magnetic neonColor="cyan" className="p-4 flex items-center gap-3">
                     <span className="text-2xl" aria-hidden="true">🏆</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold text-sm truncate font-display">{w.team.name}</p>
@@ -436,7 +475,7 @@ export default async function ServerPage({
                         {gameLabel(w.tournament.game)}
                       </span>
                     </div>
-                  </GlassCard>
+                  </LiquidCard>
                 ))}
               </div>
             </section>
@@ -446,7 +485,7 @@ export default async function ServerPage({
           {liveTournaments.length === 0 && upcomingTournaments.length === 0 && (
             <div className="text-center py-20">
               <p className="text-5xl mb-4" aria-hidden="true">🎮</p>
-              <NeonText as="h2" color="violet" className="text-2xl font-bold mb-2">
+              <NeonText as="h2" color="violet" className="text-2xl font-bold mb-2 liquid-text">
                 NO ACTIVE TOURNAMENTS
               </NeonText>
               <p className="text-[var(--color-text-secondary)] font-mono text-sm">

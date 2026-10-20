@@ -1,0 +1,309 @@
+/* ─── Liquid Background CSS Animations ──────────────────────────────────────── */
+
+@keyframes liquid-morph-1 {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(-5%, -5%) rotate(0deg); }
+  25% { border-radius: 40% 60% 70% 30% / 30% 70% 40% 60%; transform: translate(5%, -3%) rotate(2deg); }
+  50% { border-radius: 70% 30% 40% 60% / 70% 60% 30% 40%; transform: translate(-3%, 5%) rotate(-1deg); }
+  75% { border-radius: 30% 70% 60% 40% / 40% 30% 60% 70%; transform: translate(3%, 3%) rotate(1deg); }
+}
+
+@keyframes liquid-morph-2 {
+  0%, 100% { border-radius: 40% 60% 70% 30% / 30% 70% 40% 60%; transform: translate(3%, 2%) rotate(0deg); }
+  25% { border-radius: 70% 30% 40% 60% / 70% 60% 30% 40%; transform: translate(-2%, 4%) rotate(-2deg); }
+  50% { border-radius: 30% 70% 60% 40% / 40% 30% 60% 70%; transform: translate(4%, -2%) rotate(1deg); }
+  75% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(-4%, -4%) rotate(-1deg); }
+}
+
+@keyframes liquid-morph-3 {
+  0%, 100% { border-radius: 70% 30% 40% 60% / 70% 60% 30% 40%; transform: translate(-2%, 3%) rotate(0deg); }
+  25% { border-radius: 30% 70% 60% 40% / 40% 30% 60% 70%; transform: translate(4%, -3%) rotate(1deg); }
+  50% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: translate(-4%, 2%) rotate(-1deg); }
+  75% { border-radius: 40% 60% 70% 30% / 30% 70% 40% 60%; transform: translate(2%, 4%) rotate(2deg); }
+}
+
+@keyframes liquid-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 30px) scale(0.95); }
+}
+
+@keyframes liquid-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 30px) scale(1.03); }
+  66% { transform: translate(30px, -15px) scale(0.97); }
+}
+
+@keyframes liquid-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, 25px) scale(1.04); }
+  66% { transform: translate(-30px, -20px) scale(0.96); }
+}
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(120%) skewX(-15deg); opacity: 0; }
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-40px) translateX(20px); opacity: 0.8; }
+  50% { transform: translateY(-80px) translateX(-10px); opacity: 0.5; }
+  75% { transform: translateY(-120px) translateX(30px); opacity: 0.2; }
+}
+
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.05; }
+}
+
+@keyframes scanline-move {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes aurora-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { filter: blur(80px) brightness(1); opacity: 0.3; }
+  50% { filter: blur(100px) brightness(1.3); opacity: 0.5; }
+}
+
+.liquid-bg-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #050508;
+}
+
+.liquid-blob {
+  position: absolute;
+  filter: blur(80px);
+  opacity: 0.25;
+  animation: liquid-morph-1 20s ease-in-out infinite, liquid-drift-1 15s ease-in-out infinite, glow-pulse 4s ease-in-out infinite;
+  will-change: border-radius, transform, filter, opacity;
+}
+
+.liquid-blob:nth-child(2) {
+  animation: liquid-morph-2 18s ease-in-out infinite, liquid-drift-2 18s ease-in-out infinite, glow-pulse 5s ease-in-out infinite reverse;
+}
+
+.liquid-blob:nth-child(3) {
+  animation: liquid-morph-3 22s ease-in-out infinite, liquid-drift-3 12s ease-in-out infinite, glow-pulse 3.5s ease-in-out infinite;
+}
+
+.liquid-blob.violet {
+  background: radial-gradient(ellipse at center, #7c3aed 0%, #8b5cf6 40%, #a855f7 70%, transparent 100%);
+}
+
+.liquid-blob.cyan {
+  background: radial-gradient(ellipse at center, #06b6d4 0%, #22d3ee 40%, #67e8f9 70%, transparent 100%);
+}
+
+.liquid-blob.emerald {
+  background: radial-gradient(ellipse at center, #22c55e 0%, #4ade80 40%, #86efac 70%, transparent 100%);
+}
+
+.liquid-blob.plasma-1 {
+  background: radial-gradient(ellipse at center, #f97316 0%, #ec4899 40%, #8b5cf6 70%, transparent 100%);
+}
+
+.liquid-blob.plasma-2 {
+  background: radial-gradient(ellipse at center, #ec4899 0%, #8b5cf6 40%, #f97316 70%, transparent 100%);
+}
+
+.liquid-blob.plasma-3 {
+  background: radial-gradient(ellipse at center, #8b5cf6 0%, #f97316 40%, #ec4899 70%, transparent 100%);
+}
+
+.liquid-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(6, 182, 212, 0.1) 50%, transparent 60%);
+  animation: shimmer-sweep 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.liquid-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.liquid-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  animation: particle-float 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.liquid-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: grid-pulse 4s ease-in-out infinite, grid-scroll 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes grid-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 40px; }
+}
+
+.liquid-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.liquid-scanline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.15) 50%, transparent 100%);
+  animation: scanline-move 6s linear infinite;
+}
+
+.liquid-aurora {
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(135deg, 
+    #7c3aed 0%, 
+    #06b6d4 25%, 
+    #22c55e 50%, 
+    #f97316 75%, 
+    #ec4899 100%
+  );
+  background-size: 400% 400%;
+  opacity: 0.03;
+  filter: blur(100px);
+  animation: aurora-shift 15s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-blob,
+  .liquid-shimmer,
+  .liquid-particle,
+  .liquid-grid,
+  .liquid-scanline::after,
+  .liquid-aurora {
+    animation: none !important;
+  }
+  .liquid-blob {
+    opacity: 0.15;
+    filter: blur(60px);
+  }
+}
+
+/* Tournament variant specific */
+.liquid-bg-tournament .liquid-blob:nth-child(1) {
+  width: 500px;
+  height: 500px;
+  top: -100px;
+  left: -150px;
+}
+
+.liquid-bg-tournament .liquid-blob:nth-child(2) {
+  width: 400px;
+  height: 400px;
+  bottom: -100px;
+  right: -150px;
+}
+
+.liquid-bg-tournament .liquid-blob:nth-child(3) {
+  width: 300px;
+  height: 300px;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.liquid-bg-violet .liquid-blob:nth-child(1) {
+  width: 600px;
+  height: 600px;
+  top: -150px;
+  left: -200px;
+}
+
+.liquid-bg-violet .liquid-blob:nth-child(2) {
+  width: 450px;
+  height: 450px;
+  bottom: -100px;
+  right: -150px;
+}
+
+.liquid-bg-cyan .liquid-blob:nth-child(1) {
+  width: 550px;
+  height: 550px;
+  top: -100px;
+  left: -180px;
+}
+
+.liquid-bg-cyan .liquid-blob:nth-child(2) {
+  width: 400px;
+  height: 400px;
+  bottom: -80px;
+  right: -120px;
+}
+
+.liquid-bg-liquid .liquid-blob:nth-child(1) {
+  width: 700px;
+  height: 700px;
+  top: -200px;
+  left: -250px;
+}
+
+.liquid-bg-liquid .liquid-blob:nth-child(2) {
+  width: 500px;
+  height: 500px;
+  bottom: -150px;
+  right: -200px;
+}
+
+.liquid-bg-liquid .liquid-blob:nth-child(3) {
+  width: 400px;
+  height: 400px;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.liquid-bg-plasma .liquid-blob:nth-child(1) {
+  width: 650px;
+  height: 650px;
+  top: -150px;
+  left: -200px;
+}
+
+.liquid-bg-plasma .liquid-blob:nth-child(2) {
+  width: 500px;
+  height: 500px;
+  bottom: -120px;
+  right: -180px;
+}
+
+.liquid-bg-plasma .liquid-blob:nth-child(3) {
+  width: 450px;
+  height: 450px;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+}
