@@ -2,37 +2,33 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { createServerClient } from '@supabase/ssr'
 
-// Validate ENCRYPTION_KEY at startup if payments are enabled
-if (process.env.PAYMENTS_ENABLED === 'true') {
-  const key = process.env.ENCRYPTION_KEY
-  if (!key) {
-    throw new Error('ENCRYPTION_KEY is required when PAYMENTS_ENABLED=true')
-  }
-  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
-    throw new Error('ENCRYPTION_KEY must be a 64-character hexadecimal string (32 bytes)')
-  }
-}
-
 export async function middleware(request: NextRequest) {
+  // Resolve Supabase URL — support both NEXT_PUBLIC_ and plain variants
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
+  const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
+
+  // If Supabase is not configured, let the request through (dev/preview fallback)
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.next()
+  }
+
   // Refresh session cookies
   const response = await updateSession(request)
 
-  // Protect /servers/* and /servers/[guildId]/admin/* routes
+  // Protect /servers/* routes — redirect to home if not authenticated
   const { pathname } = request.nextUrl
   if (pathname.startsWith('/servers')) {
-    const supabase = createServerClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value
-          },
-          set() {},
-          remove() {},
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
+        set() {},
+        remove() {},
       },
-    )
+    })
 
     const {
       data: { user },

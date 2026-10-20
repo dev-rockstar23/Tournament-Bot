@@ -3,14 +3,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, ChevronDown, Server, Cpu, Zap, Trophy, Shield, Zap as ZapIcon } from 'lucide-react'
+import { Lock, ChevronDown, Server, Cpu, Zap as ZapIcon } from 'lucide-react'
 import { LiquidCard } from '@/components/ui/LiquidCard'
 import { LiquidButton } from '@/components/ui/LiquidButton'
-import { NeonText } from '@/components/ui/NeonText'
 import { StatusPulse } from '@/components/ui/StatusPulse'
 import Navigation from '@/components/ui/Navigation'
 import { LiquidBackground } from '@/components/ui/LiquidBackground'
-import { fadeUp, fadeIn, staggerChildren, liquidReveal, counterPop, orbitalFloat, gradientShift, cardStack } from '@/lib/motion'
+import { fadeUp, fadeIn, staggerChildren, counterPop, cardStack } from '@/lib/motion'
 
 // ─── Feature cards ────────────────────────────────────────────────────────
 
@@ -177,20 +176,21 @@ export default function LandingPage() {
               SYS.NODE.7 / MULTI-TENANT TOURNAMENT PROTOCOL
             </motion.p>
 
-            {/* Main title with liquid gradient */}
+            {/* Main title */}
             <motion.div variants={fadeUp} className="mb-4">
-              <NeonText
-                as="h1"
-                color="violet"
-                glitch
-                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-none tracking-[0.05em] liquid-text"
+              <h1
+                className="font-display text-5xl sm:text-6xl md:text-7xl font-black leading-none tracking-[0.05em] glitch-text"
+                data-text="SHADØW TOURNAMENTS"
                 style={{
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #06b6d4 35%, #22c55e 70%, #f97316 100%)',
-                  backgroundSize: '300% 300%',
+                  background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 30%, #06b6d4 70%, #22d3ee 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  filter: 'drop-shadow(0 0 20px rgba(124,58,237,0.5))',
                 }}
               >
                 SHADØW TOURNAMENTS
-              </NeonText>
+              </h1>
             </motion.div>
 
             {/* Subtitle */}
