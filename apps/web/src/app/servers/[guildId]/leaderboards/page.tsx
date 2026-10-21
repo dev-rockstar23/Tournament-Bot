@@ -28,29 +28,35 @@ interface AggregatedTeam {
 }
 
 export default async function LeaderboardsPage({ params, searchParams }: PageProps) {
-  const scoreEvents = await prisma.scoreEvent.findMany({
-    where: {
-      status: 'active',
-      match: {
-        stage: {
-          tournament: { guildId: params.guildId, status: 'COMPLETED' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let scoreEvents: any[] = []
+  try {
+    scoreEvents = await prisma.scoreEvent.findMany({
+      where: {
+        status: 'active',
+        match: {
+          stage: {
+            tournament: { guildId: params.guildId, status: 'COMPLETED' },
+          },
         },
       },
-    },
-    include: {
-      team: { select: { name: true, tag: true } },
-      match: {
-        select: {
-          stage: {
-            select: {
-              tournamentId: true,
-              tournament: { select: { game: true } },
+      include: {
+        team: { select: { name: true, tag: true } },
+        match: {
+          select: {
+            stage: {
+              select: {
+                tournamentId: true,
+                tournament: { select: { game: true } },
+              },
             },
           },
         },
       },
-    },
-  })
+    })
+  } catch {
+    // Show empty leaderboard on DB error
+  }
 
   // Aggregate by team + game
   const teamMap = new Map<string, AggregatedTeam>()

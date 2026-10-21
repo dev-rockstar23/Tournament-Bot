@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { resolveUserRole, AppRole } from '@esports/permissions'
+import { AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { TournamentDetailPanel, type TournamentDetail } from '@/components/admin/TournamentDetailPanel'
 
@@ -14,10 +14,14 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   const { guildId, tournamentId } = params
 
   // Auth check
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user: Awaited<ReturnType<ReturnType<typeof createClient>['auth']['getUser']>>['data']['user'] = null
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    redirect(`/?next=/servers/${guildId}/admin/tournaments/${tournamentId}`)
+  }
 
   if (!user) {
     redirect(`/?next=/servers/${guildId}/admin/tournaments/${tournamentId}`)
@@ -26,53 +30,75 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   const discordId: string =
     user.user_metadata?.provider_id ?? user.user_metadata?.sub ?? ''
 
-  const userRole = await resolveUserRole({
-    prisma,
-    userId: discordId,
-    guildId,
-    botToken: process.env.DISCORD_BOT_TOKEN ?? '',
-  })
+  // Direct DB-based role check instead of resolveUserRole
+  let userRoleLevel = 0
+  try {
+    const serverRecord = await prisma.discordServer.findUnique({
+      where: { guildId },
+      select: { ownerId: true },
+    })
+    if (serverRecord?.ownerId === discordId) {
+      userRoleLevel = AppRole.SERVER_ADMIN
+    } else {
+      const bindings = await prisma.serverRoleBinding.findMany({
+        where: { guildId },
+        select: { appRole: true },
+      })
+      const roles = bindings.map((b) => b.appRole)
+      if (roles.includes('SERVER_ADMIN')) userRoleLevel = AppRole.SERVER_ADMIN
+      else if (roles.includes('TOURNAMENT_MANAGER')) userRoleLevel = AppRole.TOURNAMENT_MANAGER
+      else if (roles.includes('REFEREE')) userRoleLevel = AppRole.REFEREE
+    }
+  } catch {
+    userRoleLevel = 0
+  }
 
-  if (userRole < AppRole.TOURNAMENT_MANAGER) {
+  if (userRoleLevel < AppRole.TOURNAMENT_MANAGER) {
     redirect(`/servers/${guildId}/admin/tournaments`)
   }
 
   // Fetch tournament with stages, matches, and registrations — scoped to guildId
-  const raw = await prisma.tournament.findFirst({
-    where: { id: tournamentId, guildId },
-    include: {
-      stages: {
-        orderBy: { order: 'asc' },
-        include: {
-          matches: {
-            orderBy: { number: 'asc' },
-            select: {
-              id: true,
-              number: true,
-              status: true,
-              scheduledStart: true,
-              scheduledEnd: true,
-              map: true,
-              mode: true,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let raw: any = null
+  try {
+    raw = await prisma.tournament.findFirst({
+      where: { id: tournamentId, guildId },
+      include: {
+        stages: {
+          orderBy: { order: 'asc' },
+          include: {
+            matches: {
+              orderBy: { number: 'asc' },
+              select: {
+                id: true,
+                number: true,
+                status: true,
+                scheduledStart: true,
+                scheduledEnd: true,
+                map: true,
+                mode: true,
+              },
             },
           },
         },
-      },
-      registrations: {
-        select: {
-          id: true,
-          status: true,
-          createdAt: true,
-          approvedAt: true,
-          rejectionReason: true,
-          slotNumber: true,
-          team: { select: { name: true, tag: true } },
-          _count: { select: { members: true } },
+        registrations: {
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            approvedAt: true,
+            rejectionReason: true,
+            slotNumber: true,
+            team: { select: { name: true, tag: true } },
+            _count: { select: { members: true } },
+          },
+          orderBy: { createdAt: 'asc' },
         },
-        orderBy: { createdAt: 'asc' },
       },
-    },
-  })
+    })
+  } catch {
+    redirect(`/servers/${guildId}/admin/tournaments`)
+  }
 
   if (!raw) {
     redirect(`/servers/${guildId}/admin/tournaments`)
@@ -108,11 +134,11 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     endAt: raw.endAt?.toISOString() ?? null,
     completedAt: raw.completedAt?.toISOString() ?? null,
     cancelledAt: raw.cancelledAt?.toISOString() ?? null,
-    stages: raw.stages.map((stage) => ({
+    stages: raw.stages.map((stage: any) => ({
       id: stage.id,
       name: stage.name,
       order: stage.order,
-      matches: stage.matches.map((match) => ({
+      matches: stage.matches.map((match: any) => ({
         id: match.id,
         number: match.number,
         status: match.status,
@@ -122,7 +148,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         mode: match.mode,
       })),
     })),
-    registrations: raw.registrations.map((reg) => ({
+    registrations: raw.registrations.map((reg: any) => ({
       id: reg.id,
       status: reg.status,
       createdAt: reg.createdAt.toISOString(),

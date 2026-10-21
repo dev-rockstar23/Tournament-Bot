@@ -10,31 +10,37 @@ interface PageProps {
 }
 
 export default async function TournamentsPage({ params }: PageProps) {
-  const tournaments = await prisma.tournament.findMany({
-    where: {
-      guildId: params.guildId,
-      status: { not: 'ARCHIVED' },
-    },
-    orderBy: { startAt: 'asc' },
-    select: {
-      id: true,
-      name: true,
-      game: true,
-      mode: true,
-      status: true,
-      entryType: true,
-      teamCapacity: true,
-      acceptedCount: true,
-      registrationOpenAt: true,
-      registrationCloseAt: true,
-      startAt: true,
-      endAt: true,
-      bannerUrl: true,
-      guildId: true,
-      tournamentCode: true,
-    },
-    take: 100,
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let tournaments: any[] = []
+  try {
+    tournaments = await prisma.tournament.findMany({
+      where: {
+        guildId: params.guildId,
+        status: { not: 'ARCHIVED' },
+      },
+      orderBy: { startAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        game: true,
+        mode: true,
+        status: true,
+        entryType: true,
+        teamCapacity: true,
+        acceptedCount: true,
+        registrationOpenAt: true,
+        registrationCloseAt: true,
+        startAt: true,
+        endAt: true,
+        bannerUrl: true,
+        guildId: true,
+        tournamentCode: true,
+      },
+      take: 100,
+    })
+  } catch {
+    // Return empty catalogue on DB error
+  }
 
   // Normalize schema field names for the catalogue component
   const normalized = tournaments.map((t) => ({

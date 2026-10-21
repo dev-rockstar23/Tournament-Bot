@@ -144,39 +144,57 @@ export default async function ServerPage({
   const { guildId } = params
   const activeTab = searchParams?.tab ?? 'ALL'
 
-  const server = await prisma.discordServer.findUnique({
-    where: { guildId },
-    include: { settings: true },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let server: any = null
+  try {
+    server = await prisma.discordServer.findUnique({
+      where: { guildId },
+      include: { settings: true },
+    })
+  } catch {
+    notFound()
+  }
 
   if (!server) notFound()
 
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  let user: { user_metadata?: Record<string, string> } | null = null
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Supabase env not configured — user stays null (guest view)
+  }
   const discordId = user?.user_metadata?.provider_id ?? user?.user_metadata?.sub ?? ''
   const isAdmin = server.ownerId === discordId
 
-  const [allTournaments, recentWinners] = await Promise.all([
-    prisma.tournament.findMany({
-      where: { guildId, status: { notIn: ['DRAFT', 'ARCHIVED', 'CANCELLED'] } },
-      orderBy: { startAt: 'asc' },
-      take: 20,
-      select: {
-        id: true, name: true, game: true, status: true,
-        startAt: true, registrationCloseAt: true,
-        teamCapacity: true, acceptedCount: true,
-      },
-    }),
-    prisma.winnerRecord.findMany({
-      where: { tournament: { guildId }, placement: 1 },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-      include: {
-        tournament: { select: { name: true, game: true } },
-        team: { select: { name: true } },
-      },
-    }),
-  ])
+  let allTournaments: Tournament[] = []
+  let recentWinners: WinnerRecord[] = []
+  try {
+    ;[allTournaments, recentWinners] = await Promise.all([
+      prisma.tournament.findMany({
+        where: { guildId, status: { notIn: ['DRAFT', 'ARCHIVED', 'CANCELLED'] } },
+        orderBy: { startAt: 'asc' },
+        take: 20,
+        select: {
+          id: true, name: true, game: true, status: true,
+          startAt: true, registrationCloseAt: true,
+          teamCapacity: true, acceptedCount: true,
+        },
+      }),
+      prisma.winnerRecord.findMany({
+        where: { tournament: { guildId }, placement: 1 },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        include: {
+          tournament: { select: { name: true, game: true } },
+          team: { select: { name: true } },
+        },
+      }),
+    ]) as [Tournament[], WinnerRecord[]]
+  } catch {
+    // Show empty state on DB error
+  }
 
   // Derive filtered lists
   const liveTournaments = allTournaments.filter((t) => t.status === 'LIVE')

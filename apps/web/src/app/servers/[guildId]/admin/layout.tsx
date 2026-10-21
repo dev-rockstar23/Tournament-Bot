@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { resolveUserRole } from '@esports/permissions'
-import { AppRole, roleName } from '@esports/permissions'
+import { AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 
@@ -14,10 +13,16 @@ export default async function AdminLayout({
   children: React.ReactNode
   params: { guildId: string }
 }) {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Auth check — wrap createClient in try/catch to handle missing env vars
+  let user: Awaited<ReturnType<ReturnType<typeof createClient>['auth']['getUser']>>['data']['user'] = null
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Supabase not configured — redirect to home
+    redirect(`/?next=/servers/${params.guildId}/admin`)
+  }
 
   if (!user) {
     redirect(`/?next=/servers/${params.guildId}/admin`)
@@ -26,16 +31,42 @@ export default async function AdminLayout({
   const discordId: string =
     user.user_metadata?.provider_id ?? user.user_metadata?.sub ?? ''
 
-  // Resolve user role
-  const role = await resolveUserRole({
-    prisma,
-    userId: discordId,
-    guildId: params.guildId,
-    botToken: process.env.DISCORD_BOT_TOKEN ?? '',
-  })
+  // Direct DB-based access check instead of resolveUserRole
+  let hasAdminAccess = false
+  let userAppRole: AppRole = AppRole.REFEREE
+  try {
+    // Check if server owner
+    const serverRecord = await prisma.discordServer.findUnique({
+      where: { guildId: params.guildId },
+      select: { ownerId: true },
+    })
+    if (serverRecord?.ownerId === discordId) {
+      hasAdminAccess = true
+      userAppRole = AppRole.SERVER_ADMIN
+    } else {
+      // Check role bindings
+      const bindings = await prisma.serverRoleBinding.findMany({
+        where: { guildId: params.guildId },
+        select: { appRole: true },
+      })
+      const roles = bindings.map((b) => b.appRole)
+      if (roles.includes('SERVER_ADMIN')) {
+        hasAdminAccess = true
+        userAppRole = AppRole.SERVER_ADMIN
+      } else if (roles.includes('TOURNAMENT_MANAGER')) {
+        hasAdminAccess = true
+        userAppRole = AppRole.TOURNAMENT_MANAGER
+      } else if (roles.includes('REFEREE')) {
+        hasAdminAccess = true
+        userAppRole = AppRole.REFEREE
+      }
+    }
+  } catch {
+    // DB unavailable — deny access
+    hasAdminAccess = false
+  }
 
-  // REFEREE is the minimum for any admin access
-  if (role < AppRole.REFEREE) {
+  if (!hasAdminAccess) {
     return (
       <main
         className="min-h-screen flex items-center justify-center"
@@ -54,13 +85,15 @@ export default async function AdminLayout({
   }
 
   // Fetch server info for sidebar
-  const server = await prisma.discordServer.findUnique({
-    where: { guildId: params.guildId },
-    select: { name: true, icon: true },
-  })
-
-  // roleName is imported but used via AdminSidebar — suppress unused warning
-  void roleName
+  let server: { name: string; icon: string | null } | null = null
+  try {
+    server = await prisma.discordServer.findUnique({
+      where: { guildId: params.guildId },
+      select: { name: true, icon: true },
+    })
+  } catch {
+    // Non-fatal — sidebar will use fallback values
+  }
 
   return (
     <div
@@ -71,7 +104,7 @@ export default async function AdminLayout({
         guildId={params.guildId}
         guildName={server?.name ?? 'Server'}
         guildIcon={server?.icon ?? null}
-        userRole={role}
+        userRole={userAppRole}
         userName={user.user_metadata?.full_name ?? user.email ?? 'User'}
         userAvatar={user.user_metadata?.avatar_url ?? null}
       />

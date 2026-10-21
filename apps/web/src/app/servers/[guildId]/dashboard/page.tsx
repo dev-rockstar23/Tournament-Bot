@@ -33,59 +33,86 @@ interface KpiCard {
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const { guildId } = params
 
-  // Run primary KPI queries in parallel — same logic as the API route
-  const [
-    totalTournaments,
-    currentlyLive,
-    upcoming,
-    totalRegistrations,
-    pendingResults,
-    openDisputes,
-  ] = await Promise.all([
-    prisma.tournament.count({ where: { guildId } }),
-    prisma.tournament.count({ where: { guildId, status: 'LIVE' } }),
-    prisma.tournament.count({
-      where: { guildId, status: { in: ['REGISTRATION_OPEN', 'CHECK_IN'] } },
-    }),
-    prisma.registration.count({ where: { guildId } }),
-    prisma.match.count({ where: { guildId, status: 'AWAITING_RESULT' } }),
-    prisma.dispute.count({ where: { match: { guildId }, status: 'OPEN' } }),
-  ])
+  // All KPI values default to 0 — any DB error shows safe zeros
+  let totalTournaments = 0
+  let currentlyLive = 0
+  let upcoming = 0
+  let totalRegistrations = 0
+  let pendingResults = 0
+  let openDisputes = 0
+  let uniquePlayers = 0
+  let completionRate = 0
+  let fillRate = 0
 
-  // Unique players
-  const uniquePlayersResult = await prisma.registrationMember.findMany({
-    where: { registration: { guildId } },
-    select: { userId: true },
-    distinct: ['userId'],
-  })
-  const uniquePlayers = uniquePlayersResult.length
+  try {
+    // Run primary KPI queries in parallel — same logic as the API route
+    ;[
+      totalTournaments,
+      currentlyLive,
+      upcoming,
+      totalRegistrations,
+      pendingResults,
+      openDisputes,
+    ] = await Promise.all([
+      prisma.tournament.count({ where: { guildId } }),
+      prisma.tournament.count({ where: { guildId, status: 'LIVE' } }),
+      prisma.tournament.count({
+        where: { guildId, status: { in: ['REGISTRATION_OPEN', 'CHECK_IN'] } },
+      }),
+      prisma.registration.count({ where: { guildId } }),
+      prisma.match.count({ where: { guildId, status: 'AWAITING_RESULT' } }),
+      prisma.dispute.count({ where: { match: { guildId }, status: 'OPEN' } }),
+    ])
+  } catch {
+    // Use 0 defaults
+  }
 
-  // Completion rate
-  const [completed, liveAndCheckIn] = await Promise.all([
-    prisma.tournament.count({ where: { guildId, status: 'COMPLETED' } }),
-    prisma.tournament.count({
-      where: { guildId, status: { in: ['LIVE', 'CHECK_IN', 'COMPLETED'] } },
-    }),
-  ])
-  const completionRate =
-    liveAndCheckIn > 0 ? Math.round((completed / liveAndCheckIn) * 100) : 0
+  try {
+    // Unique players
+    const uniquePlayersResult = await prisma.registrationMember.findMany({
+      where: { registration: { guildId } },
+      select: { userId: true },
+      distinct: ['userId'],
+    })
+    uniquePlayers = uniquePlayersResult.length
+  } catch {
+    // Use 0 default
+  }
 
-  // Fill rate
-  const nonDraftTournaments = await prisma.tournament.findMany({
-    where: { guildId, status: { notIn: ['DRAFT'] }, teamCapacity: { gt: 0 } },
-    select: { acceptedCount: true, teamCapacity: true },
-  })
-  const fillRate =
-    nonDraftTournaments.length > 0
-      ? Math.round(
-          (nonDraftTournaments.reduce(
-            (sum, t) => sum + t.acceptedCount / t.teamCapacity,
-            0,
-          ) /
-            nonDraftTournaments.length) *
-            100,
-        )
-      : 0
+  try {
+    // Completion rate
+    const [completed, liveAndCheckIn] = await Promise.all([
+      prisma.tournament.count({ where: { guildId, status: 'COMPLETED' } }),
+      prisma.tournament.count({
+        where: { guildId, status: { in: ['LIVE', 'CHECK_IN', 'COMPLETED'] } },
+      }),
+    ])
+    completionRate =
+      liveAndCheckIn > 0 ? Math.round((completed / liveAndCheckIn) * 100) : 0
+  } catch {
+    // Use 0 default
+  }
+
+  try {
+    // Fill rate
+    const nonDraftTournaments = await prisma.tournament.findMany({
+      where: { guildId, status: { notIn: ['DRAFT'] }, teamCapacity: { gt: 0 } },
+      select: { acceptedCount: true, teamCapacity: true },
+    })
+    fillRate =
+      nonDraftTournaments.length > 0
+        ? Math.round(
+            (nonDraftTournaments.reduce(
+              (sum, t) => sum + t.acceptedCount / t.teamCapacity,
+              0,
+            ) /
+              nonDraftTournaments.length) *
+              100,
+          )
+        : 0
+  } catch {
+    // Use 0 default
+  }
 
   const activeTeams = totalRegistrations // approximation
 

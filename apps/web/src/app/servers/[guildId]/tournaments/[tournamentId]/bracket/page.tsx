@@ -12,73 +12,81 @@ interface PageProps {
 
 export default async function BracketPage({ params }: PageProps) {
   // Fetch tournament
-  const tournament = await prisma.tournament.findUnique({
-    where: {
-      id: params.tournamentId,
-      guildId: params.guildId,
-    },
-    select: {
-      id: true,
-      name: true,
-      status: true,
-      stages: {
-        select: {
-          id: true,
-          type: true,
-          order: true,
-          status: true,
-        },
-        orderBy: { order: 'asc' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let tournament: any = null
+  try {
+    tournament = await prisma.tournament.findUnique({
+      where: {
+        id: params.tournamentId,
+        guildId: params.guildId,
       },
-    },
-  })
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        stages: {
+          select: {
+            id: true,
+            type: true,
+            order: true,
+            status: true,
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+    })
+  } catch {
+    notFound()
+  }
 
   if (!tournament) {
     notFound()
   }
 
   const totalStages = tournament.stages.length
-  // Bracket unlocks only for the last 3 stages (3rd-from-last, 2nd-from-last, last).
-  // stages are ordered asc by `order`; find the first active/upcoming stage.
-  // If no active stage, use the last stage. Compare its position (index) to totalStages - 3.
   const activeStageIndex = tournament.stages.findIndex(
-    (s) => s.status === 'active' || s.status === 'pending'
+    (s: any) => s.status === 'active' || s.status === 'pending'
   )
   const currentIndex = activeStageIndex >= 0 ? activeStageIndex : totalStages - 1
-  // Locked when current stage is earlier than the 3rd-from-last position
   const bracketLocked = totalStages > 3 && currentIndex < totalStages - 3
 
   // Fetch all matches with participants
-  const matches = await prisma.match.findMany({
-    where: {
-      stage: {
-        tournamentId: params.tournamentId,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matches: any[] = []
+  try {
+    matches = await prisma.match.findMany({
+      where: {
+        stage: {
+          tournamentId: params.tournamentId,
+        },
       },
-    },
-    select: {
-      id: true,
-      number: true,
-      status: true,
-      scheduledStart: true,
-      stageId: true,
-      participants: {
-        select: {
-          teamId: true,
-          team: {
-            select: {
-              name: true,
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        scheduledStart: true,
+        stageId: true,
+        participants: {
+          select: {
+            teamId: true,
+            team: {
+              select: {
+                name: true,
+              },
             },
           },
         },
-      },
-      segments: {
-        select: {
-          scoreJson: true,
+        segments: {
+          select: {
+            scoreJson: true,
+          },
         },
       },
-    },
-    orderBy: [{ number: 'asc' }],
-  })
+      orderBy: [{ number: 'asc' }],
+    })
+  } catch {
+    // matches stays empty — bracket will show locked/empty state
+  }
 
   // Determine tournament format from stage type
   const stageType = tournament.stages[0]?.type ?? 'SINGLE_ELIM'
@@ -95,12 +103,13 @@ export default async function BracketPage({ params }: PageProps) {
   // This is a simplified calculation; real bracket generation would be more complex
   const bracketMatches = matches.map((match) => {
     // Extract scores from segments
-    const scores = match.segments.reduce<Record<string, number>>((acc, seg) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scores = match.segments.reduce((acc: Record<string, number>, seg: any) => {
       if (seg.scoreJson && typeof seg.scoreJson === 'object') {
         return { ...acc, ...(seg.scoreJson as Record<string, number>) }
       }
       return acc
-    }, {})
+    }, {} as Record<string, number>)
 
     return {
       id: match.id,
@@ -108,7 +117,8 @@ export default async function BracketPage({ params }: PageProps) {
       round: Math.ceil(Math.log2(match.number + 1)), // Simplified round calculation
       status: match.status,
       scheduledStart: match.scheduledStart?.toISOString() ?? null,
-      participants: match.participants.map((p) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      participants: match.participants.map((p: any) => ({
         teamId: p.teamId,
         teamName: p.team.name,
         score: scores[p.teamId] ?? null,

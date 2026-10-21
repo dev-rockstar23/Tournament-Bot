@@ -39,60 +39,83 @@ export default async function TournamentWinnersPage({ params }: PageProps) {
   const { guildId, tournamentId } = params
 
   // Scope by BOTH tournamentId AND guildId — prevents cross-guild leakage
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: tournamentId, guildId },
-    select: {
-      id: true,
-      name: true,
-      game: true,
-      status: true,
-      completedAt: true,
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let tournament: any = null
+  try {
+    tournament = await prisma.tournament.findFirst({
+      where: { id: tournamentId, guildId },
+      select: {
+        id: true,
+        name: true,
+        game: true,
+        status: true,
+        completedAt: true,
+      },
+    })
+  } catch {
+    notFound()
+  }
 
   if (!tournament || tournament.status !== 'COMPLETED') {
     notFound()
   }
 
   // Fetch winner records — non-superseded only
-  // NEVER returns PENDING registrations or private data
-  const rawWinners = await prisma.winnerRecord.findMany({
-    where: {
-      tournamentId,
-      tournament: { guildId },
-      isSuperseded: false,
-    },
-    orderBy: { placement: 'asc' },
-    select: {
-      id: true,
-      placement: true,
-      awardType: true,
-      team: { select: { name: true, tag: true } },
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rawWinners: any[] = []
+  try {
+    rawWinners = await prisma.winnerRecord.findMany({
+      where: {
+        tournamentId,
+        tournament: { guildId },
+        isSuperseded: false,
+      },
+      orderBy: { placement: 'asc' },
+      select: {
+        id: true,
+        placement: true,
+        awardType: true,
+        team: { select: { name: true, tag: true } },
+      },
+    })
+  } catch {
+    // Show page with empty winners
+  }
 
   // Fetch awards for this tournament
-  const rawAwards = await prisma.award.findMany({
-    where: { tournamentId },
-    orderBy: { createdAt: 'asc' },
-    select: {
-      id: true,
-      type: true,
-      label: true,
-      criteria: true,
-      teamId: true,
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rawAwards: any[] = []
+  try {
+    rawAwards = await prisma.award.findMany({
+      where: { tournamentId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        type: true,
+        label: true,
+        criteria: true,
+        teamId: true,
+      },
+    })
+  } catch {
+    // Show page with empty awards
+  }
 
   // Enrich awards with team names
   const awardTeamIds = rawAwards.map((a) => a.teamId).filter(Boolean) as string[]
-  const awardTeams = awardTeamIds.length
-    ? await prisma.team.findMany({
-        where: { id: { in: awardTeamIds } },
-        select: { id: true, name: true, tag: true },
-      })
-    : []
-  const awardTeamMap = new Map(awardTeams.map((t) => [t.id, t]))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let awardTeams: any[] = []
+  try {
+    awardTeams = awardTeamIds.length
+      ? await prisma.team.findMany({
+          where: { id: { in: awardTeamIds } },
+          select: { id: true, name: true, tag: true },
+        })
+      : []
+  } catch {
+    // Stays empty
+  }
+  const awardTeamMap = new Map(awardTeams.map((t: any) => [t.id, t]))
 
   // Compute full standings for the table
   let standingsRows: StandingRow[] = []

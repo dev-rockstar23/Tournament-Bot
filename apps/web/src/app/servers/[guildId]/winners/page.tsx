@@ -30,29 +30,41 @@ const gameColors: Record<string, string> = {
 export default async function WinnersPage({ params }: PageProps) {
   const { guildId } = params
 
-  const winners = await prisma.winnerRecord.findMany({
-    where: {
-      tournament: { guildId },
-      isSuperseded: false,
-    },
-    orderBy: [{ createdAt: 'desc' }, { placement: 'asc' }],
-    take: 30,
-    include: {
-      tournament: { select: { id: true, name: true, game: true, endAt: true, tournamentCode: true } },
-      team: { select: { name: true, tag: true } },
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let winners: any[] = []
+  try {
+    winners = await prisma.winnerRecord.findMany({
+      where: {
+        tournament: { guildId },
+        isSuperseded: false,
+      },
+      orderBy: [{ createdAt: 'desc' }, { placement: 'asc' }],
+      take: 30,
+      include: {
+        tournament: { select: { id: true, name: true, game: true, endAt: true, tournamentCode: true } },
+        team: { select: { name: true, tag: true } },
+      },
+    })
+  } catch {
+    // Winners stays empty — show empty state
+  }
 
   const tournamentIds = [...new Set(winners.map((w) => w.tournamentId))]
-  const completedTournaments = await prisma.tournament.findMany({
-    where: {
-      id: { in: tournamentIds },
-      guildId,
-      status: 'COMPLETED',
-    },
-    select: { id: true, name: true, game: true, endAt: true, tournamentCode: true },
-    orderBy: { endAt: 'desc' },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let completedTournaments: any[] = []
+  try {
+    completedTournaments = await prisma.tournament.findMany({
+      where: {
+        id: { in: tournamentIds },
+        guildId,
+        status: 'COMPLETED',
+      },
+      select: { id: true, name: true, game: true, endAt: true, tournamentCode: true },
+      orderBy: { endAt: 'desc' },
+    })
+  } catch {
+    // Stays empty
+  }
   const completedSet = new Set(completedTournaments.map((t) => t.id))
 
   // Compute stats

@@ -18,13 +18,17 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: params.tournamentId, guildId: params.guildId },
-    select: { name: true, tournamentCode: true },
-  })
-  if (!tournament) return { title: 'Tournament Not Found' }
-  return {
-    title: `${tournament.tournamentCode ? '#' + tournament.tournamentCode + ' — ' : ''}${tournament.name} — Tournament`,
+  try {
+    const tournament = await prisma.tournament.findFirst({
+      where: { id: params.tournamentId, guildId: params.guildId },
+      select: { name: true, tournamentCode: true },
+    })
+    if (!tournament) return { title: 'Tournament Not Found' }
+    return {
+      title: `${tournament.tournamentCode ? '#' + tournament.tournamentCode + ' — ' : ''}${tournament.name} — Tournament`,
+    }
+  } catch {
+    return { title: 'Tournament' }
   }
 }
 
@@ -72,45 +76,57 @@ const gameGradients: Record<string, string> = {
 
 
 export default async function TournamentDetailPage({ params }: PageProps) {
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: params.tournamentId, guildId: params.guildId },
-    include: {
-      registrations: {
-        where: { status: 'APPROVED' },
-        include: {
-          team: { select: { name: true, tag: true } },
-          _count: { select: { members: true } },
-        },
-      },
-      stages: {
-        include: {
-          matches: {
-            select: {
-              id: true,
-              number: true,
-              status: true,
-              scheduledStart: true,
-              scheduledEnd: true,
-              map: true,
-              mode: true,
-            },
-            orderBy: { number: 'asc' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let tournament: any = null
+  try {
+    tournament = await prisma.tournament.findFirst({
+      where: { id: params.tournamentId, guildId: params.guildId },
+      include: {
+        registrations: {
+          where: { status: 'APPROVED' },
+          include: {
+            team: { select: { name: true, tag: true } },
+            _count: { select: { members: true } },
           },
         },
-        orderBy: { order: 'asc' },
+        stages: {
+          include: {
+            matches: {
+              select: {
+                id: true,
+                number: true,
+                status: true,
+                scheduledStart: true,
+                scheduledEnd: true,
+                map: true,
+                mode: true,
+              },
+              orderBy: { number: 'asc' },
+            },
+          },
+          orderBy: { order: 'asc' },
+        },
       },
-    },
-  })
+    })
+  } catch {
+    notFound()
+  }
 
   if (!tournament) notFound()
 
-  const scoreEvents = await prisma.scoreEvent.findMany({
-    where: {
-      match: { stage: { tournamentId: params.tournamentId } },
-      status: 'active',
-    },
-    include: { team: { select: { name: true } } },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let scoreEvents: any[] = []
+  try {
+    scoreEvents = await prisma.scoreEvent.findMany({
+      where: {
+        match: { stage: { tournamentId: params.tournamentId } },
+        status: 'active',
+      },
+      include: { team: { select: { name: true } } },
+    })
+  } catch {
+    // standings will be empty — non-fatal
+  }
 
   // Aggregate standings
   const teamMap = new Map<
@@ -139,8 +155,10 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
   const showStandings = tournament.status === 'LIVE' || tournament.status === 'COMPLETED'
 
-  const allMatches = tournament.stages.flatMap((s) =>
-    s.matches.map((m) => ({ ...m, stageName: s.name }))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allMatches = tournament.stages.flatMap((s: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    s.matches.map((m: any) => ({ ...m, stageName: s.name }))
   )
 
   const isLive = tournament.status === 'LIVE'

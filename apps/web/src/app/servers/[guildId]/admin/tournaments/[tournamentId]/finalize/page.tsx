@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { resolveUserRole, AppRole } from '@esports/permissions'
+import { AppRole } from '@esports/permissions'
 import { prisma } from '@esports/database'
 import { computeTournamentStandings } from '@esports/scoring'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -22,10 +22,14 @@ export default async function FinalizeTournamentPage({ params }: PageProps) {
   const { guildId, tournamentId } = params
 
   // Auth guard: TOURNAMENT_MANAGER+
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user: Awaited<ReturnType<ReturnType<typeof createClient>['auth']['getUser']>>['data']['user'] = null
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    redirect(`/?next=/servers/${guildId}/admin/tournaments/${tournamentId}/finalize`)
+  }
 
   if (!user) {
     redirect(`/?next=/servers/${guildId}/admin/tournaments/${tournamentId}/finalize`)
@@ -34,43 +38,78 @@ export default async function FinalizeTournamentPage({ params }: PageProps) {
   const discordId: string =
     user.user_metadata?.provider_id ?? user.user_metadata?.sub ?? ''
 
-  const userRole = await resolveUserRole({
-    prisma,
-    userId: discordId,
-    guildId,
-    botToken: process.env.DISCORD_BOT_TOKEN ?? '',
-  })
+  // Direct DB-based role check instead of resolveUserRole
+  let userRoleLevel = 0
+  try {
+    const serverRecord = await prisma.discordServer.findUnique({
+      where: { guildId },
+      select: { ownerId: true },
+    })
+    if (serverRecord?.ownerId === discordId) {
+      userRoleLevel = AppRole.SERVER_ADMIN
+    } else {
+      const bindings = await prisma.serverRoleBinding.findMany({
+        where: { guildId },
+        select: { appRole: true },
+      })
+      const roles = bindings.map((b) => b.appRole)
+      if (roles.includes('SERVER_ADMIN')) userRoleLevel = AppRole.SERVER_ADMIN
+      else if (roles.includes('TOURNAMENT_MANAGER')) userRoleLevel = AppRole.TOURNAMENT_MANAGER
+      else if (roles.includes('REFEREE')) userRoleLevel = AppRole.REFEREE
+    }
+  } catch {
+    userRoleLevel = 0
+  }
 
-  if (userRole < AppRole.TOURNAMENT_MANAGER) {
+  if (userRoleLevel < AppRole.TOURNAMENT_MANAGER) {
     redirect(`/servers/${guildId}/admin/tournaments`)
   }
 
   // Fetch tournament with stages → matches and disputes — scoped to guildId
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: tournamentId, guildId },
-    select: {
-      id: true,
-      name: true,
-      game: true,
-      status: true,
-      resultsLocked: true,
-      stages: {
-        select: {
-          matches: {
-            select: {
-              id: true,
-              number: true,
-              status: true,
-              disputes: {
-                where: { status: { in: ['OPEN', 'UNDER_REVIEW'] } },
-                select: { id: true, status: true },
+  let tournament: {
+    id: string
+    name: string
+    game: string
+    status: string
+    resultsLocked: boolean
+    stages: {
+      matches: {
+        id: string
+        number: number
+        status: string
+        disputes: { id: string; status: string }[]
+      }[]
+    }[]
+  } | null = null
+  try {
+    tournament = await prisma.tournament.findFirst({
+      where: { id: tournamentId, guildId },
+      select: {
+        id: true,
+        name: true,
+        game: true,
+        status: true,
+        resultsLocked: true,
+        stages: {
+          select: {
+            matches: {
+              select: {
+                id: true,
+                number: true,
+                status: true,
+                disputes: {
+                  where: { status: { in: ['OPEN', 'UNDER_REVIEW'] } },
+                  select: { id: true, status: true },
+                },
               },
             },
           },
         },
       },
-    },
-  })
+    })
+  } catch {
+    redirect(`/servers/${guildId}/admin/tournaments`)
+  }
 
   if (!tournament) {
     redirect(`/servers/${guildId}/admin/tournaments`)
@@ -274,9 +313,8 @@ interface ChecklistItemProps {
   invert?: boolean
 }
 
-function ChecklistItem({ ok, label, detail, invert }: ChecklistItemProps) {
-  // For "Results not yet locked", ok=true means NOT locked — that's the passing state
-  const passing = invert ? ok : ok
+function ChecklistItem({ ok, label, detail, invert: _invert }: ChecklistItemProps) {
+  const passing = ok
   return (
     <div className="flex items-start gap-3">
       <span className="text-lg leading-none mt-0.5" aria-hidden="true">

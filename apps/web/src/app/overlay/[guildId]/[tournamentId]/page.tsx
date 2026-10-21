@@ -26,17 +26,34 @@ export default async function OverlayPage({ params, searchParams }: PageProps) {
   }
 
   // 2. Validate token — must match the settings for this guildId
-  const settings = await prisma.serverSettings.findFirst({
-    where: { guildId, overlayToken: token },
-    select: { guildId: true },
-  })
+  let settings: { guildId: string } | null = null
+  try {
+    settings = await prisma.serverSettings.findFirst({
+      where: { guildId, overlayToken: token },
+      select: { guildId: true },
+    })
+  } catch {
+    return (
+      <html>
+        <body style={{ background: '#0a0a0f', color: '#f8fafc', fontFamily: 'sans-serif', padding: '40px' }}>
+          <h1>503 — Service Unavailable</h1>
+          <p>Database unavailable. Try again shortly.</p>
+        </body>
+      </html>
+    )
+  }
 
   if (!settings) {
     // Check if any settings record exists for this guildId so we can distinguish 401 vs 403
-    const serverExists = await prisma.serverSettings.findUnique({
-      where: { guildId },
-      select: { guildId: true, overlayToken: true },
-    })
+    let serverExists: { guildId: string; overlayToken: string | null } | null = null
+    try {
+      serverExists = await prisma.serverSettings.findUnique({
+        where: { guildId },
+        select: { guildId: true, overlayToken: true },
+      })
+    } catch {
+      // Treat as invalid token
+    }
 
     if (!serverExists || serverExists.overlayToken === null) {
       return (
@@ -61,16 +78,26 @@ export default async function OverlayPage({ params, searchParams }: PageProps) {
   }
 
   // 3. Fetch standings
-  const rawStandings = await computeTournamentStandings(prisma, tournamentId, guildId)
+  let rawStandings: Awaited<ReturnType<typeof computeTournamentStandings>> = []
+  try {
+    rawStandings = await computeTournamentStandings(prisma, tournamentId, guildId)
+  } catch {
+    // Empty standings — overlay will show zeros
+  }
 
   // Resolve team names in a single query
   const teamIds = rawStandings.map((s) => s.teamId)
-  const teams = teamIds.length > 0
-    ? await prisma.team.findMany({
-        where: { id: { in: teamIds } },
-        select: { id: true, name: true },
-      })
-    : []
+  let teams: { id: string; name: string }[] = []
+  try {
+    teams = teamIds.length > 0
+      ? await prisma.team.findMany({
+          where: { id: { in: teamIds } },
+          select: { id: true, name: true },
+        })
+      : []
+  } catch {
+    // Stays empty
+  }
 
   const teamNameMap = new Map(teams.map((t) => [t.id, t.name]))
 
@@ -84,29 +111,34 @@ export default async function OverlayPage({ params, searchParams }: PageProps) {
   }))
 
   // 4. Fetch current match — LIVE first, otherwise most recently COMPLETED
-  const liveMatch = await prisma.match.findFirst({
-    where: {
-      guildId,
-      status: 'LIVE',
-      stage: { tournamentId },
-    },
-    select: { id: true, number: true, status: true },
-    orderBy: { scheduledStart: 'asc' },
-  })
+  let currentMatch: CurrentMatch | null = null
+  try {
+    const liveMatch = await prisma.match.findFirst({
+      where: {
+        guildId,
+        status: 'LIVE',
+        stage: { tournamentId },
+      },
+      select: { id: true, number: true, status: true },
+      orderBy: { scheduledStart: 'asc' },
+    })
 
-  const currentMatch: CurrentMatch | null = liveMatch
-    ? { id: liveMatch.id, number: liveMatch.number, status: liveMatch.status }
-    : await prisma.match.findFirst({
-        where: {
-          guildId,
-          status: 'COMPLETED',
-          stage: { tournamentId },
-        },
-        select: { id: true, number: true, status: true },
-        orderBy: { completedAt: 'desc' },
-      }).then((m) =>
-        m ? { id: m.id, number: m.number, status: m.status } : null
-      )
+    currentMatch = liveMatch
+      ? { id: liveMatch.id, number: liveMatch.number, status: liveMatch.status }
+      : await prisma.match.findFirst({
+          where: {
+            guildId,
+            status: 'COMPLETED',
+            stage: { tournamentId },
+          },
+          select: { id: true, number: true, status: true },
+          orderBy: { completedAt: 'desc' },
+        }).then((m) =>
+          m ? { id: m.id, number: m.number, status: m.status } : null
+        )
+  } catch {
+    currentMatch = null
+  }
 
   return (
     <OverlayClient

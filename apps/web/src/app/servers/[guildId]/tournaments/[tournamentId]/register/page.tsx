@@ -25,28 +25,40 @@ interface PageProps {
 }
 
 export default async function RegisterPage({ params }: PageProps) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  let user: Awaited<ReturnType<ReturnType<typeof createClient>['auth']['getUser']>>['data']['user'] = null
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Supabase env not configured
+  }
 
   if (!user) {
     redirect(`/?next=/servers/${params.guildId}/tournaments/${params.tournamentId}/register`)
   }
 
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: params.tournamentId, guildId: params.guildId },
-    select: {
-      id: true,
-      name: true,
-      game: true,
-      status: true,
-      teamCapacity: true,
-      acceptedCount: true,
-      registrationOpenAt: true,
-      registrationCloseAt: true,
-      registrationFormat: true,
-      tournamentCode: true,
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let tournament: any = null
+  try {
+    tournament = await prisma.tournament.findFirst({
+      where: { id: params.tournamentId, guildId: params.guildId },
+      select: {
+        id: true,
+        name: true,
+        game: true,
+        status: true,
+        teamCapacity: true,
+        acceptedCount: true,
+        registrationOpenAt: true,
+        registrationCloseAt: true,
+        registrationFormat: true,
+        tournamentCode: true,
+      },
+    })
+  } catch {
+    notFound()
+  }
 
   if (!tournament) notFound()
 
