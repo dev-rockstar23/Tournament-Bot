@@ -14,12 +14,12 @@ interface Stage {
   id: string
   name: string
   type: string
-  stageType: string
+  stageType: string | null
   order: number
   status: string
-  teamsAdvancing: number
-  teamsPerGroup: number
-  matchCount: number
+  teamsAdvancing: number | null
+  teamsPerGroup: number | null
+  matchCount: number | null
   bracketLocked: boolean
 }
 
@@ -368,7 +368,7 @@ export function StageBuilderClient({
                           {stage.status.toUpperCase()}
                         </Badge>
                         <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-violet-500/10 border border-violet-500/30 text-violet-300">
-                          {stageTypeLabel(stage.stageType)}
+                          {stageTypeLabel(stage.stageType ?? 'GROUP_STAGE')}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono text-white/60">

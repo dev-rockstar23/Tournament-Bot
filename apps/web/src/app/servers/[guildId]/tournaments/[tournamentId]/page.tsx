@@ -194,12 +194,16 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                     </span>
                   )}
                 </div>
-                <NeonText as="h1" color="violet" glitch className="text-3xl sm:text-4xl font-black tracking-wide">
+                <div className="flex items-center gap-2 flex-wrap">
                   {tournament.tournamentCode && (
-                    <span className="font-mono text-violet-400 text-2xl mr-2">#{tournament.tournamentCode}</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold border border-violet-500/40 bg-violet-500/10 text-violet-300">
+                      #{tournament.tournamentCode}
+                    </span>
                   )}
-                  {tournament.name}
-                </NeonText>
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-wide neon-text-violet font-display">
+                    {tournament.name}
+                  </h1>
+                </div>
               </div>
               {/* Prize pool prominent */}
               <div className="flex-shrink-0 text-right hidden sm:block">
