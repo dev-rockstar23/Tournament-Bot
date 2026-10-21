@@ -3,13 +3,16 @@ export const revalidate = 60
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
-import { prisma } from '@esports/database'
+import { prisma, isDatabaseAvailable } from '@esports/database'
 import { Badge } from '@/components/ui/Badge'
 import { NeonText } from '@/components/ui/NeonText'
 import { StatusBar } from '@/components/ui/StatusBar'
 import { CyberBreadcrumb } from '@/components/ui/CyberBreadcrumb'
 import { TournamentTabs } from '@/components/tournament/TournamentTabs'
 import Navigation from '@/components/ui/Navigation'
+import { LiquidCard } from '@/components/ui/LiquidCard'
+import { LiquidButton } from '@/components/ui/LiquidButton'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,6 +79,33 @@ const gameGradients: Record<string, string> = {
 
 
 export default async function TournamentDetailPage({ params }: PageProps) {
+  // Check if database is available
+  if (!isDatabaseAvailable()) {
+    return (
+      <main className="min-h-screen pb-16" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+        <div className="scanline-overlay" aria-hidden="true" />
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          <LiquidCard neonColor="red" className="p-10 max-w-md mx-auto">
+            <div className="text-6xl mb-4" aria-hidden="true">⚠️</div>
+            <h1 className="text-2xl font-bold text-red-400 mb-4 font-display">DATABASE UNAVAILABLE</h1>
+            <p className="text-[var(--color-text-secondary)] mb-6 font-mono text-sm">
+              The database connection is not configured. Please set <code className="text-[var(--color-neon-cyan)]">DATABASE_URL</code> and <code className="text-[var(--color-neon-cyan)]">DIRECT_URL</code> environment variables in your deployment.
+            </p>
+            <Link href="/servers">
+              <LiquidButton variant="cyber" size="md">
+                Back to Servers
+              </LiquidButton>
+            </Link>
+          </LiquidCard>
+        </div>
+        <StatusBar shardOnline={false}>
+          <span className="text-red-400">DATABASE OFFLINE</span>
+        </StatusBar>
+      </main>
+    )
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let tournament: any = null
   try {

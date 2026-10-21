@@ -32,17 +32,36 @@ function normalizeConnectionUrl(name: 'DATABASE_URL' | 'DIRECT_URL') {
 normalizeConnectionUrl('DATABASE_URL')
 normalizeConnectionUrl('DIRECT_URL')
 
+// Track if database is available
+let dbAvailable = false
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+  (() => {
+    try {
+      const client = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      })
+      dbAvailable = true
+      return client
+    } catch (e) {
+      console.error('[database] Failed to initialize PrismaClient:', e)
+      // Return a proxy that throws helpful errors when database is not configured
+      return new Proxy({} as PrismaClient, {
+        get() {
+          throw new Error('[database] PrismaClient not initialized — DATABASE_URL is missing or invalid. Check your environment variables.')
+        },
+      })
+    }
+  })()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const isDatabaseAvailable = () => dbAvailable
+
+if (process.env.NODE_ENV !== 'production' && dbAvailable) globalForPrisma.prisma = prisma
 
 export default prisma
 export * from './generated/client'

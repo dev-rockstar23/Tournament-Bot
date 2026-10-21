@@ -5,13 +5,19 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
 
   const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ''
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    process.env.SUPABASE_URL ??
+    ''
   const supabaseAnonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? ''
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    ''
 
+  // If not configured, skip session refresh silently
   if (!supabaseUrl || !supabaseAnonKey) return response
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value
@@ -27,9 +33,12 @@ export async function updateSession(request: NextRequest) {
           response.cookies.set({ name, value: '', ...options })
         },
       },
-    },
-  )
+    })
 
-  await supabase.auth.getUser()
+    await supabase.auth.getUser()
+  } catch {
+    // Session refresh failed — return response without updated session
+  }
+
   return response
 }
