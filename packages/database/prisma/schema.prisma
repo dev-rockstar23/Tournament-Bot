@@ -528,7 +528,8 @@ model GroupTeamAssignment {
   id             String    @id @default(cuid())
   groupId        String    @map("group_id")
   teamId         String    @map("team_id")
-  registrationId String    @unique @map("registration_id")
+  registrationId String    @map("registration_id")
+  stageNumber    Int       @default(1) @map("stage_number")
   assignedAt     DateTime  @default(now()) @map("assigned_at")
   removedAt      DateTime? @map("removed_at")
   isActive       Boolean   @default(true) @map("is_active")
@@ -537,7 +538,11 @@ model GroupTeamAssignment {
   team         Team            @relation(fields: [teamId], references: [id])
   registration Registration    @relation(fields: [registrationId], references: [id])
 
-  @@unique([groupId, teamId])
+  // No @@unique on (groupId, teamId) — soft-deleted rows would block re-adds.
+  // Application logic must filter by isActive=true when checking slot counts.
+  // No @unique on registrationId — same registration can advance through multiple stages.
+  @@index([groupId, isActive])
+  @@index([registrationId])
   @@map("group_team_assignments")
 }
 
@@ -568,7 +573,7 @@ model Registration {
   team       Team                 @relation(fields: [teamId], references: [id])
   members    RegistrationMember[]
   order      Order?
-  groupAssignment GroupTeamAssignment?
+  groupAssignments GroupTeamAssignment[]
 
   @@unique([tournamentId, teamId])
   @@index([tournamentId, status])

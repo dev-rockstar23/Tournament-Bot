@@ -63,7 +63,7 @@ describe('generateTournamentCode', () => {
     // At least some codes should differ across calls (with shuffled pools)
     const uniqueCodes = new Set(codes)
     // With a 2600-code shuffled pool the chance all 10 are the same is negligible
-    expect(uniqueCodes.size).toBeGreaterThanOrEqual(1)
+    expect(uniqueCodes.size).toBeGreaterThan(1)
     codes.forEach(code => expect(code).toMatch(/^[A-Z]\d{2}$/))
   })
 

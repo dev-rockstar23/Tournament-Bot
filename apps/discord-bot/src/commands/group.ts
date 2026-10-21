@@ -500,6 +500,11 @@ export class GroupCommand extends Command {
 
       const qualMsg = await textChannel.send({ embeds: [qualEmbed] })
 
+      // Immediately post a follow-up so the state is visible even if the interaction token expires
+      await textChannel.send({
+        content: `⏳ Qualification voting for Group ${groupNumber} is now open for 10 minutes. Only Tournament Managers and Admins can vote.`,
+      }).catch(() => null)
+
       // Add reactions for each team
       const validEmojis = NUMBER_EMOJIS.slice(0, group.assignments.length)
       for (const emoji of validEmojis) {
@@ -519,6 +524,7 @@ export class GroupCommand extends Command {
             const memberRoleIds = [...member.roles.cache.keys()]
             return isManagerOrAdmin(guildId, memberRoleIds)
           },
+          dispose: true,
           time: 600_000,
         })
       } catch {

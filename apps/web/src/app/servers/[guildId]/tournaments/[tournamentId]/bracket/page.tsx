@@ -26,6 +26,7 @@ export default async function BracketPage({ params }: PageProps) {
           id: true,
           type: true,
           order: true,
+          status: true,
         },
         orderBy: { order: 'asc' },
       },
@@ -37,10 +38,15 @@ export default async function BracketPage({ params }: PageProps) {
   }
 
   const totalStages = tournament.stages.length
-  // Determine the current/first stage order
-  const firstStageOrder = tournament.stages[0]?.order ?? 1
-  // Bracket is locked if this is not one of the last 3 stages
-  const bracketLocked = firstStageOrder < totalStages - 2
+  // Bracket unlocks only for the last 3 stages (3rd-from-last, 2nd-from-last, last).
+  // stages are ordered asc by `order`; find the first active/upcoming stage.
+  // If no active stage, use the last stage. Compare its position (index) to totalStages - 3.
+  const activeStageIndex = tournament.stages.findIndex(
+    (s) => s.status === 'active' || s.status === 'pending'
+  )
+  const currentIndex = activeStageIndex >= 0 ? activeStageIndex : totalStages - 1
+  // Locked when current stage is earlier than the 3rd-from-last position
+  const bracketLocked = totalStages > 3 && currentIndex < totalStages - 3
 
   // Fetch all matches with participants
   const matches = await prisma.match.findMany({

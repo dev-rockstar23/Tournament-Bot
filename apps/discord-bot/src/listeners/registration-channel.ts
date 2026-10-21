@@ -667,12 +667,12 @@ export class RegistrationChannelListener extends Listener<typeof Events.MessageC
 
     } catch (err) {
       this.container.logger.error(`[RegistrationChannel] DB error: ${err}`)
-      await this.reject(message, 'An internal error occurred while saving your registration. Please try again.')
+      await this.reject(message, 'An internal error occurred while saving your registration. Please try again.', false)
     }
   }
 
   // ── Reject helper — react ❌ and send reason (auto-deleted after 20s) ──────
-  private async reject(message: Message, reason: string) {
+  private async reject(message: Message, reason: string, isPlayerFault = true) {
     await message.react('❌').catch(() => null)
 
     const rejectEmbed = new EmbedBuilder()
@@ -690,14 +690,17 @@ export class RegistrationChannelListener extends Listener<typeof Events.MessageC
       }, REJECT_MESSAGE_TTL)
     }
 
-    // DM the captain about the rejection
-    const rejectDMEmbed = new EmbedBuilder()
-      .setColor(0xef4444)
-      .setTitle('❌ REGISTRATION REJECTED')
-      .setDescription(reason)
-      .setFooter({ text: 'You may re-register after fixing the issue. • SHADØW TOURNAMENTS' })
-      .setTimestamp()
+    // DM the captain about the rejection — only when it's a player-caused fault,
+    // not for internal bot errors
+    if (isPlayerFault) {
+      const rejectDMEmbed = new EmbedBuilder()
+        .setColor(0xef4444)
+        .setTitle('❌ REGISTRATION REJECTED')
+        .setDescription(reason)
+        .setFooter({ text: 'You may re-register after fixing the issue. • SHADØW TOURNAMENTS' })
+        .setTimestamp()
 
-    await message.author.send({ embeds: [rejectDMEmbed] }).catch(() => null)
+      await message.author.send({ embeds: [rejectDMEmbed] }).catch(() => null)
+    }
   }
 }
