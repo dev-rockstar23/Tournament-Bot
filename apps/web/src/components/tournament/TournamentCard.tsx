@@ -18,7 +18,7 @@ interface TournamentCardProps {
   registrationClose: string | null
   startAt: string | null
   bannerUrl: string | null
-  tournamentCode?: number | null
+  tournamentCode?: string | null
   href?: string
 }
 

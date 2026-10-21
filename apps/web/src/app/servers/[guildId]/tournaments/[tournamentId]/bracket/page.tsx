@@ -25,7 +25,9 @@ export default async function BracketPage({ params }: PageProps) {
         select: {
           id: true,
           type: true,
+          order: true,
         },
+        orderBy: { order: 'asc' },
       },
     },
   })
@@ -33,6 +35,12 @@ export default async function BracketPage({ params }: PageProps) {
   if (!tournament) {
     notFound()
   }
+
+  const totalStages = tournament.stages.length
+  // Determine the current/first stage order
+  const firstStageOrder = tournament.stages[0]?.order ?? 1
+  // Bracket is locked if this is not one of the last 3 stages
+  const bracketLocked = firstStageOrder < totalStages - 2
 
   // Fetch all matches with participants
   const matches = await prisma.match.findMany({
@@ -110,6 +118,7 @@ export default async function BracketPage({ params }: PageProps) {
       format={format}
       matches={bracketMatches}
       guildId={params.guildId}
+      bracketLocked={bracketLocked}
     />
   )
 }

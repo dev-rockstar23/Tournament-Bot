@@ -2279,14 +2279,14 @@ export class TournamentCommand extends Command {
     try {
       // Try to resolve tournament by ID or code
       let tournament
-      const validation = validateTournamentCode(idOrCode)
+      const isValidCode = validateTournamentCode(idOrCode)
       
-      if (validation.valid && validation.code) {
-        // Search by tournament code
+      if (isValidCode) {
+        // Search by tournament code (string format like A42)
         tournament = await prisma.tournament.findFirst({
           where: { 
             guildId, 
-            tournamentCode: validation.code,
+            tournamentCode: idOrCode,
           },
           select: { 
             id: true, 
@@ -2296,7 +2296,9 @@ export class TournamentCommand extends Command {
             acceptedCount: true,
           },
         })
-      } else {
+      }
+      
+      if (!tournament) {
         // Search by CUID
         tournament = await prisma.tournament.findFirst({
           where: { id: idOrCode, guildId },

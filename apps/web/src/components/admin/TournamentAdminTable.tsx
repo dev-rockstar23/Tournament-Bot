@@ -46,7 +46,7 @@ export interface AdminTournament {
   description: string | null
   createdAt: string
   updatedAt: string
-  tournamentCode?: number | null
+  tournamentCode?: string | null
   stages?: Array<{ name: string; status: string }>
 }
 

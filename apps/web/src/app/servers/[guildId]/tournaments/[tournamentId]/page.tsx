@@ -20,10 +20,12 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const tournament = await prisma.tournament.findFirst({
     where: { id: params.tournamentId, guildId: params.guildId },
-    select: { name: true },
+    select: { name: true, tournamentCode: true },
   })
   if (!tournament) return { title: 'Tournament Not Found' }
-  return { title: `${tournament.name} — Tournament` }
+  return {
+    title: `${tournament.tournamentCode ? '#' + tournament.tournamentCode + ' — ' : ''}${tournament.name} — Tournament`,
+  }
 }
 
 type BadgeVariant = 'live' | 'upcoming' | 'completed' | 'cancelled' | 'draft' | 'default'
@@ -193,6 +195,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                   )}
                 </div>
                 <NeonText as="h1" color="violet" glitch className="text-3xl sm:text-4xl font-black tracking-wide">
+                  {tournament.tournamentCode && (
+                    <span className="font-mono text-violet-400 text-2xl mr-2">#{tournament.tournamentCode}</span>
+                  )}
                   {tournament.name}
                 </NeonText>
               </div>

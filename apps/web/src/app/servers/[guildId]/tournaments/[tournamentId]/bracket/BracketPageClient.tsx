@@ -29,6 +29,7 @@ interface BracketPageClientProps {
   format: 'SINGLE_ELIM' | 'DOUBLE_ELIM' | 'ROUND_ROBIN'
   matches: BracketMatch[]
   guildId: string
+  bracketLocked?: boolean
 }
 
 const formatLabel: Record<string, string> = {
@@ -46,6 +47,7 @@ export function BracketPageClient({
   format,
   matches,
   guildId,
+  bracketLocked = false,
 }: BracketPageClientProps) {
   const bracketRef = useRef<HTMLDivElement>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -99,6 +101,15 @@ export function BracketPageClient({
   return (
     <div className="min-h-screen pb-16" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
       <div className="scanline-overlay" aria-hidden="true" />
+
+      {/* Bracket lock notice */}
+      {bracketLocked && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-3 text-center">
+          <p className="text-xs font-mono text-yellow-400 tracking-widest">
+            🔒 BRACKETS UNLOCK AT THE SEMI-FINALS STAGE — Keep grinding!
+          </p>
+        </div>
+      )}
 
       {/* HUD Header */}
       <div className="sticky top-0 z-20 hud-grid-bg border-b border-[var(--color-neon-cyan)] backdrop-blur-sm">

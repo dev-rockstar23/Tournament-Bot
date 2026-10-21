@@ -44,6 +44,7 @@ export default async function RegisterPage({ params }: PageProps) {
       registrationOpenAt: true,
       registrationCloseAt: true,
       registrationFormat: true,
+      tournamentCode: true,
     },
   })
 
@@ -113,7 +114,7 @@ export default async function RegisterPage({ params }: PageProps) {
             SQUAD REGISTRATION
           </NeonText>
           <p className="font-mono text-sm text-[var(--color-text-secondary)] tracking-widest">
-            {tournament.name} · {gameLabels[tournament.game] ?? tournament.game}
+            {tournament.tournamentCode ? `#${tournament.tournamentCode} — ` : ''}{tournament.name} · {gameLabels[tournament.game] ?? tournament.game}
           </p>
         </div>
 

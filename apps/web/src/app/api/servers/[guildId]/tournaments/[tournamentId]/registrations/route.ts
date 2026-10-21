@@ -130,6 +130,23 @@ export async function POST(
             where: { id: tournamentId },
             data: { acceptedCount: { increment: 1 } },
           })
+
+          // Auto-close when all slots filled
+          const newCount = accepted_count + 1
+          if (newCount >= team_capacity && !waitlist_enabled) {
+            await tx.tournament.update({
+              where: { id: tournamentId },
+              data: { status: 'REGISTRATION_CLOSED' },
+            })
+            await tx.outboxEvent.create({
+              data: {
+                guildId,
+                type: 'TOURNAMENT_REGISTRATION_CLOSED',
+                payloadJson: { tournamentId },
+                status: 'PENDING',
+              },
+            })
+          }
         } else {
           regStatus = 'PENDING'
           outboxType = 'REGISTRATION_SUBMITTED'

@@ -98,7 +98,7 @@ export function legendaryTournamentEmbed(tournament: Record<string, unknown>): E
   const regClose   = (tournament.registrationCloseAt ?? null) as Date | string | null
   const startAt    = (tournament.startAt ?? null) as Date | string | null
   const id         = String(tournament.id ?? '')
-  const code       = tournament.tournamentCode ? Number(tournament.tournamentCode) : null
+  const code       = tournament.tournamentCode ? String(tournament.tournamentCode) : null
 
   const statusBadge: Record<string, string> = {
     DRAFT:                `${e('draft')} Draft`,
