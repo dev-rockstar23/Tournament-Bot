@@ -108,6 +108,8 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let tournament: any = null
+  
+  // Query tournament with defensive error handling
   try {
     tournament = await prisma.tournament.findFirst({
       where: { id: params.tournamentId, guildId: params.guildId },
@@ -138,8 +140,31 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         },
       },
     })
-  } catch {
-    notFound()
+  } catch (tournamentError) {
+    console.error('[TournamentDetailPage] Tournament query failed:', tournamentError)
+    return (
+      <main className="min-h-screen pb-16" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+        <div className="scanline-overlay" aria-hidden="true" />
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          <LiquidCard neonColor="red" className="p-10 max-w-md mx-auto">
+            <div className="text-6xl mb-4" aria-hidden="true">🔧</div>
+            <h1 className="text-2xl font-bold text-amber-400 mb-4 font-display">QUERY ERROR</h1>
+            <p className="text-[var(--color-text-secondary)] mb-6 font-mono text-sm">
+              Failed to load tournament data. This may be a data integrity issue.
+            </p>
+            <Link href={`/servers/${params.guildId}`}>
+              <LiquidButton variant="cyber" size="md">
+                Back to Server
+              </LiquidButton>
+            </Link>
+          </LiquidCard>
+        </div>
+        <StatusBar shardOnline={false}>
+          <span className="text-amber-400">QUERY FAILED</span>
+        </StatusBar>
+      </main>
+    )
   }
 
   if (!tournament) notFound()
@@ -154,26 +179,32 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       },
       include: { team: { select: { name: true } } },
     })
-  } catch {
-    // standings will be empty — non-fatal
+  } catch (scoreError) {
+    console.error('[TournamentDetailPage] Score events query failed:', scoreError)
+    scoreEvents = []
   }
 
-  // Aggregate standings
+  // Aggregate standings with null safety
   const teamMap = new Map<
     string,
     { teamId: string; name: string; totalPoints: number; totalKills: number }
   >()
+  
   for (const ev of scoreEvents) {
+    // Skip events with missing team data
+    if (!ev.teamId || !ev.team?.name) continue
+    
     const existing = teamMap.get(ev.teamId) ?? {
       teamId: ev.teamId,
       name: ev.team.name,
       totalPoints: 0,
       totalKills: 0,
     }
-    existing.totalPoints += Number(ev.points)
-    existing.totalKills += ev.kills
+    existing.totalPoints += Number(ev.points) || 0
+    existing.totalKills += ev.kills || 0
     teamMap.set(ev.teamId, existing)
   }
+  
   const standings = Array.from(teamMap.values())
     .sort((a, b) => b.totalPoints - a.totalPoints || b.totalKills - a.totalKills)
     .map((entry, index) => ({ rank: index + 1, ...entry }))
