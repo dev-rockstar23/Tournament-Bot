@@ -151,7 +151,8 @@ export default async function ServerPage({
       where: { guildId },
       include: { settings: true },
     })
-  } catch {
+  } catch (serverError) {
+    console.error('[ServerPage] Server query failed:', serverError)
     notFound()
   }
 
@@ -192,8 +193,10 @@ export default async function ServerPage({
         },
       }),
     ]) as [Tournament[], WinnerRecord[]]
-  } catch {
-    // Show empty state on DB error
+  } catch (tournamentError) {
+    console.error('[ServerPage] Tournaments query failed:', tournamentError)
+    allTournaments = []
+    recentWinners = []
   }
 
   // Derive filtered lists
