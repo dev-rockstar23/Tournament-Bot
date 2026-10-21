@@ -88,7 +88,7 @@ export default function LandingPage() {
         {/* ── Hero section ── */}
         <section className="relative z-10 flex-1 flex items-center justify-center px-4 py-24">
           <motion.div
-            className="w-full max-w-lg mx-auto text-center"
+            className="w-full max-w-2xl mx-auto text-center"
             variants={staggerChildren}
             initial="hidden"
             animate="visible"
@@ -179,15 +179,15 @@ export default function LandingPage() {
             {/* Main title */}
             <motion.div variants={fadeUp} className="mb-4">
               <h1
-                className="font-display text-5xl sm:text-6xl md:text-7xl font-black leading-none tracking-[0.05em] glitch-text"
-                data-text="SHADØW TOURNAMENTS"
-                style={{
+                className="font-display font-black leading-[1.1] tracking-tight"
+                style={{fontSize: 'clamp(2.5rem, 8vw, 5rem)',
                   background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 30%, #06b6d4 70%, #22d3ee 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                   filter: 'drop-shadow(0 0 20px rgba(124,58,237,0.5))',
-                }}
+                  display: 'block',
+                  width: '100%',}}
               >
                 SHADØW TOURNAMENTS
               </h1>

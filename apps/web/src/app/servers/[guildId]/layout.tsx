@@ -10,16 +10,22 @@ export default async function ServerLayout({
   children: React.ReactNode
   params: { guildId: string }
 }) {
-  const settings = await prisma.serverSettings.findUnique({
-    where: { guildId: params.guildId },
-    select: { accentColor: true, logoUrl: true },
-  })
+  let accentColor = '#7c3aed'
+  let logoUrl: string | null = null
 
-  const accentColor = settings?.accentColor ?? '#7c3aed'
-  const logoUrl = settings?.logoUrl ?? null
+  try {
+    const settings = await prisma.serverSettings.findUnique({
+      where: { guildId: params.guildId },
+      select: { accentColor: true, logoUrl: true },
+    })
+    accentColor = settings?.accentColor ?? '#7c3aed'
+    logoUrl = settings?.logoUrl ?? null
+  } catch {
+    // Database unavailable — render with defaults rather than crashing
+  }
 
   return (
-    <ServerBrandingProvider value={{ accentColor, logoUrl }}>
+    <ServerBrandingProvider value={{accentColor, logoUrl}}>
       <div
         style={{ '--color-accent': accentColor } as React.CSSProperties}
         data-logo-url={logoUrl ?? undefined}
