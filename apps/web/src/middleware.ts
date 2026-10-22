@@ -15,29 +15,41 @@ export async function middleware(request: NextRequest) {
   }
 
   // Refresh session cookies
-  const response = await updateSession(request)
+  let response: NextResponse
+  try {
+    response = await updateSession(request)
+  } catch (updateErr) {
+    console.error('[middleware] updateSession failed:', updateErr)
+    response = NextResponse.next()
+  }
 
   // Protect /servers/* routes — redirect to home if not authenticated
   const { pathname } = request.nextUrl
   if (pathname.startsWith('/servers')) {
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+    try {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set() {},
+          remove() {},
         },
-        set() {},
-        remove() {},
-      },
-    })
+      })
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-    if (!user) {
-      const redirectUrl = new URL('/', request.url)
-      redirectUrl.searchParams.set('next', pathname)
-      return NextResponse.redirect(redirectUrl)
+      if (!user) {
+        const redirectUrl = new URL('/', request.url)
+        redirectUrl.searchParams.set('next', pathname)
+        return NextResponse.redirect(redirectUrl)
+      }
+    } catch (authErr) {
+      console.error('[middleware] auth check failed:', authErr)
+      // On auth error, allow through to let the page handle it gracefully
+      // (The page will show appropriate error UI)
     }
   }
 
