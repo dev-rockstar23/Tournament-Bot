@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
 import { prisma } from '@esports/database'
 import type { Game, TournamentStatus } from '@esports/database'
 import Navigation from '@/components/ui/Navigation'
@@ -12,6 +11,7 @@ import { StatusBar } from '@/components/ui/StatusBar'
 import { StatusPulse } from '@/components/ui/StatusPulse'
 import { LiquidButton } from '@/components/ui/LiquidButton'
 import { CyberBreadcrumb } from '@/components/ui/CyberBreadcrumb'
+import { SectionAccent } from '@/components/server/SectionAccent'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -375,13 +375,7 @@ export default async function ServerPage({
           {featuredLive && (
             <section className="mb-8">
               <div className="flex items-center gap-3 mb-4">
-                <motion.div
-                  className="w-1 h-6 rounded-full"
-                  style={{ background: '#ef4444' }}
-                  animate={{ scaleY: [1, 1.5, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  aria-hidden="true"
-                />
+                <SectionAccent color="red" pulse />
                 <h2 className="font-display text-sm font-bold text-white tracking-widest uppercase">
                   FEATURED LIVE TOURNAMENT
                 </h2>
@@ -432,14 +426,7 @@ export default async function ServerPage({
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    className="w-1 h-6 rounded-full"
-                    style={{ background: 'var(--color-neon-violet)' }}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.4 }}
-                    aria-hidden="true"
-                  />
+                  <SectionAccent color="violet" />
                   <h2 className="font-display text-sm font-bold text-white tracking-widest uppercase">
                     TOURNAMENT OPERATIONS DECK
                   </h2>
@@ -464,14 +451,7 @@ export default async function ServerPage({
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    className="w-1 h-6 rounded-full"
-                    style={{ background: '#f59e0b' }}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.4, delay: 0.2 }}
-                    aria-hidden="true"
-                  />
+                  <SectionAccent color="amber" />
                   <h2 className="font-display text-sm font-bold text-white tracking-widest uppercase">
                     HALL OF CHAMPIONS
                   </h2>

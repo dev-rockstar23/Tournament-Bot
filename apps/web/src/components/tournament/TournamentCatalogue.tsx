@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LayoutGrid, List } from 'lucide-react'
 import { TournamentCard } from './TournamentCard'
+import { NeonText } from '@/components/ui/NeonText'
+import { StatusPulse } from '@/components/ui/StatusPulse'
 
 type Game = 'BGMI' | 'FREE_FIRE' | 'COD_MOBILE'
 
@@ -81,17 +83,32 @@ export function TournamentCatalogue({ tournaments, guildId }: TournamentCatalogu
   const handleTabChange = useCallback((tab: FilterTab) => setActiveTab(tab), [])
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+    <main className="min-h-screen relative" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
+      {/* Animated background — matches other pages */}
+      <div className="liquid-bg-container liquid-bg-tournament fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
+        <div className="liquid-aurora" />
+        <div className="liquid-blob violet" style={{ width: 400, height: 400, top: '-100px', left: '-100px' }} />
+        <div className="liquid-blob cyan" style={{ width: 300, height: 300, bottom: '-80px', right: '-100px' }} />
+        <div className="liquid-grid" />
+        <div className="liquid-scanline" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1
-            className="font-display text-4xl font-black text-white mb-2"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Tournaments
-          </h1>
-          <p className="text-[var(--color-text-secondary)]">Find and register for upcoming competitions</p>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: 'var(--color-neon-violet, #7c3aed)' }} aria-hidden="true" />
+            <NeonText as="h1" color="violet" className="text-3xl sm:text-4xl font-black tracking-wider liquid-text">
+              TOURNAMENT CATALOGUE
+            </NeonText>
+            <span className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono text-green-400 border border-green-500/40 bg-green-500/5 ml-1">
+              <StatusPulse variant="synced" />
+              LIVE
+            </span>
+          </div>
+          <p className="text-[var(--color-text-secondary)] font-mono text-sm tracking-wide pl-4 border-l border-white/10">
+            {tournaments.length} tournament{tournaments.length !== 1 ? 's' : ''} registered — find and join upcoming competitions
+          </p>
         </div>
 
         {/* Controls row */}
@@ -105,10 +122,10 @@ export function TournamentCatalogue({ tournaments, guildId }: TournamentCatalogu
                 aria-selected={activeTab === key}
                 onClick={() => handleTabChange(key)}
                 className={[
-                  'px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all',
+                  'px-3 py-1.5 rounded-full text-xs font-mono font-bold whitespace-nowrap tracking-widest uppercase transition-all',
                   activeTab === key
-                    ? 'bg-[#7c3aed] text-white'
-                    : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5',
+                    ? 'bg-gradient-to-r from-[var(--color-neon-violet)] to-[var(--color-neon-cyan)] text-black shadow-[0_0_20px_rgba(124,58,237,0.4)]'
+                    : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5 border border-white/10',
                 ].join(' ')}
               >
                 {label}
@@ -125,7 +142,7 @@ export function TournamentCatalogue({ tournaments, guildId }: TournamentCatalogu
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               aria-label="Search tournaments"
-              className="w-48 sm:w-56 px-3 py-1.5 rounded-lg text-sm text-white placeholder-[var(--color-text-muted)] bg-white/5 border border-[rgba(255,255,255,0.08)] focus:outline-none focus:border-[rgba(124,58,237,0.5)] focus:bg-white/8"
+              className="liquid-input w-48 sm:w-56 text-sm"
             />
 
             {/* Game filter */}
@@ -133,7 +150,7 @@ export function TournamentCatalogue({ tournaments, guildId }: TournamentCatalogu
               value={selectedGame}
               onChange={(e) => setSelectedGame(e.target.value)}
               aria-label="Filter by game"
-              className="px-3 py-1.5 rounded-lg text-sm text-white bg-white/5 border border-[rgba(255,255,255,0.08)] focus:outline-none focus:border-[rgba(124,58,237,0.5)] cursor-pointer"
+              className="liquid-input text-sm cursor-pointer"
             >
               {gameOptions.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-[#1a1a2e]">

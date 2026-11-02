@@ -171,13 +171,35 @@ export function ServerCard({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-auto pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono text-[var(--color-text-muted)]"
+            className="mt-auto"
           >
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-neon-violet)]" />
-              Click to manage
-            </span>
-            <span>ID: {guildId.slice(-8)}</span>
+            {/* Tournament count row */}
+            {(liveCount > 0 || upcomingCount > 0) ? (
+              <div className="flex items-center gap-2 mb-2 text-xs font-mono font-bold tracking-wider">
+                {liveCount > 0 && (
+                  <span className="flex items-center gap-1 text-red-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
+                    {liveCount} LIVE
+                  </span>
+                )}
+                {liveCount > 0 && upcomingCount > 0 && (
+                  <span className="text-white/20">•</span>
+                )}
+                {upcomingCount > 0 && (
+                  <span className="text-[var(--color-neon-cyan)]">
+                    {upcomingCount} UPCOMING
+                  </span>
+                )}
+              </div>
+            ) : null}
+            {/* Bottom bar */}
+            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-neon-violet)]" />
+                {liveCount === 0 && upcomingCount === 0 ? 'No active tournaments' : 'Click to manage'}
+              </span>
+              <span>ID: {guildId.slice(-8)}</span>
+            </div>
           </motion.div>
         )}
       </LiquidCard>

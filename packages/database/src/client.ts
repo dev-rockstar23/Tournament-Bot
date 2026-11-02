@@ -63,5 +63,34 @@ export const isDatabaseAvailable = () => dbAvailable
 
 if (process.env.NODE_ENV !== 'production' && dbAvailable) globalForPrisma.prisma = prisma
 
+// ---------------------------------------------------------------------------
+// Live database probe
+// ---------------------------------------------------------------------------
+
+let _liveCheckResult: boolean | null = null
+let _liveCheckTs = 0
+const LIVE_CHECK_TTL_MS = 5000
+
+/**
+ * Performs a lightweight `SELECT 1` probe against the database.
+ * Result is cached for 5 seconds to avoid hammering the connection pool.
+ * Unlike `isDatabaseAvailable()` (which only reflects init-time state),
+ * this returns a real signal even if the underlying pool broke after startup.
+ */
+export async function checkDatabaseLive(): Promise<boolean> {
+  const now = Date.now()
+  if (_liveCheckResult !== null && now - _liveCheckTs < LIVE_CHECK_TTL_MS) {
+    return _liveCheckResult
+  }
+  try {
+    await (prisma as PrismaClient).$queryRaw`SELECT 1`
+    _liveCheckResult = true
+  } catch {
+    _liveCheckResult = false
+  }
+  _liveCheckTs = Date.now()
+  return _liveCheckResult
+}
+
 export default prisma
 export * from './generated/client'

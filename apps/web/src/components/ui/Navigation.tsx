@@ -317,9 +317,10 @@ export default function Navigation() {
                       className={cn(
                         'text-xs font-mono tracking-widest uppercase px-3 py-2.5 rounded-sm transition-colors border-l-2 liquid-button',
                         isActive
-                          ? 'text-[#7c3aed] border-[#7c3aed] bg-[rgba(124,58,237,0.08)]'
+                          ? 'text-[#a78bfa] border-[#7c3aed] bg-gradient-to-r from-[rgba(124,58,237,0.15)] to-transparent'
                           : 'text-[#64748b] hover:text-white border-transparent hover:bg-white/5'
                       )}
+                      style={isActive ? { textShadow: '0 0 8px rgba(124,58,237,0.6)' } : undefined}
                       onClick={() => setMobileOpen(false)}
                     >
                       {link.label}

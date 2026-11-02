@@ -7,6 +7,7 @@ import { Lock, ChevronDown, Server, Cpu, Zap as ZapIcon } from 'lucide-react'
 import { LiquidCard } from '@/components/ui/LiquidCard'
 import { LiquidButton } from '@/components/ui/LiquidButton'
 import { StatusPulse } from '@/components/ui/StatusPulse'
+import { NeonText } from '@/components/ui/NeonText'
 import Navigation from '@/components/ui/Navigation'
 import { LiquidBackground } from '@/components/ui/LiquidBackground'
 import { fadeUp, fadeIn, staggerChildren, counterPop, cardStack } from '@/lib/motion'
@@ -286,7 +287,7 @@ export default function LandingPage() {
               {stats.map((s, i) => (
                 <motion.div key={s.label} variants={counterPop}>
                   <LiquidCard hud neonColor={i === 0 ? 'violet' : i === 1 ? 'cyan' : 'green'} className="p-3 text-center">
-                    <p className="text-base font-black neon-text-cyan font-mono">
+                    <p className={`text-base font-black font-mono ${i === 0 ? 'neon-text-violet' : i === 1 ? 'neon-text-cyan' : 'text-green-400 drop-shadow-[0_0_6px_rgba(34,197,94,0.9)]'}`}>
                       {s.value}
                     </p>
                     <p className="text-[8px] font-mono tracking-[0.15em] uppercase text-[#475569] mt-0.5">
@@ -302,6 +303,28 @@ export default function LandingPage() {
         {/* ── Feature cards section ── */}
         <section className="relative z-10 px-4 pb-24">
           <div className="max-w-4xl mx-auto">
+            {/* Section header */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-40px' }}
+              className="text-center mb-10"
+            >
+              {/* Visual divider between hero and features */}
+              <div className="flex items-center gap-4 mb-8">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[rgba(124,58,237,0.3)] to-transparent" />
+                <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-[#334155]">CORE MODULES</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[rgba(6,182,212,0.3)] to-transparent" />
+              </div>
+              <NeonText as="h2" color="violet" className="text-2xl sm:text-3xl font-black tracking-wider liquid-text mb-2">
+                PLATFORM CAPABILITIES
+              </NeonText>
+              <p className="text-xs font-mono text-[#64748b] tracking-widest">
+                Zero-trust architecture — every module is independently verifiable
+              </p>
+            </motion.div>
+
             <motion.div
               className="grid grid-cols-1 md:grid-cols-3 gap-4"
               variants={staggerChildren}
@@ -311,22 +334,37 @@ export default function LandingPage() {
             >
               {featureCards.map((card, index) => {
                 const Icon = card.icon
+                const rankNum = String(index + 1).padStart(2, '0')
+                const topBarColor = card.color === 'violet' ? '#7c3aed' : card.color === 'cyan' ? '#06b6d4' : '#22c55e'
                 return (
-                  <motion.div key={card.title} variants={cardStack}>
+                  <motion.div key={card.title} variants={cardStack} whileHover={{ y: -4 }}>
                     <LiquidCard
                       liquid
                       magnetic
                       neonColor={card.color}
                       scanline
-                      className="p-6 h-full relative"
+                      className="p-6 h-full relative overflow-hidden"
                     >
+                      {/* Colored top-bar accent */}
+                      <div
+                        className="absolute top-0 left-0 right-0 h-0.5 rounded-t-full"
+                        style={{ background: `linear-gradient(90deg, ${topBarColor}, transparent)` }}
+                        aria-hidden="true"
+                      />
+                      {/* Rank badge */}
+                      <span
+                        className="absolute top-3 left-3 text-[10px] font-mono text-white/20 tracking-widest"
+                        aria-hidden="true"
+                      >
+                        {rankNum}
+                      </span>
                       <span
                         className="absolute top-3 right-3 text-[9px] font-mono text-white/20"
                         aria-hidden="true"
                       >
                         {card.code}
                       </span>
-                      <div className="relative z-10">
+                      <div className="relative z-10 mt-4">
                         <Icon
                           size={24}
                           className="mb-4 drop-shadow-[0_0_12px_currentColor]"
