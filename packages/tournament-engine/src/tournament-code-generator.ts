@@ -1,14 +1,13 @@
 import type { PrismaClient } from '@esports/database/src/generated/client'
 
 /**
- * Generates a unique tournament code in the format Letter+2Digits (A00–Z99).
- * Total pool: 26 × 100 = 2,600 codes per guild.
- * Uses Fisher-Yates shuffle to randomise selection.
+ * Generates the next sequential tournament ID for a guild in the format T0001–T9999.
+ * IDs are per-guild: Guild A's T0001 and Guild B's T0001 are independent.
  *
  * @param guildId - Discord server ID
  * @param prisma  - Prisma client (can be a transaction client)
- * @returns A unique code string, e.g. "A42"
- * @throws Error if all 2,600 codes are exhausted for this guild
+ * @returns A unique code string, e.g. "T0001"
+ * @throws Error if all 9,999 IDs are exhausted for this guild
  */
 export async function generateTournamentCode(
   guildId: string,
@@ -26,44 +25,30 @@ export async function generateTournamentCode(
       .filter((c): c is string => c !== null),
   )
 
-  if (usedCodes.size >= 2600) {
+  if (usedCodes.size >= 9999) {
     throw new Error(
-      `All tournament codes exhausted for this server. Consider archiving old tournaments.`,
+      `All tournament IDs exhausted for this server (T0001–T9999). Archive old tournaments to free up IDs.`,
     )
   }
 
-  // Build the full pool: A00, A01, … A99, B00, … Z99
-  const pool: string[] = []
-  for (let letterIdx = 0; letterIdx < 26; letterIdx++) {
-    const letter = String.fromCharCode(65 + letterIdx) // 'A' = 65
-    for (let num = 0; num <= 99; num++) {
-      pool.push(`${letter}${String(num).padStart(2, '0')}`)
-    }
-  }
-
-  // Fisher-Yates shuffle
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[pool[i], pool[j]] = [pool[j]!, pool[i]!]
-  }
-
-  // Return first unused code from shuffled pool
-  for (const code of pool) {
+  // Find the next unused sequential number, starting from 1
+  for (let n = 1; n <= 9999; n++) {
+    const code = `T${String(n).padStart(4, '0')}`
     if (!usedCodes.has(code)) {
       return code
     }
   }
 
   // Should never reach here due to the exhaustion check above
-  throw new Error('Failed to generate tournament code')
+  throw new Error('Failed to generate tournament ID')
 }
 
 /**
- * Validates that a string is a valid tournament code (Letter + 2 digits).
+ * Validates that a string is a valid tournament short ID (T + 4 digits).
  *
  * @param code - Value to test
- * @returns true if the code matches /^[A-Z]\d{2}$/
+ * @returns true if the code matches /^T\d{4}$/
  */
 export function validateTournamentCode(code: string): boolean {
-  return /^[A-Z]\d{2}$/.test(code)
+  return /^T\d{4}$/.test(code)
 }

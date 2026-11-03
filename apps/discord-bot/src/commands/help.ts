@@ -56,7 +56,6 @@ const CATEGORIES: CommandCategory[] = [
       { name: '/tournament reopen',      description: 'Reopen registration.' },
       { name: '/tournament finalize',    description: 'Lock results and compute winners.' },
       { name: '/tournament archive',     description: 'Archive a completed tournament.' },
-      { name: '/register',               description: 'Register a team for a tournament.' },
     ],
   },
   {

@@ -369,7 +369,7 @@ model Tournament {
   registrationChannelId String?           @map("registration_channel_id")
   approvedRegChannelId String?           @map("approved_reg_channel_id")
   paymentConfigId      String?           @map("payment_config_id")
-  tournamentCode       String?            @unique @map("tournament_code")
+  tournamentCode       String?            @map("tournament_code")
   createdAt            DateTime           @default(now()) @map("created_at")
   updatedAt            DateTime           @updatedAt @map("updated_at")
 
@@ -387,6 +387,7 @@ model Tournament {
   groups          TournamentGroup[]
 
   @@index([guildId, status])
+  @@unique([guildId, tournamentCode], name: "tournament_guild_code_unique")
   @@map("tournaments")
 }
 

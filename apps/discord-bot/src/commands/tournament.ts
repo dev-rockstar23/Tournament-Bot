@@ -926,6 +926,7 @@ export class TournamentCommand extends Command {
             description:         true,
             registrationFormat:  true,
             tournamentCode:      true,
+            registrationChannelId: true,
           },
         })
       })
@@ -948,7 +949,7 @@ export class TournamentCommand extends Command {
                   `📅 **Starts:** <t:${Math.floor(parsedStartDate.getTime() / 1000)}:F>`,
                   `⏰ **Reg. Closes:** <t:${Math.floor(parsedRegClose.getTime() / 1000)}:F>`,
                   '',
-                  `Use \`/register tournament:${tournament.id}\` to register your team!`,
+                  `Post your team in <#${tournament.registrationChannelId ?? regChannelId}> to register!`,
                 ].join('\n'),
               )
               .setFooter()
@@ -1002,7 +1003,7 @@ export class TournamentCommand extends Command {
               `**Registration Channel:** <#${regChannelId}>`,
               `**Approved Channel:** <#${approvedChannelId}>`,
               '',
-              `Players can register using \`/register tournament:${tournament.id}\``,
+              `Players post their team in <#${regChannelId}> to register.`,
             ].join('\n'),
           )
           .setFooter()
@@ -2282,7 +2283,7 @@ export class TournamentCommand extends Command {
       const isValidCode = validateTournamentCode(idOrCode)
       
       if (isValidCode) {
-        // Search by tournament code (string format like A42)
+        // Search by tournament short ID (format T0001–T9999)
         tournament = await prisma.tournament.findFirst({
           where: { 
             guildId, 

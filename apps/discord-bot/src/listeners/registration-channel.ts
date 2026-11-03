@@ -172,7 +172,18 @@ async function assignToGroup(
       orderBy: { groupNumber: 'asc' },
     })
 
-    let targetGroup = existingGroups.find(g => g._count.assignments < g.maxTeams) ?? null
+    // Balanced assignment: pick the group with the fewest current teams.
+    // Among groups with equal counts, the lowest groupNumber wins (stable ordering).
+    let targetGroup: typeof existingGroups[number] | null = null
+    for (const g of existingGroups) {
+      if (g._count.assignments >= g.maxTeams) continue
+      if (
+        targetGroup === null ||
+        g._count.assignments < targetGroup._count.assignments
+      ) {
+        targetGroup = g
+      }
+    }
 
     if (!targetGroup) {
       // Need a new group

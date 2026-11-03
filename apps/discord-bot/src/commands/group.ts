@@ -170,7 +170,7 @@ export class GroupCommand extends Command {
             .addStringOption(opt =>
               opt
                 .setName('tournament')
-                .setDescription('Tournament code (e.g. A42) or ID')
+                .setDescription('Tournament short ID (e.g. T0001) or full ID')
                 .setRequired(true),
             )
             .addStringOption(opt =>
@@ -194,7 +194,7 @@ export class GroupCommand extends Command {
             .addStringOption(opt =>
               opt
                 .setName('tournament')
-                .setDescription('Tournament code (e.g. A42) or ID')
+                .setDescription('Tournament short ID (e.g. T0001) or full ID')
                 .setRequired(true),
             )
             .addIntegerOption(opt =>
