@@ -38,9 +38,11 @@ export default function ServersPage() {
   const [data, setData] = useState<ServersData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
   const [search, setSearch] = useState('')
 
+  // Fetch the server list from the API
   function fetchServers() {
     setLoading(true)
     setError(null)
@@ -56,7 +58,45 @@ export default function ServersPage() {
       .catch((err: Error) => { setError(err.message); setLoading(false) })
   }
 
-  useEffect(() => { fetchServers() }, [])
+  // Sync with Discord — checks if the bot was added to any new guilds
+  // and creates DB records for them, then refreshes the list
+  function syncServers() {
+    setSyncing(true)
+    fetch('/api/servers/sync', { method: 'POST' })
+      .then((res) => {
+        if (!res.ok) throw new Error('Sync failed')
+        return res.json() as Promise<ServersData & { synced?: number }>
+      })
+      .then((d) => {
+        setData(d)
+        setSyncing(false)
+      })
+      .catch(() => {
+        // Sync failure is non-fatal — just reload the list
+        setSyncing(false)
+        fetchServers()
+      })
+  }
+
+  // Initial load: sync first (in case the bot was just added), then fetch
+  useEffect(() => {
+    syncServers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Auto-refresh when the window regains focus (user returns from Discord
+  // after adding the bot)
+  useEffect(() => {
+    function handleFocus() {
+      // Only sync if the page isn't already loading/syncing
+      if (!loading && !syncing) {
+        syncServers()
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, syncing])
 
   const total = data ? data.connected.length + data.eligible.length : 0
   const connectedOnline = data ? data.connected.filter((s) => s.liveCount > 0 || s.upcomingCount > 0).length : 0
@@ -102,16 +142,31 @@ export default function ServersPage() {
                 Manage your discord tactical lobbies and tournament hubs
               </p>
             </div>
-            {/* Stat badges top-right */}
+            {/* Stat badges + sync button top-right */}
             <div className="flex items-center gap-3 mt-3 sm:mt-0 flex-shrink-0">
+              <button
+                onClick={() => syncServers()}
+                disabled={syncing}
+                className="liquid-button px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-widest uppercase text-[var(--color-neon-cyan)] border border-[var(--color-neon-cyan)]/40 bg-[var(--color-neon-cyan)]/5 hover:bg-[var(--color-neon-cyan)]/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                aria-label="Sync servers with Discord"
+              >
+                {syncing ? (
+                  <>
+                    <span className="w-3 h-3 rounded-full border-2 border-[var(--color-neon-cyan)] border-t-transparent animate-spin" aria-hidden="true" />
+                    SYNCING…
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-neon-cyan)] animate-pulse" aria-hidden="true" />
+                    SYNC SERVERS
+                  </>
+                )}
+              </button>
               <LiquidCard neonColor="cyan" className="px-3 py-1.5">
                 <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-neon-cyan)] tracking-widest uppercase">
                   <StatusPulse variant="synced" />
-                  {total} GUILDS CACHED
+                  {total} GUILDS
                 </div>
-              </LiquidCard>
-              <LiquidCard neonColor="violet" className="px-3 py-1.5">
-                <span className="text-xs font-mono text-[var(--color-neon-violet)] tracking-widest uppercase">NODE: DELTA-ASIA</span>
               </LiquidCard>
             </div>
           </motion.div>
@@ -192,7 +247,7 @@ export default function ServersPage() {
                 CONNECTION FAILED
               </div>
               <p className="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto font-mono text-sm">{error}</p>
-              <LiquidButton variant="cyber" size="sm" onClick={fetchServers} magnetic ripple>
+              <LiquidButton variant="cyber" size="sm" onClick={syncServers} magnetic ripple>
                 RETRY CONNECTION
               </LiquidButton>
             </motion.div>
