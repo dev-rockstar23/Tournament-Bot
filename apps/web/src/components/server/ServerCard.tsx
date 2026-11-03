@@ -7,6 +7,7 @@ import { LiquidButton } from '@/components/ui/LiquidButton'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
 import { cardTilt } from '@/lib/motion'
+import { getBotInviteUrl, getGuildIconUrl } from '@/lib/discord'
 
 interface ServerCardProps {
   guildId: string
@@ -36,7 +37,7 @@ export function ServerCard({
     }
   }
 
-  const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`
+  const inviteUrl = getBotInviteUrl(isConnected ? undefined : guildId)
 
   return (
     <motion.div
@@ -75,7 +76,7 @@ export function ServerCard({
           <div className="flex-shrink-0 relative">
             {icon ? (
               <Image
-                src={`https://cdn.discordapp.com/icons/${guildId}/${icon}.png?size=128`}
+                src={getGuildIconUrl(guildId, icon, 128) ?? ''}
                 alt={`${name} icon`}
                 width={64}
                 height={64}

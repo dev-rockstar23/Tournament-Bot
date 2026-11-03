@@ -12,6 +12,7 @@ import { StatusPulse } from '@/components/ui/StatusPulse'
 import Link from 'next/link'
 import { LiquidBackground } from '@/components/ui/LiquidBackground'
 import { fadeUp, staggerChildren, fadeIn, cardStack, liquidReveal } from '@/lib/motion'
+import { getBotInviteUrl } from '@/lib/discord'
 
 export const dynamic = 'force-dynamic'
 
@@ -217,7 +218,7 @@ export default function ServersPage() {
                   </p>
                   <LiquidButton variant="liquid" size="lg" asChild magnetic ripple>
                     <a
-                      href={`https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`}
+                      href={getBotInviteUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="no-underline text-white font-bold"
@@ -319,7 +320,7 @@ export default function ServersPage() {
                             </div>
                           </div>
                           <a
-                            href={`https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id=${server.guildId}`}
+                            href={getBotInviteUrl(server.guildId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="liquid-button block w-full text-center text-xs font-mono font-bold tracking-widest uppercase px-3 py-2 rounded-lg bg-[var(--color-neon-cyan)]/10 border border-[var(--color-neon-cyan)]/40 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/20 transition-colors"
@@ -352,7 +353,7 @@ export default function ServersPage() {
                     </div>
                     <LiquidButton variant="cyber" size="md" asChild magnetic ripple>
                       <a
-                        href={`https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`}
+                        href={getBotInviteUrl()}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="no-underline text-black whitespace-nowrap"

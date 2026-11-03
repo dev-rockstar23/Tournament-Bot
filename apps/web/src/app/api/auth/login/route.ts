@@ -5,18 +5,36 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const supabase = createClient()
-  const next = new URL(request.url).searchParams.get('next') ?? '/servers'
+  const requestUrl = new URL(request.url)
+  const next = requestUrl.searchParams.get('next') ?? '/servers'
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    `${requestUrl.protocol}//${requestUrl.host}`
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
     options: {
+      // Request identify + guilds so we can list the user's servers
       scopes: 'identify guilds',
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback?next=${encodeURIComponent(next)}`,
+      // PKCE redirect — must match exactly what is listed in Supabase
+      // Dashboard → Auth → URL Configuration → Redirect URLs
+      redirectTo: `${appUrl}/api/auth/callback?next=${encodeURIComponent(next)}`,
+      // access_type=offline requests a refresh token so the provider_token
+      // survives across page reloads (Discord refresh tokens last 30 days)
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'none', // skip the Discord consent screen on re-login
+      },
     },
   })
 
   if (error || !data.url) {
-    return NextResponse.json({ error: 'OAuth failed' }, { status: 500 })
+    console.error('[auth/login] OAuth initiation failed:', error)
+    return NextResponse.json(
+      { error: 'OAuth failed', detail: error?.message ?? 'No URL returned' },
+      { status: 500 },
+    )
   }
 
   return NextResponse.redirect(data.url)

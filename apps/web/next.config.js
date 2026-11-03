@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Expose Discord client ID to the browser — required for bot invite URLs
+  env: {
+    NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ?? process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ?? '',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? '',
+  },
   eslint: {
     // We run ESLint separately; don't fail the production build on lint warnings
     ignoreDuringBuilds: true,
