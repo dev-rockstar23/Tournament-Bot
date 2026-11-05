@@ -63,9 +63,10 @@ export default function Navigation() {
       <nav
         className="sticky top-0 z-50 w-full relative"
         style={{
-          backdropFilter: 'blur(16px)',
-          backgroundColor: 'rgba(5,5,8,0.95)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          backgroundColor: 'rgba(4,4,8,0.92)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(124,58,237,0.08)',
         }}
         role="navigation"
         aria-label="Main navigation"
@@ -88,33 +89,22 @@ export default function Navigation() {
             {/* ── LEFT: Logo ── */}
             <Link
               href="/"
-              className="flex items-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md liquid-button"
+              className="flex items-center gap-2.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-md group"
               aria-label="SHADØW TOURNAMENTS home"
             >
-              <Image
-                src="/shadow-logo.png"
-                alt="SHADØW TOURNAMENTS"
-                width={32}
-                height={32}
-                unoptimized
-                className="rounded drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]"
-              />
-              <span
-                className="font-bold text-white"
-                style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-              >
-                SHADØW
-              </span>
-              <span
-                className="text-violet-400"
-                style={{ fontFamily: 'var(--font-orbitron, Orbitron, sans-serif)' }}
-              >
-                TOURNAMENTS
-              </span>
-              {/* SYNCED badge */}
-              <span className="hidden sm:flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[9px] font-mono tracking-widest uppercase border border-[rgba(34,197,94,0.4)] bg-[rgba(34,197,94,0.08)] text-[#22c55e]">
-                <StatusPulse variant="synced" className="w-1.5 h-1.5" />
-                SYNCED
+              <div className="flex items-center justify-center rounded-[8px] size-8 transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(124,58,237,0.5)]"
+                style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.3)' }}>
+                <Image src="/figma/hexagon.svg" alt="SHADØW" width={18} height={18} />
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="font-black text-[13px] text-[#f1f5f9] tracking-wider"
+                  style={{ fontFamily: 'var(--font-orbitron)' }}>SHADØW</span>
+                <span className="text-[7px] text-[#334155] tracking-[0.2em]"
+                  style={{ fontFamily: 'var(--font-jetbrains)' }}>TOURNAMENTS</span>
+              </div>
+              <span className="hidden sm:flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[9px] font-mono tracking-widest uppercase border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.06)] text-[#22c55e]">
+                <span className="size-1.5 rounded-full bg-[#22c55e] animate-pulse" aria-hidden />
+                LIVE
               </span>
             </Link>
 

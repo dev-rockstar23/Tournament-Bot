@@ -1,10 +1,9 @@
 'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { motion } from 'framer-motion'
-import { GlassCard } from '@/components/ui/GlassCard'
-import { Badge } from '@/components/ui/Badge'
 
 interface TournamentCardProps {
   id: string
@@ -22,181 +21,140 @@ interface TournamentCardProps {
   href?: string
 }
 
-const gameGradients: Record<string, string> = {
-  BGMI: 'from-green-600/60 to-teal-700/60',
-  FREE_FIRE: 'from-orange-600/60 to-red-700/60',
-  COD_MOBILE: 'from-blue-600/60 to-purple-700/60',
+const gameConfig: Record<string, { label: string; color: string; glow: string; grad: string }> = {
+  BGMI:       { label: 'BGMI',       color: '#22d3ee', glow: 'rgba(34,211,238,0.3)',  grad: 'from-teal-800/70 to-cyan-900/70' },
+  FREE_FIRE:  { label: 'FREE FIRE',  color: '#f97316', glow: 'rgba(249,115,22,0.3)',  grad: 'from-orange-800/70 to-red-900/70' },
+  COD_MOBILE: { label: 'COD MOBILE', color: '#a855f7', glow: 'rgba(168,85,247,0.3)',  grad: 'from-violet-800/70 to-indigo-900/70' },
 }
 
-const gameLabels: Record<string, string> = {
-  BGMI: 'BGMI',
-  FREE_FIRE: 'Free Fire',
-  COD_MOBILE: 'COD Mobile',
-}
-
-const gameBadgeClass: Record<string, string> = {
-  BGMI: 'bg-green-500/15 border-green-500/30 text-green-400',
-  FREE_FIRE: 'bg-orange-500/15 border-orange-500/30 text-orange-400',
-  COD_MOBILE: 'bg-blue-500/15 border-blue-500/30 text-blue-400',
-}
-
-type BadgeVariant = 'live' | 'upcoming' | 'completed' | 'cancelled' | 'draft' | 'default'
-
-const statusBadgeVariant: Record<string, BadgeVariant> = {
-  LIVE: 'live',
-  REGISTRATION_OPEN: 'upcoming',
-  CHECK_IN: 'draft',
-  COMPLETED: 'completed',
-  DRAFT: 'default',
-  CANCELLED: 'cancelled',
-  REGISTRATION_CLOSED: 'cancelled',
-  ARCHIVED: 'cancelled',
-}
-
-const statusLabel: Record<string, string> = {
-  LIVE: 'Live',
-  REGISTRATION_OPEN: 'Registration Open',
-  CHECK_IN: 'Check-In',
-  COMPLETED: 'Completed',
-  DRAFT: 'Draft',
-  CANCELLED: 'Cancelled',
-  REGISTRATION_CLOSED: 'Registration Closed',
-  ARCHIVED: 'Archived',
+const statusConfig: Record<string, { label: string; color: string; bg: string; ring: string; pulse: boolean }> = {
+  LIVE:               { label: 'LIVE',               color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   ring: 'rgba(239,68,68,0.25)',   pulse: true },
+  REGISTRATION_OPEN:  { label: 'REG OPEN',           color: '#22d3ee', bg: 'rgba(34,211,238,0.1)',  ring: 'rgba(34,211,238,0.25)',  pulse: true },
+  CHECK_IN:           { label: 'CHECK-IN',           color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  ring: 'rgba(245,158,11,0.25)',  pulse: true },
+  COMPLETED:          { label: 'COMPLETED',          color: '#22c55e', bg: 'rgba(34,197,94,0.1)',   ring: 'rgba(34,197,94,0.25)',   pulse: false },
+  DRAFT:              { label: 'DRAFT',              color: '#64748b', bg: 'rgba(100,116,139,0.1)', ring: 'rgba(100,116,139,0.2)',  pulse: false },
+  CANCELLED:          { label: 'CANCELLED',          color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   ring: 'rgba(239,68,68,0.2)',    pulse: false },
+  REGISTRATION_CLOSED:{ label: 'REG CLOSED',         color: '#64748b', bg: 'rgba(100,116,139,0.1)', ring: 'rgba(100,116,139,0.2)',  pulse: false },
+  ARCHIVED:           { label: 'ARCHIVED',           color: '#334155', bg: 'rgba(51,65,85,0.1)',    ring: 'rgba(51,65,85,0.2)',     pulse: false },
 }
 
 function getTimeLabel(status: string, registrationClose: string | null, startAt: string | null): string | null {
   try {
-    if (status === 'REGISTRATION_OPEN' && registrationClose) {
-      return `Registration closes ${formatDistanceToNow(new Date(registrationClose))}`
-    }
-    if (status === 'LIVE' && startAt) {
+    if (status === 'REGISTRATION_OPEN' && registrationClose)
+      return `Reg closes ${formatDistanceToNow(new Date(registrationClose))}`
+    if (status === 'LIVE' && startAt)
       return `Started ${formatDistanceToNow(new Date(startAt))} ago`
-    }
-    if ((status === 'DRAFT' || status === 'REGISTRATION_CLOSED' || status === 'CHECK_IN') && startAt) {
-      return `Starts ${formatDistanceToNow(new Date(startAt))}`
-    }
-  } catch {
-    return null
-  }
+    if ((status === 'DRAFT' || status === 'REGISTRATION_CLOSED' || status === 'CHECK_IN') && startAt)
+      return `Starts in ${formatDistanceToNow(new Date(startAt))}`
+  } catch { /* ignore */ }
   return null
 }
 
 export function TournamentCard({
-  id,
-  guildId,
-  name,
-  game,
-  mode,
-  status,
-  capacity,
-  acceptedCount,
-  registrationClose,
-  startAt,
-  bannerUrl,
-  tournamentCode,
-  href,
+  id, guildId, name, game, mode, status, capacity, acceptedCount,
+  registrationClose, startAt, bannerUrl, tournamentCode, href,
 }: TournamentCardProps) {
   const destination = href ?? `/servers/${guildId}/tournaments/${id}`
   const fillPct = capacity > 0 ? Math.min((acceptedCount / capacity) * 100, 100) : 0
   const timeLabel = getTimeLabel(status, registrationClose, startAt)
+  const g = gameConfig[game] ?? gameConfig.BGMI
+  const s = statusConfig[status] ?? statusConfig.DRAFT
 
   return (
-    <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-      <Link href={destination} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-2xl">
-        <GlassCard className="overflow-hidden" hover={false}>
+    <motion.div whileHover={{ y: -4, scale: 1.01 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+      <Link href={destination}
+        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] rounded-[20px]"
+        aria-label={`${name} — ${s.label}`}>
+        <div className="relative flex flex-col overflow-hidden rounded-[20px] tournament-card-glow group"
+          style={{
+            background: 'rgba(13,13,26,0.85)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            transition: 'border-color .25s ease, box-shadow .25s ease',
+          }}>
+
           {/* Banner */}
-          <div className="relative h-36 w-full overflow-hidden">
+          <div className="relative h-40 overflow-hidden shrink-0">
             {bannerUrl ? (
-              <Image
-                src={bannerUrl}
-                alt={`${name} banner`}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                className="object-cover"
-              />
+              <Image src={bannerUrl} alt={`${name} banner`} fill
+                sizes="(max-width:768px) 100vw, 400px"
+                className="object-cover transition-transform duration-700 group-hover:scale-105" />
             ) : (
-              <div
-                className={`w-full h-full bg-gradient-to-br ${gameGradients[game] ?? 'from-violet-600/60 to-indigo-700/60'}`}
-                aria-hidden="true"
-              />
+              <div className={`w-full h-full bg-gradient-to-br ${g.grad}`} aria-hidden />
             )}
-            {/* Overlay gradient for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" aria-hidden="true" />
-            {/* Badges row */}
-            <div className="absolute top-3 left-3 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${gameBadgeClass[game] ?? 'bg-violet-500/15 border-violet-500/30 text-violet-400'}`}
-              >
-                {gameLabels[game] ?? game}
+            <div className="absolute inset-0"
+              style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.15) 0%,rgba(13,13,26,0.9) 100%)' }} aria-hidden />
+
+            {/* Game + status badges */}
+            <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider"
+                style={{ background: `${g.color}14`, color: g.color, border: `1px solid ${g.color}28` }}>
+                {g.label}
               </span>
-              <Badge variant={statusBadgeVariant[status] ?? 'default'}>
-                {statusLabel[status] ?? status}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold"
+                style={{ background: s.bg, color: s.color, border: `1px solid ${s.ring}` }}>
+                {s.pulse && <span className="size-[5px] rounded-full animate-pulse shrink-0" style={{ background: s.color }} aria-hidden />}
+                {s.label}
+              </span>
             </div>
+
+            {/* Tournament code */}
+            {tournamentCode && (
+              <span className="absolute bottom-3 left-3 font-mono text-[10px] px-2 py-0.5 rounded"
+                style={{ background: 'rgba(124,58,237,0.2)', color: '#9f5bff', border: '1px solid rgba(124,58,237,0.3)' }}>
+                #{tournamentCode}
+              </span>
+            )}
           </div>
 
           {/* Content */}
-          <div className="p-4 flex flex-col gap-3">
-            {/* Title + mode */}
+          <div className="flex flex-col gap-3 p-5">
             <div>
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                {tournamentCode && (
-                  <span className="font-mono text-xs text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/30">
-                    #{tournamentCode}
-                  </span>
-                )}
-                <h3
-                  className="font-display text-base font-bold text-white leading-tight line-clamp-2 flex-1"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {name}
-                </h3>
-              </div>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{mode}</p>
+              <h3 className="font-bold text-[15px] text-[#f1f5f9] line-clamp-2 leading-tight"
+                style={{ fontFamily: 'var(--font-orbitron)' }}>
+                {name}
+              </h3>
+              <p className="text-[11px] text-[#475569] mt-1">{mode}</p>
             </div>
 
             {/* Capacity bar */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-[var(--color-text-secondary)]">Teams</span>
-                <span className="text-xs font-medium text-[var(--color-text-secondary)]">
-                  {acceptedCount}/{capacity}
-                </span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-[#475569]">Teams</span>
+                <span className="text-[10px] font-semibold text-[#64748b]">{acceptedCount}/{capacity}</span>
               </div>
-              <div
-                className="h-1.5 rounded-full bg-white/10 overflow-hidden"
-                role="progressbar"
-                aria-valuenow={acceptedCount}
-                aria-valuemin={0}
-                aria-valuemax={capacity}
-                aria-label={`${acceptedCount} of ${capacity} teams registered`}
-              >
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] to-[#06b6d4] transition-all duration-500"
-                  style={{ width: `${fillPct}%` }}
-                />
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}
+                role="progressbar" aria-valuenow={acceptedCount} aria-valuemin={0} aria-valuemax={capacity}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${fillPct}%`,
+                    background: `linear-gradient(90deg, ${g.color}99, ${g.color})`,
+                    boxShadow: fillPct >= 90 ? `0 0 8px ${g.color}` : 'none',
+                  }} />
               </div>
             </div>
 
-            {/* Time info */}
+            {/* Time */}
             {timeLabel && (
-              <p className="text-xs text-[var(--color-text-muted)]">{timeLabel}</p>
+              <p className="text-[10px] text-[#334155]" style={{ fontFamily: 'var(--font-jetbrains)' }}>{timeLabel}</p>
             )}
 
-            {/* CTA button */}
+            {/* CTA */}
             <div className="mt-1">
               {status === 'REGISTRATION_OPEN' ? (
-                <span className="inline-flex items-center justify-center w-full px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#7c3aed] to-[#9f5bff] text-white border border-[rgba(124,58,237,0.5)]">
-                  Register
+                <span className="flex items-center justify-center w-full px-4 py-2.5 rounded-[10px] text-[12px] font-bold text-white transition-all"
+                  style={{ background: 'linear-gradient(135deg,#7c3aed,#9f5bff)', boxShadow: '0 2px 12px rgba(124,58,237,0.3)' }}>
+                  Register Now →
                 </span>
               ) : (
-                <span className="inline-flex items-center justify-center w-full px-4 py-2 rounded-xl text-sm font-semibold bg-transparent text-[#f8fafc] border border-[rgba(255,255,255,0.15)]">
-                  View
+                <span className="flex items-center justify-center w-full px-4 py-2.5 rounded-[10px] text-[12px] font-semibold text-[#64748b] transition-all"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  View Details
                 </span>
               )}
             </div>
           </div>
-        </GlassCard>
+        </div>
       </Link>
     </motion.div>
   )
