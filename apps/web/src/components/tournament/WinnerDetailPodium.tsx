@@ -1,8 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Trophy } from 'lucide-react'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Trophy, Zap, Star, Flame, Medal } from 'lucide-react'
 
 export interface WinnerEntry {
   id: string
@@ -35,201 +34,214 @@ interface WinnerDetailPodiumProps {
   standings: StandingRow[]
 }
 
-const STAGGER_DELAY = [0.15, 0, 0.25] // 2nd, 1st, 3rd
+const podiumConfig = [
+  { rank: 2, height: 160, delay: 0.15, color: '#94a3b8', glow: 'rgba(148,163,184,0.3)', label: '2ND', emoji: '🥈' },
+  { rank: 1, height: 220, delay: 0,    color: '#f59e0b', glow: 'rgba(245,158,11,0.4)',  label: '1ST', emoji: '🥇' },
+  { rank: 3, height: 120, delay: 0.25, color: '#cd7c32', glow: 'rgba(205,124,50,0.3)',  label: '3RD', emoji: '🥉' },
+]
+
+function awardIcon(type: string) {
+  switch (type) {
+    case 'CHAMPION':    return <Trophy size={18} className="text-[#f59e0b]" />
+    case 'RUNNER_UP':   return <Medal size={18} className="text-[#94a3b8]" />
+    case 'THIRD_PLACE': return <Medal size={18} className="text-[#cd7c32]" />
+    case 'MVP':         return <Star size={18} className="text-[#22d3ee]" />
+    case 'TOP_FRAGGER': return <Flame size={18} className="text-[#ef4444]" />
+    default:            return <Zap size={18} className="text-[#9f5bff]" />
+  }
+}
+
+function awardAccent(type: string) {
+  switch (type) {
+    case 'CHAMPION':    return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  ring: 'rgba(245,158,11,0.2)' }
+    case 'RUNNER_UP':   return { color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', ring: 'rgba(148,163,184,0.2)' }
+    case 'THIRD_PLACE': return { color: '#cd7c32', bg: 'rgba(205,124,50,0.08)',  ring: 'rgba(205,124,50,0.2)' }
+    case 'MVP':         return { color: '#22d3ee', bg: 'rgba(34,211,238,0.08)',  ring: 'rgba(34,211,238,0.2)' }
+    case 'TOP_FRAGGER': return { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   ring: 'rgba(239,68,68,0.2)' }
+    default:            return { color: '#9f5bff', bg: 'rgba(159,91,255,0.08)',  ring: 'rgba(159,91,255,0.2)' }
+  }
+}
 
 export function WinnerDetailPodium({ winners, awards, standings }: WinnerDetailPodiumProps) {
-  const first = winners.find((w) => w.placement === 1)
-  const second = winners.find((w) => w.placement === 2)
-  const third = winners.find((w) => w.placement === 3)
-
-  // Podium order: 2nd | 1st | 3rd
-  const podiumSlots: { entry: WinnerEntry | undefined; rank: number; height: string; delay: number; highlight?: boolean; floatClass: string; slot: number }[] = [
-    { entry: second, rank: 2, height: 'h-36', delay: STAGGER_DELAY[0], floatClass: 'podium-second', slot: 2 },
-    { entry: first,  rank: 1, height: 'h-52', delay: STAGGER_DELAY[1], highlight: true, floatClass: 'podium-first', slot: 1 },
-    { entry: third,  rank: 3, height: 'h-28', delay: STAGGER_DELAY[2], floatClass: 'podium-third', slot: 3 },
-  ]
-
   return (
-    <div className="flex flex-col gap-14">
-      {/* ── Cinematic podium ────────────────────────────────────── */}
-      <section aria-labelledby="podium-heading">
-        <h2
-          id="podium-heading"
-          className="font-display text-xl font-bold text-white mb-8 text-center"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          Final Standings
-        </h2>
+    <div className="flex flex-col gap-16">
 
-        <div className="flex items-end justify-center gap-4 sm:gap-8">
-          {podiumSlots.map(({ entry, rank, height, delay, highlight, floatClass, slot }) => (
-            <motion.div
-              key={rank}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay, ease: 'easeOut' }}
-              className={`flex flex-col items-center gap-3 w-28 sm:w-40 ${floatClass}`}
-              data-podium-slot={slot}
-            >
-              {/* Column card */}
-              <div
-                className={[
-                  'w-full rounded-2xl flex flex-col items-center justify-end pb-5 pt-4 px-3',
-                  height,
-                  highlight
-                    ? 'bg-gradient-to-b from-violet-600/35 to-violet-900/45 border border-violet-500/50 shadow-[0_0_32px_rgba(124,58,237,0.5),0_0_64px_rgba(124,58,237,0.2)] animate-[glow-pulse_2s_ease-in-out_infinite]'
-                    : 'bg-white/5 border border-[rgba(255,255,255,0.09)]',
-                ].join(' ')}
-                aria-label={
-                  entry
-                    ? `${rank === 1 ? 'Champion' : rank === 2 ? 'Runner-Up' : 'Third Place'}: ${entry.team.name}`
-                    : `${rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'} place: no entry`
-                }
-              >
-                {rank === 1 && (
-                  <Trophy size={22} className="text-yellow-400 mb-1" aria-hidden="true" />
+      {/* ═══════════════ PODIUM ═══════════════ */}
+      <section aria-labelledby="podium-heading">
+        <h2 id="podium-heading" className="sr-only">Final Standings</h2>
+
+        {/* Cinematic podium */}
+        <div className="relative flex items-end justify-center gap-4 sm:gap-8 py-12">
+          {/* Background glow */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden style={{
+            background: 'radial-gradient(ellipse 60% 50% at 50% 100%, rgba(124,58,237,0.12) 0%,transparent 70%)',
+          }} />
+
+          {podiumConfig.map(({ rank, height, delay, color, glow, label, emoji }) => {
+            const entry = winners.find(w => w.placement === rank)
+            const isFirst = rank === 1
+            return (
+              <motion.div key={rank}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
+                className={`flex flex-col items-center gap-3 ${isFirst ? 'podium-first' : rank === 2 ? 'podium-second' : 'podium-third'}`}>
+
+                {/* Rank badge above pillar */}
+                {isFirst && (
+                  <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
+                    className="flex items-center justify-center rounded-full size-10"
+                    style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)' }}>
+                    <Trophy size={18} className="text-[#f59e0b]" />
+                  </motion.div>
                 )}
-                <span className="text-3xl" aria-hidden="true">
-                  {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
-                </span>
-                {entry ? (
-                  <p
-                    className="font-display text-sm font-black text-white text-center mt-2 leading-tight"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
-                    {entry.team.name}
-                    {entry.team.tag ? (
-                      <span className="block text-xs font-normal text-white/50">
-                        [{entry.team.tag}]
-                      </span>
-                    ) : null}
-                  </p>
-                ) : (
-                  <p className="text-xs text-white/30 text-center mt-2">—</p>
-                )}
-              </div>
-              {/* Rank label */}
-              <span className="text-xs font-semibold text-white/50">
-                {rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'}
-              </span>
-            </motion.div>
-          ))}
+
+                {/* Team name plate */}
+                <div className="flex flex-col items-center gap-1 text-center px-2">
+                  <span className="text-2xl">{emoji}</span>
+                  {entry ? (
+                    <>
+                      <p className="font-black text-[13px] text-[#f1f5f9] leading-tight"
+                        style={{ fontFamily: 'var(--font-orbitron)' }}>
+                        {entry.team.name}
+                      </p>
+                      {entry.team.tag && (
+                        <p className="text-[10px] text-[#64748b]">[{entry.team.tag}]</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-[#334155]">—</p>
+                  )}
+                </div>
+
+                {/* Pillar */}
+                <div className="relative w-28 sm:w-36 rounded-t-[12px] flex flex-col items-center justify-end pb-4"
+                  style={{
+                    height,
+                    background: isFirst
+                      ? `linear-gradient(180deg, ${color}25 0%, ${color}10 100%)`
+                      : `rgba(255,255,255,0.03)`,
+                    border: `1px solid ${color}40`,
+                    borderBottom: 'none',
+                    boxShadow: isFirst ? `0 0 40px ${glow}, 0 0 80px ${glow}40` : `0 0 12px ${glow}`,
+                  }}>
+                  <span className="font-black text-[11px] tracking-widest"
+                    style={{ fontFamily: 'var(--font-jetbrains)', color }}>
+                    {label}
+                  </span>
+                  {/* Scanline */}
+                  <div className="absolute inset-0 scanline-overlay rounded-t-[12px]" aria-hidden />
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
       </section>
 
-      {/* ── Awards section ──────────────────────────────────────── */}
+      {/* ═══════════════ AWARDS ═══════════════ */}
       {awards.length > 0 && (
         <section aria-labelledby="awards-heading">
-          <h2
-            id="awards-heading"
-            className="font-display text-lg font-bold text-white mb-4"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Awards
+          <h2 id="awards-heading" className="font-black text-[18px] text-[#f1f5f9] mb-5"
+            style={{ fontFamily: 'var(--font-orbitron)' }}>
+            AWARDS
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {awards.map((award, i) => (
-              <motion.div
-                key={award.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + i * 0.08 }}
-              >
-                <GlassCard className="p-4" hover={false}>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl" aria-hidden="true">
-                      {awardEmoji(award.type)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="font-display text-sm font-bold text-white"
-                        style={{ fontFamily: 'var(--font-display)' }}
-                      >
-                        {award.label}
-                      </p>
-                      {award.team && (
-                        <p className="text-xs text-white/60 mt-0.5">{award.team.name}</p>
-                      )}
-                      {award.criteria && (
-                        <p className="text-xs text-white/40 mt-0.5">{award.criteria}</p>
-                      )}
-                    </div>
+            {awards.map((award, i) => {
+              const acc = awardAccent(award.type)
+              return (
+                <motion.div key={award.id}
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.08 }}
+                  className="flex items-start gap-4 p-5 rounded-[16px]"
+                  style={{ background: acc.bg, border: `1px solid ${acc.ring}`, backdropFilter: 'blur(12px)' }}>
+                  <div className="shrink-0 size-9 flex items-center justify-center rounded-[8px]"
+                    style={{ background: `${acc.color}14`, border: `1px solid ${acc.color}25` }}>
+                    {awardIcon(award.type)}
                   </div>
-                </GlassCard>
-              </motion.div>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[13px] text-[#f1f5f9]"
+                      style={{ fontFamily: 'var(--font-orbitron)' }}>
+                      {award.label}
+                    </p>
+                    {award.team && (
+                      <p className="text-[12px] mt-0.5" style={{ color: acc.color }}>{award.team.name}</p>
+                    )}
+                    {award.criteria && (
+                      <p className="text-[11px] text-[#475569] mt-0.5">{award.criteria}</p>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </section>
       )}
 
-      {/* ── Full standings table ─────────────────────────────────── */}
+      {/* ═══════════════ FULL STANDINGS ═══════════════ */}
       {standings.length > 0 && (
         <section aria-labelledby="standings-heading">
-          <h2
-            id="standings-heading"
-            className="font-display text-lg font-bold text-white mb-4"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Full Standings
+          <h2 id="standings-heading" className="font-black text-[18px] text-[#f1f5f9] mb-5"
+            style={{ fontFamily: 'var(--font-orbitron)' }}>
+            FULL STANDINGS
           </h2>
-          <GlassCard className="overflow-hidden" hover={false}>
+          <div className="rounded-[16px] overflow-hidden"
+            style={{ background: 'rgba(8,8,18,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" aria-label="Full standings">
                 <thead>
-                  <tr className="border-b border-white/10 text-white/40 text-xs uppercase tracking-wider">
-                    <th className="text-left px-4 py-3">Rank</th>
-                    <th className="text-left px-4 py-3">Team</th>
-                    <th className="text-right px-4 py-3">Points</th>
-                    <th className="text-right px-4 py-3">Kills</th>
-                    <th className="text-right px-4 py-3">Games</th>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    {['Rank', 'Team', 'Points', 'Kills', 'Games'].map((h, i) => (
+                      <th key={h} className={`px-5 py-3.5 text-[10px] font-semibold tracking-widest uppercase text-[#334155] ${i > 1 ? 'text-right' : 'text-left'}`}
+                        style={{ fontFamily: 'var(--font-jetbrains)' }}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
-                  {standings.map((row, i) => (
-                    <motion.tr
-                      key={row.teamId}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + i * 0.05 }}
-                      className="text-white/80 hover:bg-white/5 transition-colors"
-                    >
-                      <td className="px-4 py-3 font-mono text-sm text-white/60">
-                        {row.rank === 1
-                          ? '🥇'
-                          : row.rank === 2
-                          ? '🥈'
-                          : row.rank === 3
-                          ? '🥉'
-                          : `#${row.rank}`}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-white">
-                        {row.teamName ?? row.teamId}
-                      </td>
-                      <td className="px-4 py-3 text-right text-violet-300 font-mono">
-                        {row.totalPoints.toFixed(0)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono">{row.totalKills}</td>
-                      <td className="px-4 py-3 text-right font-mono">{row.matchesPlayed}</td>
-                    </motion.tr>
-                  ))}
+                <tbody>
+                  {standings.map((row, i) => {
+                    const topThree = row.rank <= 3
+                    const rankEmoji = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : null
+                    return (
+                      <motion.tr key={row.teamId}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + i * 0.04 }}
+                        className="liquid-table-row transition-colors"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <td className="px-5 py-3.5">
+                          {rankEmoji ? (
+                            <span className="text-base">{rankEmoji}</span>
+                          ) : (
+                            <span className="text-[12px] text-[#475569] font-mono">#{row.rank}</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`font-bold text-[13px] ${topThree ? 'text-[#f1f5f9]' : 'text-[#64748b]'}`}
+                            style={{ fontFamily: 'var(--font-orbitron)' }}>
+                            {row.teamName ?? row.teamId}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono text-[13px]"
+                          style={{ color: topThree ? '#9f5bff' : '#475569' }}>
+                          {row.totalPoints.toFixed(0)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono text-[12px] text-[#475569]">
+                          {row.totalKills}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono text-[12px] text-[#475569]">
+                          {row.matchesPlayed}
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
-          </GlassCard>
+          </div>
         </section>
       )}
     </div>
   )
-}
-
-function awardEmoji(type: string): string {
-  switch (type) {
-    case 'CHAMPION': return '🏆'
-    case 'RUNNER_UP': return '🥈'
-    case 'THIRD_PLACE': return '🥉'
-    case 'MVP': return '⭐'
-    case 'TOP_FRAGGER': return '💥'
-    case 'BEST_TEAM': return '🌟'
-    default: return '🎖️'
-  }
 }

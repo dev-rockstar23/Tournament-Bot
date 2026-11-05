@@ -3,72 +3,62 @@ import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
 type BadgeVariant =
-  | 'live'
-  | 'upcoming'
-  | 'completed'
-  | 'cancelled'
-  | 'draft'
-  | 'default'
-  | 'cyber'
-  | 'warning'
-  | 'liquid'
+  | 'live' | 'upcoming' | 'completed' | 'cancelled' | 'draft'
+  | 'default' | 'cyber' | 'warning' | 'liquid' | 'check-in'
 
 interface BadgeProps {
   variant?: BadgeVariant
   children: React.ReactNode
   className?: string
-  /** Add liquid shimmer effect */
   liquid?: boolean
 }
 
-const variantClasses: Record<BadgeVariant, string> = {
-  live: 'bg-red-500/15 border-red-500/30 text-red-400',
-  upcoming: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400',
-  completed: 'bg-green-500/15 border-green-500/30 text-green-400',
-  cancelled: 'bg-gray-500/15 border-gray-500/30 text-gray-400',
-  draft: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
-  default: 'bg-violet-500/15 border-violet-500/30 text-violet-400',
-  cyber: 'bg-[rgba(6,182,212,0.10)] border-[rgba(6,182,212,0.35)] text-cyan-300 font-mono tracking-widest',
-  warning: 'bg-amber-500/15 border-amber-500/40 text-amber-400',
-  liquid: 'bg-gradient-to-r from-[#7c3aed]/20 via-[#06b6d4]/20 to-[#22c55e]/20 border border-white/20 text-white font-mono tracking-widest',
+interface VariantStyle { bg: string; color: string; ring: string; pulse?: boolean; mono?: boolean }
+
+const variants: Record<BadgeVariant, VariantStyle> = {
+  live:      { bg: 'rgba(239,68,68,0.1)',   color: '#ef4444', ring: 'rgba(239,68,68,0.25)',   pulse: true },
+  upcoming:  { bg: 'rgba(34,211,238,0.08)', color: '#22d3ee', ring: 'rgba(34,211,238,0.22)' },
+  completed: { bg: 'rgba(34,197,94,0.08)',  color: '#22c55e', ring: 'rgba(34,197,94,0.22)' },
+  cancelled: { bg: 'rgba(100,116,139,0.1)', color: '#64748b', ring: 'rgba(100,116,139,0.2)' },
+  draft:     { bg: 'rgba(245,158,11,0.08)', color: '#f59e0b', ring: 'rgba(245,158,11,0.22)' },
+  'check-in':{ bg: 'rgba(245,158,11,0.08)', color: '#f59e0b', ring: 'rgba(245,158,11,0.22)', pulse: true },
+  default:   { bg: 'rgba(124,58,237,0.1)',  color: '#9f5bff', ring: 'rgba(124,58,237,0.25)' },
+  cyber:     { bg: 'rgba(6,182,212,0.08)',  color: '#22d3ee', ring: 'rgba(6,182,212,0.25)',  mono: true },
+  warning:   { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b', ring: 'rgba(245,158,11,0.25)' },
+  liquid:    { bg: 'rgba(124,58,237,0.1)',  color: '#f1f5f9', ring: 'rgba(255,255,255,0.15)', mono: true },
 }
 
 export function Badge({ variant = 'default', children, className, liquid = false }: BadgeProps) {
+  const v = variants[variant]
   return (
     <motion.span
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, scale: 0.82 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full',
-        'text-xs font-medium border',
-        variantClasses[variant],
-        liquid && 'relative overflow-hidden',
+        'relative inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold overflow-hidden',
+        v.mono && 'font-mono tracking-wider',
         className
       )}
-    >
-      {/* live variant dot */}
-      {variant === 'live' && (
-        <motion.span
-          className="w-1.5 h-1.5 rounded-full bg-red-500"
-          animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
-          transition={{ duration: 1, repeat: Infinity }}
-          aria-hidden="true"
-        />
+      style={{ background: v.bg, color: v.color, border: `1px solid ${v.ring}` }}>
+
+      {/* Pulse dot */}
+      {v.pulse && (
+        <motion.span className="size-[5px] rounded-full shrink-0"
+          style={{ background: v.color }}
+          animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+          transition={{ duration: 1.2, repeat: Infinity }}
+          aria-hidden />
       )}
 
       {children}
 
-      {/* Liquid shimmer overlay */}
+      {/* Shimmer */}
       {liquid && (
-        <motion.span
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%)',
-          }}
+        <motion.span className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)' }}
           animate={{ x: ['-120%', '120%'] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-        />
+          transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }} />
       )}
     </motion.span>
   )

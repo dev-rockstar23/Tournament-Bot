@@ -1,9 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { LayoutGrid, List } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { LayoutGrid, List, Search, SlidersHorizontal } from 'lucide-react'
 import { TournamentCard } from './TournamentCard'
-import { NeonText } from '@/components/ui/NeonText'
-import { StatusPulse } from '@/components/ui/StatusPulse'
 
 type Game = 'BGMI' | 'FREE_FIRE' | 'COD_MOBILE'
 
@@ -31,15 +30,15 @@ interface TournamentItem {
 
 type FilterTab = 'all' | 'live' | 'registration' | 'upcoming' | 'completed'
 
-const filterTabs: { key: FilterTab; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'live', label: 'Live' },
-  { key: 'registration', label: 'Registration Open' },
-  { key: 'upcoming', label: 'Upcoming' },
-  { key: 'completed', label: 'Completed' },
+const filterTabs: { key: FilterTab; label: string; dot?: string }[] = [
+  { key: 'all',          label: 'All' },
+  { key: 'live',         label: 'Live',             dot: '#ef4444' },
+  { key: 'registration', label: 'Registration Open', dot: '#22d3ee' },
+  { key: 'upcoming',     label: 'Upcoming',          dot: '#f59e0b' },
+  { key: 'completed',    label: 'Completed',         dot: '#22c55e' },
 ]
 
-const gameOptions: { value: string; label: string }[] = [
+const gameOptions = [
   { value: '', label: 'All Games' },
   { value: 'BGMI', label: 'BGMI' },
   { value: 'FREE_FIRE', label: 'Free Fire' },
@@ -47,179 +46,169 @@ const gameOptions: { value: string; label: string }[] = [
 ]
 
 function matchesTab(status: string, tab: FilterTab): boolean {
-  if (tab === 'all') return true
-  if (tab === 'live') return status === 'LIVE'
+  if (tab === 'all')          return true
+  if (tab === 'live')         return status === 'LIVE'
   if (tab === 'registration') return status === 'REGISTRATION_OPEN'
-  if (tab === 'upcoming') return ['DRAFT', 'REGISTRATION_CLOSED', 'CHECK_IN'].includes(status)
-  if (tab === 'completed') return status === 'COMPLETED'
+  if (tab === 'upcoming')     return ['DRAFT','REGISTRATION_CLOSED','CHECK_IN'].includes(status)
+  if (tab === 'completed')    return status === 'COMPLETED'
   return true
 }
 
-interface TournamentCatalogueProps {
-  tournaments: TournamentItem[]
-  guildId: string
-}
+const stagger = { visible: { transition: { staggerChildren: 0.06 } } }
+const cardAnim = { hidden: { opacity: 0, y: 24, scale: 0.97 }, visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: [0.22,1,0.36,1] } } }
 
-export function TournamentCatalogue({ tournaments, guildId }: TournamentCatalogueProps) {
+export function TournamentCatalogue({ tournaments, guildId }: { tournaments: TournamentItem[]; guildId: string }) {
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
-  const [selectedGame, setSelectedGame] = useState<string>('')
+  const [selectedGame, setSelectedGame] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [isGrid, setIsGrid] = useState(true)
 
-  // 300ms debounce on search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchInput), 300)
-    return () => clearTimeout(timer)
+    const t = setTimeout(() => setDebouncedSearch(searchInput), 280)
+    return () => clearTimeout(t)
   }, [searchInput])
 
-  const filtered = tournaments.filter((t) => {
+  const filtered = tournaments.filter(t => {
     if (!matchesTab(t.status, activeTab)) return false
     if (selectedGame && t.game !== selectedGame) return false
     if (debouncedSearch && !t.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false
     return true
   })
 
-  const handleTabChange = useCallback((tab: FilterTab) => setActiveTab(tab), [])
+  const handleTab = useCallback((tab: FilterTab) => setActiveTab(tab), [])
+
+  // Live count
+  const liveCount = tournaments.filter(t => t.status === 'LIVE').length
 
   return (
-    <main className="min-h-screen relative" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
-      {/* Animated background — matches other pages */}
-      <div className="liquid-bg-container liquid-bg-tournament fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
-        <div className="liquid-aurora" />
-        <div className="liquid-blob violet" style={{ width: 400, height: 400, top: '-100px', left: '-100px' }} />
-        <div className="liquid-blob cyan" style={{ width: 300, height: 300, bottom: '-80px', right: '-100px' }} />
-        <div className="liquid-grid" />
-        <div className="liquid-scanline" />
-      </div>
+    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
+      <div className="max-w-[1400px] mx-auto px-6 py-10">
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: 'var(--color-neon-violet, #7c3aed)' }} aria-hidden="true" />
-            <NeonText as="h1" color="violet" className="text-3xl sm:text-4xl font-black tracking-wider liquid-text">
+        {/* ── Page header ── */}
+        <div className="flex flex-col gap-3 mb-10">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="font-black text-[#f1f5f9]"
+              style={{ fontFamily: 'var(--font-orbitron)', fontSize: 'clamp(1.4rem,3vw,2rem)' }}>
               TOURNAMENT CATALOGUE
-            </NeonText>
-            <span className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono text-green-400 border border-green-500/40 bg-green-500/5 ml-1">
-              <StatusPulse variant="synced" />
-              LIVE
-            </span>
+            </h1>
+            {liveCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold"
+                style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}>
+                <span className="size-[5px] rounded-full bg-[#ef4444] animate-pulse" aria-hidden />
+                {liveCount} LIVE NOW
+              </span>
+            )}
           </div>
-          <p className="text-[var(--color-text-secondary)] font-mono text-sm tracking-wide pl-4 border-l border-white/10">
-            {tournaments.length} tournament{tournaments.length !== 1 ? 's' : ''} registered — find and join upcoming competitions
+          <p className="text-[13px] text-[#475569]">
+            {tournaments.length} tournament{tournaments.length !== 1 ? 's' : ''} — find and join upcoming competitions
           </p>
         </div>
 
-        {/* Controls row */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+        {/* ── Controls ── */}
+        <div className="flex flex-col gap-4 mb-6">
           {/* Filter tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Tournament filter">
-            {filterTabs.map(({ key, label }) => (
-              <button
-                key={key}
-                role="tab"
-                aria-selected={activeTab === key}
-                onClick={() => handleTabChange(key)}
-                className={[
-                  'px-3 py-1.5 rounded-full text-xs font-mono font-bold whitespace-nowrap tracking-widest uppercase transition-all',
-                  activeTab === key
-                    ? 'bg-gradient-to-r from-[var(--color-neon-violet)] to-[var(--color-neon-cyan)] text-black shadow-[0_0_20px_rgba(124,58,237,0.4)]'
-                    : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-white/5 border border-white/10',
-                ].join(' ')}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Tournament filter">
+            {filterTabs.map(({ key, label, dot }) => {
+              const isActive = activeTab === key
+              return (
+                <button key={key} role="tab" aria-selected={isActive}
+                  onClick={() => handleTab(key)}
+                  className="relative flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all duration-200"
+                  style={{
+                    background: isActive ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.04)',
+                    color: isActive ? '#f1f5f9' : '#475569',
+                    border: `1px solid ${isActive ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                    boxShadow: isActive ? '0 0 16px rgba(124,58,237,0.15)' : 'none',
+                  }}>
+                  {dot && <span className={`size-[5px] rounded-full shrink-0 ${isActive ? 'animate-pulse' : ''}`}
+                    style={{ background: dot }} aria-hidden />}
+                  {label}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Right controls */}
-          <div className="flex items-center gap-3">
+          {/* Search + game filter + view toggle */}
+          <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
-            <input
-              type="search"
-              placeholder="Search tournaments…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              aria-label="Search tournaments"
-              className="liquid-input w-48 sm:w-56 text-sm"
-            />
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#334155]" />
+              <input type="search" placeholder="Search tournaments…"
+                value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                aria-label="Search tournaments"
+                className="w-full pl-8 pr-3 py-2 rounded-[8px] text-[12px] text-[#f1f5f9] transition-all focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', fontFamily: 'inherit' }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(124,58,237,0.4)'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.1)' }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)'; e.target.style.boxShadow = 'none' }} />
+            </div>
 
             {/* Game filter */}
-            <select
-              value={selectedGame}
-              onChange={(e) => setSelectedGame(e.target.value)}
+            <select value={selectedGame} onChange={e => setSelectedGame(e.target.value)}
               aria-label="Filter by game"
-              className="liquid-input text-sm cursor-pointer"
-            >
-              {gameOptions.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-[#1a1a2e]">
-                  {opt.label}
-                </option>
+              className="px-3 py-2 rounded-[8px] text-[12px] text-[#94a3b8] cursor-pointer transition-all focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', fontFamily: 'inherit' }}>
+              {gameOptions.map(opt => (
+                <option key={opt.value} value={opt.value} className="bg-[#0d0d1a]">{opt.label}</option>
               ))}
             </select>
 
-            {/* View toggle */}
-            <div className="flex items-center gap-1 border border-[rgba(255,255,255,0.08)] rounded-lg p-0.5">
-              <button
-                onClick={() => setIsGrid(true)}
-                aria-label="Grid view"
-                aria-pressed={isGrid}
-                className={`p-1.5 rounded-md transition-colors ${isGrid ? 'bg-[#7c3aed] text-white' : 'text-[var(--color-text-muted)] hover:text-white'}`}
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                onClick={() => setIsGrid(false)}
-                aria-label="List view"
-                aria-pressed={!isGrid}
-                className={`p-1.5 rounded-md transition-colors ${!isGrid ? 'bg-[#7c3aed] text-white' : 'text-[var(--color-text-muted)] hover:text-white'}`}
-              >
-                <List size={16} />
-              </button>
+            <div className="ml-auto flex items-center gap-1 p-1 rounded-[8px]"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              {[{ v: true, Icon: LayoutGrid }, { v: false, Icon: List }].map(({ v, Icon }) => (
+                <button key={`${v}`} onClick={() => setIsGrid(v)} aria-label={v ? 'Grid view' : 'List view'}
+                  className="p-1.5 rounded-[6px] transition-colors"
+                  style={{ background: isGrid === v ? '#7c3aed' : 'transparent', color: isGrid === v ? '#fff' : '#475569' }}>
+                  <Icon size={14} />
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Results count */}
-        <p className="text-xs text-[var(--color-text-muted)] mb-4">
-          {filtered.length} tournament{filtered.length !== 1 ? 's' : ''}
+        <p className="text-[11px] text-[#334155] mb-5" style={{ fontFamily: 'var(--font-jetbrains)' }}>
+          {filtered.length} result{filtered.length !== 1 ? 's' : ''}
         </p>
 
-        {/* Grid / List */}
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-2xl mb-2" aria-hidden="true">🎮</p>
-            <p className="text-[var(--color-text-secondary)] text-lg font-medium">No tournaments found</p>
-            <p className="text-[var(--color-text-muted)] text-sm mt-1">Try adjusting your filters or search query</p>
-          </div>
-        ) : (
-          <div
-            className={
-              isGrid
-                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'
-                : 'flex flex-col gap-4'
-            }
-          >
-            {filtered.map((t) => (
-              <TournamentCard
-                key={t.id}
-                id={t.id}
-                guildId={guildId}
-                name={t.name}
-                game={t.game}
-                mode={t.mode}
-                status={t.status}
-                capacity={t.capacity ?? t.teamCapacity ?? 0}
-                acceptedCount={t.acceptedCount}
-                registrationClose={t.registrationClose ?? t.registrationCloseAt ?? null}
-                startAt={t.startAt}
-                bannerUrl={t.bannerUrl}
-              />
-            ))}
-          </div>
-        )}
+        {/* Content */}
+        <AnimatePresence mode="wait">
+          {filtered.length === 0 ? (
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-28 gap-4">
+              <div className="size-16 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                <SlidersHorizontal size={22} className="text-[#7c3aed]" />
+              </div>
+              <p className="text-[#64748b] text-base font-medium">No tournaments match your filters</p>
+              <p className="text-[#334155] text-[13px]">Try adjusting the status filter or search query.</p>
+            </motion.div>
+          ) : (
+            <motion.div key={`${activeTab}-${selectedGame}`}
+              className={isGrid ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5' : 'flex flex-col gap-4'}
+              variants={stagger} initial="hidden" animate="visible">
+              {filtered.map(t => (
+                <motion.div key={t.id} variants={cardAnim}>
+                  <TournamentCard
+                    id={t.id}
+                    guildId={guildId}
+                    name={t.name}
+                    game={t.game}
+                    mode={t.mode}
+                    status={t.status}
+                    capacity={t.capacity ?? t.teamCapacity ?? 0}
+                    acceptedCount={t.acceptedCount}
+                    registrationClose={t.registrationClose ?? t.registrationCloseAt ?? null}
+                    startAt={t.startAt}
+                    bannerUrl={t.bannerUrl}
+                    tournamentCode={t.tournamentCode}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </main>
+    </div>
   )
 }
