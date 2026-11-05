@@ -23,7 +23,7 @@
 13. [Game-Specific Scoring Engines](#13-game-specific-scoring-engines)
 14. [Tournament Finalization & Winners](#14-tournament-finalization--winners)
 15. [PT — Points Table System (Alok GFX)](#15-pt--points-table-system-alok-gfx)
-16. [Razorpay Payment System](#16-razorpay-payment-system)
+16. [Payment System (Razorpay + Stripe)](#16-payment-system-razorpay--stripe)
 17. [Background Worker & Automation](#17-background-worker--automation)
 18. [Transactional Outbox & Discord Sync](#18-transactional-outbox--discord-sync)
 19. [Database Schema](#19-database-schema)
@@ -157,19 +157,20 @@ The server owner configures which Discord roles receive administrative permissio
 
 ## 5. Tournament Creation
 
-### 5.1 Seven-Step Creation Wizard
+### 5.1 Eight-Step Creation Wizard
 
-The tournament creation wizard (`/tournament create`) guides the organizer through a multi-step modal/select/button flow:
+The tournament creation wizard (`/tournament create`) guides the organizer through a multi-step modal/select/button flow. The server owner or admin creates all Discord channels beforehand and selects them in the wizard — **the bot never creates Discord channels or categories on its own**.
 
 | Step | Configuration |
 |------|--------------|
 | **1 — General Settings** | Tournament name, game, team size, max teams |
 | **2 — Game Mode** | Select game mode based on chosen game |
-| **3 — Schedule** | Tournament start date (IST), registration close date, prize pool |
-| **4 — Entry Type** | FREE or PAID (if PAID, entry fee modal) |
-| **5 — Channel Config** | Registration channel, approved-reg channel selection |
-| **6 — Confirmation** | Review all details before publishing |
-| **7 — Publish/Draft** | PUBLISH NOW (opens registration immediately) or SAVE AS DRAFT |
+| **3 — Schedule** | Tournament start date, registration close date, prize pool |
+| **4 — Entry Type** | FREE or PAID (if PAID, entry fee modal + payment provider selection) |
+| **5 — Channel Selection** | Admin selects existing Discord channels for this tournament (see §5.3) |
+| **6 — Scoring & Rules** | Game-specific scoring settings, placement/kill points, penalties, tie-breakers |
+| **7 — Confirmation** | Review all details before publishing |
+| **8 — Publish/Draft** | PUBLISH NOW (opens registration immediately) or SAVE AS DRAFT |
 
 ### 5.2 What Gets Created
 
@@ -178,9 +179,25 @@ When a tournament is created, the following are persisted:
 - A `Tournament` record with all configuration
 - A sequential short ID (see §6.1)
 - A `TournamentRuleVersion` snapshot of the active rules
-- Discord channels (registration, approved registrations) if not pre-existing
+- Channel IDs referencing existing channels the admin selected
 - An audit log entry
 - An outbox event if published immediately
+
+The bot does **not** create any Discord channels, categories, or voice channels. All channels must be pre-created by the server owner/admin and selected during the wizard.
+
+### 5.3 Channel Selection Step
+
+The admin selects existing Discord text channels for each tournament function. Every channel is optional except registration — the admin can skip channels they don't need and the bot will fall back to server-level settings where available.
+
+| Channel | Required | Purpose |
+|---------|----------|---------|
+| **Registration channel** | Yes | Where players post their team registration messages |
+| **Approved registrations** | Recommended | Where the bot posts approved team embeds |
+| **Announcement channel** | Optional | Tournament announcements (falls back to server-level setting) |
+| **Match channel** | Optional | Match schedules and live match updates |
+| **Results channel** | Optional | Approved results and standings posts |
+| **Disputes channel** | Optional | Dispute threads and resolution posts |
+| **Admin channel** | Optional | Administrative messages and control panel (falls back to server-level setting) |
 
 ---
 
@@ -339,12 +356,12 @@ When the accepted-team count reaches the configured capacity (and waitlist is di
 
 For paid tournaments (`entryType: PAID`):
 
-1. The system checks the tournament and the organizer's payment configuration.
+1. The system checks the tournament and the organizer's payment configuration (Razorpay or Stripe, see §16).
 2. It creates a database `Order`.
-3. It creates a Razorpay order using the organizer's credentials.
+3. It creates a payment order using the organizer's configured provider (Razorpay for India, Stripe for international).
 4. The player receives checkout information.
 5. The player completes payment.
-6. Razorpay sends a server-to-server webhook.
+6. The provider sends a server-to-server webhook.
 7. SHADØW verifies the webhook signature.
 8. The registration is activated only after the verified payment event.
 
@@ -388,32 +405,32 @@ Groups required = ⌈ Approved teams ÷ Teams per group ⌉
 
 Example: 600 teams ÷ 12 per group = 50 groups.
 
-### 9.3 Private Group Channels
+### 9.3 Group Channels (Admin-Managed)
 
-The bot creates a tournament category, followed by one private channel per group:
+The bot does **not** create Discord channels or categories for groups. Group assignment is handled entirely at the database level — teams are assigned to `TournamentGroup` records with their roster and status tracked in the database.
+
+The server owner or admin is responsible for creating any Discord channels they want for group communication. The bot can post group rosters and updates to existing channels that the admin has configured.
 
 ```
-🏆 TOURNAMENT NAME
+🏆 TOURNAMENT NAME (created by admin)
 │
-├── 📢 announcements
-├── 📋 registration
+├── 📢 announcements         ← admin creates, bot posts to it
+├── 📋 registration          ← admin creates, bot monitors it
 │
-├── 🏆 QUALIFIERS
-│   ├── 🔒 group-1
+├── 🏆 QUALIFIERS            ← admin creates category + channels
+│   ├── 🔒 group-1          ← admin creates, bot can be given access
 │   ├── 🔒 group-2
 │   ├── 🔒 group-3
 │   └── ...
 │
-├── ⚔️ ELIMINATION
-├── 📊 results
-└── ⚖️ disputes
+├── ⚔️ ELIMINATION           ← admin creates
+├── 📊 results               ← admin creates
+└── ⚖️ disputes              ← admin creates
 ```
 
-- Group 1 players cannot view Group 2's private channel.
-- Only assigned players and authorized administrators have access.
-- Each group channel gets a pinned roster embed showing group name, member teams, rosters, status, and match info.
-- The embed is updated whenever a team is added or removed.
-- Team member permission overrides are added to the channel on assignment.
+- Group rosters, member lists, and standings are tracked in the database (`TournamentGroup`, `GroupTeamAssignment`).
+- The bot can post group roster embeds to an existing channel if the admin configures one.
+- The admin controls all channel permissions and visibility — the bot does not modify channel permissions.
 
 ### 9.4 Group Removal & Auto-Fill
 
@@ -764,34 +781,66 @@ This way the organizer does not need to design a new points-table image manually
 
 ---
 
-## 16. Razorpay Payment System
+## 16. Payment System (Razorpay + Stripe)
 
-The payment module is feature-flagged (`PAYMENTS_ENABLED=false` by default) and separate from the free registration system. Each Discord-server organizer can configure their own Razorpay account.
+The payment module is feature-flagged (`PAYMENTS_ENABLED=false` by default) and separate from the free registration system. Each Discord-server organizer can configure their own payment provider account.
+
+SHADØW supports **two payment providers** to serve both Indian and international users:
+
+| Provider | Region | Currency | Use Case |
+|----------|--------|----------|---------|
+| **Razorpay** | India | INR | Indian organizers and players — UPI, cards, netbanking, wallets |
+| **Stripe** | International | USD, EUR, GBP, etc. | Non-Indian organizers and players — cards, Apple Pay, Google Pay |
+
+The organizer configures one or both providers. The tournament's `currency` field determines which provider is used at checkout — INR defaults to Razorpay, all other currencies default to Stripe. The organizer can also explicitly set the provider per tournament.
 
 ### 16.1 Organizer Payment Setup
 
-The organizer provides:
+The organizer provides credentials for the provider(s) they want to use:
+
+**Razorpay (India):**
 - Razorpay Key ID
 - Razorpay Key Secret
 - Webhook Secret
 
-Credentials are stored with **AES-256-GCM encryption**. Responses mask the secret. A test-connection process verifies the configuration.
+**Stripe (International):**
+- Stripe Secret Key
+- Stripe Webhook Secret
+- Stripe Account ID (for Connect / express accounts, optional)
 
-### 16.2 Paid Tournament Workflow
+Credentials are stored with **AES-256-GCM encryption**. Responses mask all secrets. A test-connection process verifies the configuration for each provider. The `OrganizerPaymentConfig` model stores both Razorpay and Stripe fields — only the fields for the active provider need to be filled.
+
+### 16.2 Payment Provider Selection
+
+When a player registers for a paid tournament:
+
+1. The system checks the tournament's `currency` (default: `INR`).
+2. If currency is `INR` → uses Razorpay (if configured).
+3. If currency is anything else (`USD`, `EUR`, etc.) → uses Stripe (if configured).
+4. The organizer can override this by explicitly setting the provider on the tournament or payment config.
+5. If the selected provider is not configured, the system returns an error directing the organizer to set up that provider.
+
+### 16.3 Paid Tournament Workflow
 
 1. System checks tournament and organizer's payment configuration.
-2. Creates a database `Order`.
-3. Creates a Razorpay order using the organizer's credentials.
-4. Player receives checkout information.
+2. Creates a database `Order` with the amount, currency, and provider.
+3. Creates a payment order using the configured provider:
+   - **Razorpay:** Creates a Razorpay order via the Razorpay API using the organizer's encrypted credentials.
+   - **Stripe:** Creates a Stripe PaymentIntent via the Stripe API using the organizer's encrypted secret key.
+4. Player receives checkout information (Razorpay checkout or Stripe Checkout URL).
 5. Player completes payment.
-6. Razorpay sends a server-to-server webhook.
+6. Provider sends a server-to-server webhook:
+   - **Razorpay:** `payment.captured` webhook with signature verification.
+   - **Stripe:** `payment_intent.succeeded` webhook with Stripe-Signature header verification.
 7. SHADØW verifies the webhook signature.
 8. Checks that amount and currency match the stored order.
-9. Checks the provider event's idempotency.
+9. Checks the provider event's idempotency (`providerEventId` unique constraint).
 10. Order is marked paid or failed.
 11. Registration is activated only after the verified payment event and any required approval.
 
-### 16.3 Payment Status System
+The system must never trust a browser redirect or a player's claim. Only the verified webhook activates a paid registration.
+
+### 16.4 Payment Status System
 
 ```
 PENDING → PAID
@@ -802,16 +851,35 @@ PAID    → DISPUTED
 DISPUTED → REFUNDED
 ```
 
-An unpaid order can expire and release its reserved place. A payment dispute goes into manual review. Order and provider event records are retained for financial accountability.
+An unpaid order can expire and release its reserved place. A payment dispute or chargeback goes into manual review. Order and provider event records are retained for financial accountability.
 
-### 16.4 Database Models
+### 16.5 Refunds
+
+Refunds are supported through both providers:
+- **Razorpay:** Refund API with reason tracking.
+- **Stripe:** Refund API with reason tracking.
+
+The `Refund` model records the amount, reason, status, and provider reference for auditability.
+
+### 16.6 Database Models
 
 | Model | Purpose |
 |-------|---------|
-| `OrganizerPaymentConfig` | Per-guild, per-organizer Razorpay credentials (encrypted) |
-| `Order` | One per paid registration (amount, currency, status, provider ref) |
-| `PaymentEvent` | Idempotent provider webhook events |
+| `OrganizerPaymentConfig` | Per-guild, per-organizer encrypted credentials for Razorpay and/or Stripe |
+| `Order` | One per paid registration (amount, currency, provider, status) |
+| `PaymentEvent` | Idempotent provider webhook events (providerEventId unique) |
 | `Refund` | Refund records linked to orders |
+
+### 16.7 Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `PAYMENTS_ENABLED` | Feature flag — `false` by default, requires legal review before enabling |
+| `ENCRYPTION_KEY` | AES-256-GCM key for encrypting all provider credentials |
+| `STRIPE_SECRET_KEY` | (Per-organizer, stored encrypted in DB) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature verification |
+
+> **Important:** Production payments must remain disabled until the feature is deliberately cleared, legally reviewed, and the provider accounts are verified. The `PAYMENTS_ENABLED` flag gates the entire payment flow.
 
 ---
 
@@ -960,6 +1028,7 @@ The bot maintains a pinned control-panel message in the administrator channel. I
 | `MatchStatus` | SCHEDULED, CHECK_IN, READY, LIVE, AWAITING_RESULT, UNDER_REVIEW, COMPLETED, POSTPONED, CANCELLED, FORFEIT, DISPUTED |
 | `EntryType` | FREE, PAID |
 | `PaymentStatus` | PENDING, PAID, FAILED, EXPIRED, DISPUTED, REFUNDED |
+| `PaymentProvider` | RAZORPAY, STRIPE |
 | `RegistrationFormat` | SIMPLE_MENTIONS, CAPTAIN_BASED, FULL_PLAYER_DETAILS, TEAM_WITH_SUBSTITUTE, CODM_FIVE_PLAYER, FULL_WITH_SUBSTITUTE |
 | `ScoreEventType` | MATCH_SCORE, CORRECTION |
 | `AwardType` | CHAMPION, RUNNER_UP, THIRD_PLACE, MVP, TOP_FRAGGER, BEST_TEAM, CUSTOM |
@@ -1039,6 +1108,8 @@ The worker requires a **TCP** Redis connection (`redis://` or `rediss://`). The 
 | `NEXT_PUBLIC_APP_URL` | Web app base URL |
 | `PAYMENTS_ENABLED` | Payment feature flag (default: false) |
 | `ENCRYPTION_KEY` | AES-256-GCM key for payment credential encryption |
+| `STRIPE_SECRET_KEY` | Stripe API secret key (per-organizer, stored encrypted in DB) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature verification |
 | `SENTRY_DSN_*` | Error reporting per service |
 
 ---
@@ -1192,16 +1263,18 @@ A hypothetical SHADØW BGMI tournament with 600 teams and five stages:
 
 | Phase | Action |
 |-------|--------|
-| **A — Server Prep** | Owner invites SHADØW, configures timezone, maps roles, sets channels |
-| **B — Tournament Creation** | Manager runs `/tournament create`, configures BGMI Battle Royale, 600 capacity, 12 per group, 5 stages. Saved as draft, then published as `T0001` |
-| **C — Registration** | Captains post teams in `#registration`. Bot validates, assigns slots, creates groups, DMs captains, assigns balanced groups |
-| **D — Qualifier Groups** | 600 ÷ 12 = 50 groups. Bot creates 50 private Discord channels with roster embeds |
+| **A — Server Prep** | Owner invites SHADØW, configures timezone, maps roles, **creates Discord channels** (registration, approved, announcement, match, results, disputes) |
+| **B — Tournament Creation** | Manager runs `/tournament create`, configures BGMI Battle Royale, 600 capacity, 12 per group, 5 stages. **Selects existing Discord channels** in the wizard. Saved as draft, then published as `T0001` |
+| **C — Registration** | Captains post teams in `#registration`. Bot validates, assigns slots, creates groups (DB-only, no channel creation), DMs captains, assigns balanced groups |
+| **D — Qualifier Groups** | 600 ÷ 12 = 50 groups created in database. Admin creates group channels if desired. Bot posts rosters to configured channels |
 | **E — Group Matches** | Matches created, scheduled, check-in managed, room credentials released privately. Results submitted → referees review → standings updated |
 | **F — Qualification** | Manager runs `/group qualify` for each group. Qualified teams advance to next stage |
 | **G — Bracket** | Engine collects qualified teams, seeds them, generates single-elimination bracket, creates matches |
 | **H — Finals** | Final rounds played, results reviewed and approved, final standings calculated using the tournament's rule snapshot |
 | **I — Winners** | Manager runs `/tournament finalize`. SHADØW creates official winner records and awards, publishes winner announcement |
 | **J — PT & Archive** | System generates branded points table from approved data. After retention period, tournament is archived; competitive records retained |
+
+> **Note:** If this is a paid tournament for Indian players, Razorpay handles checkout (INR). For international players, Stripe handles checkout (USD/EUR/etc). The provider is selected automatically based on the tournament's currency setting.
 
 ---
 
