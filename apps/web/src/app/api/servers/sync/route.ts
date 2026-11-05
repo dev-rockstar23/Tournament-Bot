@@ -178,14 +178,16 @@ export async function POST() {
     }
 
     // ── Find guilds that need syncing ───────────────────────────────────
-    // A guild needs syncing if:
-    //   - The user has MANAGE_GUILD permission (they can manage the bot)
-    //   - No DiscordServer record exists in the database
+    // Only guilds the user manages but have no DB record need checking.
+    // This is often ZERO — skip all Discord API calls in that case.
     const dbServers = await prisma.discordServer.findMany({
       where: { isActive: true },
       select: { guildId: true, name: true, icon: true },
     })
     const dbGuildIdSet = new Set(dbServers.map((s) => s.guildId))
+
+    // Pre-index Discord guilds by ID to avoid O(n²) linear scans
+    const discordGuildMap = new Map(discordGuilds.map((g) => [g.id, g]))
 
     const guildsToCheck: DiscordGuild[] = []
     for (const guild of discordGuilds) {
@@ -197,11 +199,70 @@ export async function POST() {
       }
     }
 
+    // Fast path: nothing to sync — return immediately without any Discord bot API calls
+    if (guildsToCheck.length === 0) {
+      const connected: string[] = []
+      const eligible: DiscordGuild[] = []
+
+      for (const guild of discordGuilds) {
+        const inDb = dbGuildIdSet.has(guild.id)
+        const hasManageGuild =
+          (BigInt(guild.permissions ?? '0') & BigInt(0x20)) !== BigInt(0)
+        if (inDb) connected.push(guild.id)
+        else if (hasManageGuild) eligible.push(guild)
+      }
+
+      const dbServerMap = new Map(dbServers.map((s) => [s.guildId, s]))
+      const [liveCounts, upcomingCounts] =
+        connected.length > 0
+          ? await Promise.all([
+              prisma.tournament.groupBy({
+                by: ['guildId'],
+                where: { guildId: { in: connected }, status: 'LIVE' },
+                _count: { id: true },
+              }),
+              prisma.tournament.groupBy({
+                by: ['guildId'],
+                where: { guildId: { in: connected }, status: { in: ['REGISTRATION_OPEN', 'CHECK_IN'] } },
+                _count: { id: true },
+              }),
+            ])
+          : [[], []]
+
+      const liveMap = new Map(liveCounts.map((c) => [c.guildId, c._count.id]))
+      const upcomingMap = new Map(upcomingCounts.map((c) => [c.guildId, c._count.id]))
+
+      return NextResponse.json({
+        connected: connected.map((guildId) => {
+          const dbServer = dbServerMap.get(guildId)
+          const dg = discordGuildMap.get(guildId)
+          return {
+            guildId,
+            name: dbServer?.name ?? dg?.name ?? guildId,
+            icon: dbServer?.icon ?? dg?.icon ?? null,
+            isConnected: true,
+            liveCount: liveMap.get(guildId) ?? 0,
+            upcomingCount: upcomingMap.get(guildId) ?? 0,
+          }
+        }),
+        eligible: eligible.map((guild) => ({
+          guildId: guild.id,
+          name: guild.name,
+          icon: guild.icon,
+          isConnected: false,
+          liveCount: 0,
+          upcomingCount: 0,
+        })),
+        unavailable: [],
+        synced: 0,
+      })
+    }
+
     // ── Check bot presence and create DB records ────────────────────────
     // Rate-limit: Discord allows ~50 guild lookups per second with a bot
-    // token. We cap at 30 concurrent to stay safe.
+    // token. We run batches of 10 in parallel to be conservative.
     let syncedCount = 0
-    const BATCH_SIZE = 30
+    const BATCH_SIZE = 10
 
     for (let i = 0; i < guildsToCheck.length; i += BATCH_SIZE) {
       const batch = guildsToCheck.slice(i, i + BATCH_SIZE)
@@ -307,7 +368,7 @@ export async function POST() {
 
     const connectedItems: ServerItem[] = connected.map((guildId) => {
       const dbServer = updatedDbMap.get(guildId)
-      const discordGuild = discordGuilds.find((g) => g.id === guildId)
+      const discordGuild = discordGuildMap.get(guildId)
       return {
         guildId,
         name: dbServer?.name ?? discordGuild?.name ?? guildId,

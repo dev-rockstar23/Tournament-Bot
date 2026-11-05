@@ -42,7 +42,7 @@ export default function ServersPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
   const [search, setSearch] = useState('')
 
-  // Fetch the server list from the API
+  // Fast fetch — just reads from DB + Redis cache, no Discord API calls
   function fetchServers() {
     setLoading(true)
     setError(null)
@@ -58,9 +58,30 @@ export default function ServersPage() {
       .catch((err: Error) => { setError(err.message); setLoading(false) })
   }
 
-  // Sync with Discord — checks if the bot was added to any new guilds
-  // and creates DB records for them, then refreshes the list
-  function syncServers() {
+  // Background sync — checks for newly added bot guilds without blocking the UI.
+  // Never sets loading=true; updates data silently when done.
+  function syncServersBackground() {
+    setSyncing(true)
+    fetch('/api/servers/sync', { method: 'POST' })
+      .then((res) => {
+        if (!res.ok) return null
+        return res.json() as Promise<ServersData & { synced?: number }>
+      })
+      .then((d) => {
+        // Only update if sync actually found new servers
+        if (d && ((d.synced ?? 0) > 0)) {
+          setData(d)
+        }
+        setSyncing(false)
+      })
+      .catch(() => {
+        // Sync failure is always non-fatal — data is already shown from fetchServers
+        setSyncing(false)
+      })
+  }
+
+  // Manual sync button — does show a syncing indicator but doesn't clear data
+  function syncServersManual() {
     setSyncing(true)
     fetch('/api/servers/sync', { method: 'POST' })
       .then((res) => {
@@ -72,25 +93,27 @@ export default function ServersPage() {
         setSyncing(false)
       })
       .catch(() => {
-        // Sync failure is non-fatal — just reload the list
         setSyncing(false)
         fetchServers()
       })
   }
 
-  // Initial load: sync first (in case the bot was just added), then fetch
+  // Initial load: fast fetch first (shows data immediately),
+  // then sync in background to catch any newly added servers.
   useEffect(() => {
-    syncServers()
+    fetchServers()
+    // Run sync after a short delay so the fast fetch can resolve first
+    const t = setTimeout(() => syncServersBackground(), 1500)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Auto-refresh when the window regains focus (user returns from Discord
-  // after adding the bot)
+  // after adding the bot) — background only, never blocks the UI
   useEffect(() => {
     function handleFocus() {
-      // Only sync if the page isn't already loading/syncing
       if (!loading && !syncing) {
-        syncServers()
+        syncServersBackground()
       }
     }
     window.addEventListener('focus', handleFocus)
@@ -145,7 +168,7 @@ export default function ServersPage() {
             {/* Stat badges + sync button top-right */}
             <div className="flex items-center gap-3 mt-3 sm:mt-0 flex-shrink-0">
               <button
-                onClick={() => syncServers()}
+                onClick={() => syncServersManual()}
                 disabled={syncing}
                 className="liquid-button px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-widest uppercase text-[var(--color-neon-cyan)] border border-[var(--color-neon-cyan)]/40 bg-[var(--color-neon-cyan)]/5 hover:bg-[var(--color-neon-cyan)]/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 aria-label="Sync servers with Discord"
@@ -247,7 +270,7 @@ export default function ServersPage() {
                 CONNECTION FAILED
               </div>
               <p className="text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto font-mono text-sm">{error}</p>
-              <LiquidButton variant="cyber" size="sm" onClick={syncServers} magnetic ripple>
+              <LiquidButton variant="cyber" size="sm" onClick={fetchServers} magnetic ripple>
                 RETRY CONNECTION
               </LiquidButton>
             </motion.div>

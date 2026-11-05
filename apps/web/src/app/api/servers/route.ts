@@ -199,6 +199,8 @@ export async function GET() {
 
     const dbGuildIdSet = new Set(dbServers.map((s) => s.guildId))
     const dbServerMap = new Map(dbServers.map((s) => [s.guildId, s]))
+    // Pre-index Discord guilds by ID to avoid O(n²) lookup in the map below
+    const discordGuildMap = new Map(discordGuilds.map((g) => [g.id, g]))
 
     // ── Categorize ────────────────────────────────────────────────────────
     // If we have Discord guilds data, use it for full categorization.
@@ -252,7 +254,7 @@ export async function GET() {
 
     const connectedItems: ServerItem[] = connected.map((guildId) => {
       const dbServer = dbServerMap.get(guildId)
-      const discordGuild = discordGuilds.find((g) => g.id === guildId)
+      const discordGuild = discordGuildMap.get(guildId)
       return {
         guildId,
         name: dbServer?.name ?? discordGuild?.name ?? guildId,
